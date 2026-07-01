@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inscrire mon entreprise — Randevou.ht</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--gris-clair); min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.boite { width: 100%; max-width: 520px; }
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+@media (max-width: 520px) { .deux { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><span class="logo-icone">📅</span>Randevou.ht</a></div>
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+    <h1 style="font-size:21px">Inscrire mon entreprise</h1>
+    <p class="muet petit" style="margin-top:4px">Créez votre espace en moins de 2 minutes. Votre entreprise sera visible après validation par l'équipe Randevou.ht.</p>
+    <form id="f">
+      <label>Nom de l'entreprise *</label><input id="nomEnt" required placeholder="Ex : Salon Elegance">
+      <div class="deux">
+        <div><label>Catégorie *</label>
+          <select id="cat">
+            <option>Beauté</option><option>Santé</option><option>Formation</option>
+            <option>Auto</option><option>Maison</option><option>Restaurant</option>
+            <option>Juridique</option><option>Autre</option>
+          </select>
+        </div>
+        <div><label>Téléphone</label><input id="tel" placeholder="+509 …"></div>
+      </div>
+      <label>Adresse</label><input id="adresse" placeholder="Ex : Delmas 33, Port-au-Prince">
+      <hr style="border:none;border-top:1px solid var(--bordure);margin:18px 0 4px">
+      <label>Votre nom (responsable) *</label><input id="nomResp" required placeholder="Ex : Marie Dorval">
+      <div class="deux">
+        <div><label>Email *</label><input id="email" type="email" required placeholder="vous@entreprise.ht"></div>
+        <div><label>Mot de passe *</label><input id="mdp" type="password" required minlength="6" placeholder="6 caractères min."></div>
+      </div>
+      <div class="champ-erreur" id="err"></div>
+      <button class="btn btn-primaire btn-large" style="width:100%">Créer mon espace entreprise</button>
+    </form>
+    <p class="petit centre mt">Déjà inscrit ? <a href="/connexion.html">Se connecter</a></p>
+  </div></div>
+</div>
+<script src="/app.js"></script>
+<script>
+document.getElementById('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  try {
+    await api('/api/inscription', 'POST', {
+      nomEntreprise: nomEnt.value.trim(), categorie: cat.value, telephone: tel.value.trim(),
+      adresse: adresse.value.trim(), nomResponsable: nomResp.value.trim(),
+      email: email.value.trim(), motdepasse: mdp.value
+    });
+    location.href = '/dashboard.html';
+  } catch (e) { document.getElementById('err').textContent = e.message; }
+});
+</script>
+</body>
+</html>

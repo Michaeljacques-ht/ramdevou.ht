@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Randevou.ht</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--gris-clair); min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.boite { width: 100%; max-width: 420px; }
+.demo { background: var(--bleu-clair); border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><span class="logo-icone">📅</span>Randevou.ht</a></div>
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+    <h1 style="font-size:21px">Se connecter</h1>
+    <p class="muet petit" style="margin-top:4px">Accédez à votre tableau de bord.</p>
+    <form id="f">
+      <label>Email</label><input id="email" type="email" required placeholder="vous@entreprise.ht">
+      <label>Mot de passe</label><input id="mdp" type="password" required placeholder="••••••••">
+      <div class="champ-erreur" id="err"></div>
+      <button class="btn btn-primaire btn-large" style="width:100%">Se connecter</button>
+    </form>
+    <p class="petit centre mt">Pas encore de compte ? <a href="/inscription.html">Inscrire mon entreprise</a></p>
+    <div class="demo">
+      <strong>Comptes de démonstration</strong><br>
+      Responsable : marie@salonelegance.ht / demo123<br>
+      Admin : admin@randevou.ht / admin123
+    </div>
+  </div></div>
+</div>
+<script src="/app.js"></script>
+<script>
+document.getElementById('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  try {
+    const r = await api('/api/connexion', 'POST', { email: email.value.trim(), motdepasse: mdp.value });
+    location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
+  } catch (e) { document.getElementById('err').textContent = e.message; }
+});
+</script>
+</body>
+</html>
