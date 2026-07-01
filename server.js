@@ -1,0 +1,358 @@
+// ============================================================
+// Randevou.ht — Serveur (Node.js pur, zéro dépendance)
+// Lancer :  node server.js   →  http://localhost:3000
+// ============================================================
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const store = require('./lib/db');
+
+const PORT = process.env.PORT || 3000;
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const db = store.load();
+
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'application/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json' };
+
+// ---------------- Utilitaires ----------------
+function json(res, code, data) {
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(data));
+}
+function lireCorps(req) {
+  return new Promise((resolve) => {
+    let b = '';
+    req.on('data', (c) => { b += c; if (b.length > 1e6) req.destroy(); });
+    req.on('end', () => { try { resolve(JSON.parse(b || '{}')); } catch { resolve({}); } });
+  });
+}
+function cookies(req) {
+  const out = {};
+  (req.headers.cookie || '').split(';').forEach((p) => {
+    const i = p.indexOf('='); if (i > -1) out[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1));
+  });
+  return out;
+}
+function utilisateurConnecte(req) {
+  const token = cookies(req).rdv_session;
+  const userId = token && db.sessions[token];
+  return db.users.find((u) => u.id === userId) || null;
+}
+function slugifier(s) {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
+}
+function noteMoyenne(entrepriseId) {
+  const a = db.avis.filter((x) => x.entrepriseId === entrepriseId);
+  if (!a.length) return { note: 0, total: 0 };
+  return { note: Math.round((a.reduce((s, x) => s + x.note, 0) / a.length) * 10) / 10, total: a.length };
+}
+function notifier(entrepriseId, type, message) {
+  db.notifications.unshift({ id: store.uid(), entrepriseId, type, message, lu: false, creeLe: new Date().toISOString() });
+  store.save();
+}
+function publicEntreprise(e) {
+  const { note, total } = noteMoyenne(e.id);
+  return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, horaires: e.horaires, plan: e.plan, note, totalAvis: total };
+}
+
+// ---------------- Calcul des créneaux disponibles ----------------
+const JOURS = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+function creneauxDisponibles(entreprise, service, dateStr) {
+  const jour = JOURS[new Date(dateStr + 'T12:00:00').getDay()];
+  const h = entreprise.horaires[jour];
+  if (!h || !h.ouvert) return [];
+  const capacite = Math.max(1, db.employes.filter((p) => p.entrepriseId === entreprise.id && p.actif).length);
+  const versMin = (t) => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  const versHeure = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const pris = db.rendezvous.filter((r) => r.entrepriseId === entreprise.id && r.date === dateStr && ['en_attente', 'confirme'].includes(r.statut));
+  const creneaux = [];
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const minMaintenant = new Date().getHours() * 60 + new Date().getMinutes();
+  for (let m = versMin(h.debut); m + service.duree <= versMin(h.fin); m += 30) {
+    if (dateStr === aujourdhui && m <= minMaintenant) continue;
+    const chevauche = pris.filter((r) => {
+      const s = db.services.find((x) => x.id === r.serviceId);
+      const debut = versMin(r.heure), fin = debut + (s ? s.duree : 30);
+      return m < fin && m + service.duree > debut;
+    }).length;
+    if (chevauche < capacite) creneaux.push(versHeure(m));
+  }
+  return creneaux;
+}
+
+// ---------------- Routes API ----------------
+async function api(req, res, url) {
+  const p = url.pathname;
+  const q = url.searchParams;
+  const user = utilisateurConnecte(req);
+  const corps = ['POST', 'PUT', 'DELETE'].includes(req.method) ? await lireCorps(req) : {};
+  const monEntreprise = () => user && db.entreprises.find((e) => e.id === user.entrepriseId);
+
+  // ---- Authentification ----
+  if (p === '/api/inscription' && req.method === 'POST') {
+    const { nomResponsable, email, motdepasse, nomEntreprise, categorie, telephone, adresse } = corps;
+    if (!nomResponsable || !email || !motdepasse || !nomEntreprise || !categorie)
+      return json(res, 400, { erreur: 'Tous les champs obligatoires doivent être remplis.' });
+    if (db.users.find((u) => u.email.toLowerCase() === email.toLowerCase()))
+      return json(res, 400, { erreur: 'Un compte existe déjà avec cet email.' });
+    let slug = slugifier(nomEntreprise); let i = 1;
+    while (db.entreprises.find((e) => e.slug === slug)) slug = slugifier(nomEntreprise) + '-' + ++i;
+    const entreprise = {
+      id: store.uid(), slug, nom: nomEntreprise, categorie, description: '',
+      adresse: adresse || '', telephone: telephone || '', whatsapp: (telephone || '').replace(/\D/g, ''),
+      email, statut: 'en_attente', plan: 'gratuit', couleur: '#2563EB', couleur2: '#F59E0B',
+      logoTexte: nomEntreprise.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+      horaires: { lun: { ouvert: true, debut: '08:00', fin: '17:00' }, mar: { ouvert: true, debut: '08:00', fin: '17:00' }, mer: { ouvert: true, debut: '08:00', fin: '17:00' }, jeu: { ouvert: true, debut: '08:00', fin: '17:00' }, ven: { ouvert: true, debut: '08:00', fin: '17:00' }, sam: { ouvert: true, debut: '09:00', fin: '13:00' }, dim: { ouvert: false, debut: '09:00', fin: '13:00' } },
+      creeLe: new Date().toISOString()
+    };
+    const nouvelUser = { id: store.uid(), nom: nomResponsable, email, motdepasse, role: 'responsable', entrepriseId: entreprise.id, creeLe: new Date().toISOString() };
+    db.entreprises.push(entreprise); db.users.push(nouvelUser);
+    const token = crypto.randomBytes(24).toString('hex');
+    db.sessions[token] = nouvelUser.id; store.save();
+    res.setHeader('Set-Cookie', `rdv_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+    return json(res, 200, { ok: true, role: 'responsable' });
+  }
+
+  if (p === '/api/connexion' && req.method === 'POST') {
+    const u = db.users.find((x) => x.email.toLowerCase() === (corps.email || '').toLowerCase() && x.motdepasse === corps.motdepasse);
+    if (!u) return json(res, 401, { erreur: 'Email ou mot de passe incorrect.' });
+    const token = crypto.randomBytes(24).toString('hex');
+    db.sessions[token] = u.id; store.save();
+    res.setHeader('Set-Cookie', `rdv_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+    return json(res, 200, { ok: true, role: u.role });
+  }
+
+  if (p === '/api/deconnexion' && req.method === 'POST') {
+    const t = cookies(req).rdv_session; if (t) delete db.sessions[t]; store.save();
+    res.setHeader('Set-Cookie', 'rdv_session=; Path=/; Max-Age=0');
+    return json(res, 200, { ok: true });
+  }
+
+  if (p === '/api/moi') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    const e = monEntreprise();
+    return json(res, 200, { id: user.id, nom: user.nom, email: user.email, role: user.role, entreprise: e ? { ...e, motdepasse: undefined } : null });
+  }
+
+  // ---- Public : annuaire ----
+  if (p === '/api/entreprises' && req.method === 'GET') {
+    let liste = db.entreprises.filter((e) => e.statut === 'approuvee');
+    const cat = q.get('categorie'), recherche = (q.get('q') || '').toLowerCase();
+    if (cat && cat !== 'Tout') liste = liste.filter((e) => e.categorie === cat);
+    if (recherche) liste = liste.filter((e) => (e.nom + ' ' + e.description + ' ' + e.adresse + ' ' + e.categorie).toLowerCase().includes(recherche));
+    return json(res, 200, liste.map(publicEntreprise));
+  }
+
+  const mPub = p.match(/^\/api\/entreprises\/([a-z0-9-]+)$/);
+  if (mPub && req.method === 'GET') {
+    const e = db.entreprises.find((x) => x.slug === mPub[1] && x.statut === 'approuvee');
+    if (!e) return json(res, 404, { erreur: 'Entreprise introuvable' });
+    return json(res, 200, {
+      ...publicEntreprise(e),
+      services: db.services.filter((s) => s.entrepriseId === e.id && s.actif),
+      employes: db.employes.filter((x) => x.entrepriseId === e.id && x.actif).map((x) => ({ nom: x.nom, poste: x.poste })),
+      avis: db.avis.filter((a) => a.entrepriseId === e.id).slice(0, 20)
+    });
+  }
+
+  if (p === '/api/disponibilites' && req.method === 'GET') {
+    const e = db.entreprises.find((x) => x.slug === q.get('slug'));
+    const s = e && db.services.find((x) => x.id === q.get('service') && x.entrepriseId === e.id);
+    if (!e || !s || !q.get('date')) return json(res, 400, { erreur: 'Paramètres invalides' });
+    return json(res, 200, { creneaux: creneauxDisponibles(e, s, q.get('date')) });
+  }
+
+  // ---- Réservation (client) ----
+  if (p === '/api/reservations' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    const s = e && db.services.find((x) => x.id === corps.serviceId && x.entrepriseId === e.id);
+    if (!e || !s) return json(res, 400, { erreur: 'Entreprise ou service invalide.' });
+    if (!corps.clientNom || !corps.clientTel || !corps.date || !corps.heure)
+      return json(res, 400, { erreur: 'Nom, téléphone, date et heure sont obligatoires.' });
+    if (!creneauxDisponibles(e, s, corps.date).includes(corps.heure))
+      return json(res, 409, { erreur: "Ce créneau n'est plus disponible. Choisissez-en un autre." });
+    const rdv = { id: store.uid(), entrepriseId: e.id, serviceId: s.id, clientNom: corps.clientNom, clientTel: corps.clientTel, clientEmail: corps.clientEmail || '', date: corps.date, heure: corps.heure, statut: 'en_attente', creeLe: new Date().toISOString() };
+    db.rendezvous.push(rdv);
+    notifier(e.id, 'nouveau_rdv', `Nouveau rendez-vous : ${rdv.clientNom} — ${s.nom} le ${rdv.date} à ${rdv.heure}`);
+    // Simulation d'envoi (à remplacer par Twilio/SendGrid en production)
+    console.log(`[NOTIFICATION SMS/WhatsApp → ${rdv.clientTel}] Votre demande de rendez-vous chez ${e.nom} (${s.nom}, ${rdv.date} ${rdv.heure}) a été envoyée.`);
+    return json(res, 200, { ok: true, reference: rdv.id, entreprise: e.nom, service: s.nom, date: rdv.date, heure: rdv.heure, whatsapp: e.whatsapp });
+  }
+
+  if (p === '/api/avis' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    if (!e || !corps.clientNom || !corps.note) return json(res, 400, { erreur: 'Données invalides.' });
+    db.avis.unshift({ id: store.uid(), entrepriseId: e.id, clientNom: corps.clientNom, note: Math.min(5, Math.max(1, +corps.note)), commentaire: (corps.commentaire || '').slice(0, 500), creeLe: new Date().toISOString() });
+    notifier(e.id, 'nouvel_avis', `Nouvel avis (${corps.note}/5) de ${corps.clientNom}`);
+    return json(res, 200, { ok: true });
+  }
+
+  // ---- Espace responsable (authentifié) ----
+  if (p.startsWith('/api/mon-') || p.startsWith('/api/rendezvous') || p === '/api/stats' || p === '/api/notifications') {
+    if (!user || user.role !== 'responsable') return json(res, 401, { erreur: 'Connexion requise' });
+    const e = monEntreprise();
+    if (!e) return json(res, 404, { erreur: 'Entreprise introuvable' });
+
+    if (p === '/api/mon-entreprise' && req.method === 'GET') return json(res, 200, e);
+    if (p === '/api/mon-entreprise' && req.method === 'PUT') {
+      ['nom', 'description', 'adresse', 'telephone', 'whatsapp', 'email', 'categorie', 'couleur', 'couleur2', 'logoTexte', 'horaires'].forEach((k) => {
+        if (corps[k] !== undefined) e[k] = corps[k];
+      });
+      store.save(); return json(res, 200, e);
+    }
+
+    if (p === '/api/mon-entreprise/services' && req.method === 'GET')
+      return json(res, 200, db.services.filter((s) => s.entrepriseId === e.id));
+    if (p === '/api/mon-entreprise/services' && req.method === 'POST') {
+      if (!corps.nom || !corps.duree) return json(res, 400, { erreur: 'Nom et durée obligatoires.' });
+      const s = { id: store.uid(), entrepriseId: e.id, nom: corps.nom, duree: +corps.duree, prix: +corps.prix || 0, actif: true };
+      db.services.push(s); store.save(); return json(res, 200, s);
+    }
+    const mSrv = p.match(/^\/api\/mon-entreprise\/services\/(\w+)$/);
+    if (mSrv) {
+      const s = db.services.find((x) => x.id === mSrv[1] && x.entrepriseId === e.id);
+      if (!s) return json(res, 404, { erreur: 'Service introuvable' });
+      if (req.method === 'PUT') { ['nom'].forEach(k => corps[k] !== undefined && (s[k] = corps[k])); if (corps.duree) s.duree = +corps.duree; if (corps.prix !== undefined) s.prix = +corps.prix; if (corps.actif !== undefined) s.actif = !!corps.actif; store.save(); return json(res, 200, s); }
+      if (req.method === 'DELETE') { db.services = db.services.filter((x) => x !== s); store.save(); return json(res, 200, { ok: true }); }
+    }
+
+    if (p === '/api/mon-entreprise/employes' && req.method === 'GET')
+      return json(res, 200, db.employes.filter((x) => x.entrepriseId === e.id));
+    if (p === '/api/mon-entreprise/employes' && req.method === 'POST') {
+      if (!corps.nom) return json(res, 400, { erreur: 'Nom obligatoire.' });
+      const emp = { id: store.uid(), entrepriseId: e.id, nom: corps.nom, poste: corps.poste || '', actif: true };
+      db.employes.push(emp); store.save(); return json(res, 200, emp);
+    }
+    const mEmp = p.match(/^\/api\/mon-entreprise\/employes\/(\w+)$/);
+    if (mEmp && req.method === 'DELETE') {
+      db.employes = db.employes.filter((x) => !(x.id === mEmp[1] && x.entrepriseId === e.id));
+      store.save(); return json(res, 200, { ok: true });
+    }
+
+    if (p === '/api/mon-entreprise/avis' && req.method === 'GET')
+      return json(res, 200, db.avis.filter((a) => a.entrepriseId === e.id));
+
+    if (p === '/api/rendezvous' && req.method === 'GET') {
+      let liste = db.rendezvous.filter((r) => r.entrepriseId === e.id);
+      if (q.get('date')) liste = liste.filter((r) => r.date === q.get('date'));
+      if (q.get('du') && q.get('au')) liste = liste.filter((r) => r.date >= q.get('du') && r.date <= q.get('au'));
+      liste = liste.map((r) => ({ ...r, service: db.services.find((s) => s.id === r.serviceId) || null }));
+      liste.sort((a, b) => (a.date + a.heure).localeCompare(b.date + b.heure));
+      return json(res, 200, liste);
+    }
+    const mRdv = p.match(/^\/api\/rendezvous\/(\w+)$/);
+    if (mRdv && req.method === 'PUT') {
+      const r = db.rendezvous.find((x) => x.id === mRdv[1] && x.entrepriseId === e.id);
+      if (!r) return json(res, 404, { erreur: 'Rendez-vous introuvable' });
+      if (corps.statut && ['confirme', 'annule', 'termine', 'en_attente'].includes(corps.statut)) {
+        r.statut = corps.statut;
+        const libelle = { confirme: 'confirmé', annule: 'annulé', termine: 'terminé', en_attente: 'remis en attente' }[corps.statut];
+        console.log(`[NOTIFICATION → ${r.clientTel}] Votre rendez-vous chez ${e.nom} le ${r.date} à ${r.heure} a été ${libelle}.`);
+      }
+      if (corps.date) r.date = corps.date;
+      if (corps.heure) r.heure = corps.heure;
+      store.save(); return json(res, 200, r);
+    }
+
+    if (p === '/api/stats') {
+      const aujourdhui = new Date().toISOString().slice(0, 10);
+      const debutMois = aujourdhui.slice(0, 8) + '01';
+      const rdvs = db.rendezvous.filter((r) => r.entrepriseId === e.id);
+      const actifs = rdvs.filter((r) => r.statut !== 'annule');
+      const parJour = {};
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        parJour[d.toISOString().slice(0, 10)] = 0;
+      }
+      actifs.forEach((r) => { if (parJour[r.date] !== undefined) parJour[r.date]++; });
+      const { note, total } = noteMoyenne(e.id);
+      return json(res, 200, {
+        rdvAujourdhui: actifs.filter((r) => r.date === aujourdhui).length,
+        rdvCeMois: actifs.filter((r) => r.date >= debutMois).length,
+        clientsTotaux: new Set(actifs.map((r) => r.clientTel)).size,
+        note, totalAvis: total,
+        revenusMois: actifs.filter((r) => r.date >= debutMois && ['confirme', 'termine'].includes(r.statut))
+          .reduce((s, r) => s + ((db.services.find((x) => x.id === r.serviceId) || {}).prix || 0), 0),
+        parJour
+      });
+    }
+
+    if (p === '/api/notifications' && req.method === 'GET') {
+      const notifs = db.notifications.filter((n) => n.entrepriseId === e.id).slice(0, 30);
+      return json(res, 200, notifs);
+    }
+    if (p === '/api/notifications' && req.method === 'PUT') {
+      db.notifications.forEach((n) => { if (n.entrepriseId === e.id) n.lu = true; });
+      store.save(); return json(res, 200, { ok: true });
+    }
+  }
+
+  // ---- Administration ----
+  if (p.startsWith('/api/admin')) {
+    if (!user || user.role !== 'admin') return json(res, 401, { erreur: 'Accès administrateur requis' });
+    if (p === '/api/admin/entreprises' && req.method === 'GET') {
+      return json(res, 200, db.entreprises.map((e) => ({
+        ...e, ...noteMoyenne(e.id),
+        totalRdv: db.rendezvous.filter((r) => r.entrepriseId === e.id).length
+      })));
+    }
+    const mAdm = p.match(/^\/api\/admin\/entreprises\/(\w+)$/);
+    if (mAdm && req.method === 'PUT') {
+      const e = db.entreprises.find((x) => x.id === mAdm[1]);
+      if (!e) return json(res, 404, { erreur: 'Introuvable' });
+      if (corps.statut && ['approuvee', 'en_attente', 'suspendue'].includes(corps.statut)) e.statut = corps.statut;
+      if (corps.plan && ['gratuit', 'premium'].includes(corps.plan)) e.plan = corps.plan;
+      store.save(); return json(res, 200, e);
+    }
+    if (p === '/api/admin/stats') {
+      return json(res, 200, {
+        entreprises: db.entreprises.length,
+        enAttente: db.entreprises.filter((e) => e.statut === 'en_attente').length,
+        rendezvous: db.rendezvous.length,
+        avis: db.avis.length,
+        utilisateurs: db.users.length
+      });
+    }
+  }
+
+  return json(res, 404, { erreur: 'Route introuvable' });
+}
+
+// ---------------- Fichiers statiques + pages ----------------
+function statique(res, fichier) {
+  const fp = path.join(PUBLIC_DIR, fichier);
+  if (!fp.startsWith(PUBLIC_DIR) || !fs.existsSync(fp)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('Page introuvable');
+  }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'application/octet-stream' });
+  fs.createReadStream(fp).pipe(res);
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://localhost');
+  try {
+    if (url.pathname.startsWith('/api/')) return await api(req, res, url);
+    // URL personnalisée : randevou.ht/salon-elegance
+    const m = url.pathname.match(/^\/([a-z0-9-]+)$/);
+    if (m && db.entreprises.find((e) => e.slug === m[1])) return statique(res, 'entreprise.html');
+    if (url.pathname === '/') return statique(res, 'index.html');
+    return statique(res, url.pathname.slice(1));
+  } catch (err) {
+    console.error(err);
+    json(res, 500, { erreur: 'Erreur serveur' });
+  }
+});
+
+server.listen(PORT, () => {
+  console.log('==================================================');
+  console.log('  RANDEVOU.HT — Plateforme de rendez-vous en ligne');
+  console.log('==================================================');
+  console.log(`  Site           : http://localhost:${PORT}`);
+  console.log(`  Démo entreprise: http://localhost:${PORT}/salon-elegance`);
+  console.log('  Connexions de démonstration :');
+  console.log('   • Responsable : marie@salonelegance.ht / demo123');
+  console.log('   • Admin       : admin@randevou.ht / admin123');
+  console.log('==================================================');
+});

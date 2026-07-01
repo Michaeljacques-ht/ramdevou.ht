@@ -1,0 +1,12 @@
+{
+  "name": "randevou-ht",
+  "version": "1.0.0",
+  "description": "Plateforme haïtienne de prise de rendez-vous en ligne",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
