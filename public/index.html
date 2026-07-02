@@ -50,6 +50,42 @@
   .bande-atouts, .etapes { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) { .bande-atouts, .etapes { grid-template-columns: 1fr; } .barre-recherche { flex-direction: column; } .barre-recherche .sep { display: none; } }
+
+/* ===== Animations & interactivité ===== */
+@keyframes montee { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes flotte { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes flotte2 { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-14px) rotate(2deg); } }
+@keyframes derive { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(26px,-20px) scale(1.12); } }
+@keyframes pulsation { 0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.35); } 60% { box-shadow: 0 0 0 14px rgba(37,99,235,0); } }
+.hero-int > div:first-child > * { animation: montee .6s cubic-bezier(.2,.8,.2,1) both; }
+.hero-int > div:first-child > *:nth-child(2) { animation-delay: .1s; }
+.hero-int > div:first-child > *:nth-child(3) { animation-delay: .2s; }
+.hero-int > div:first-child > *:nth-child(4) { animation-delay: .3s; }
+.hero-int > div:first-child > *:nth-child(5) { animation-delay: .38s; }
+.hero { position: relative; overflow: hidden; }
+.bulle { position: absolute; border-radius: 50%; filter: blur(46px); opacity: .5; pointer-events: none; animation: derive 11s ease-in-out infinite; }
+.bulle-1 { width: 320px; height: 320px; background: #C7DBFF; top: -90px; right: 8%; }
+.bulle-2 { width: 240px; height: 240px; background: #DCE9FF; bottom: -70px; left: 4%; animation-delay: 3s; }
+.hero-visuel { animation: montee .7s .25s cubic-bezier(.2,.8,.2,1) both; }
+.carte-confirmation { animation: flotte 5.5s ease-in-out infinite; }
+.carte-rappel { position: absolute; top: 18px; left: -14px; background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: var(--ombre); padding: 10px 14px; font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: center; animation: flotte2 6.5s .8s ease-in-out infinite; }
+.barre-recherche:focus-within { box-shadow: 0 0 0 4px rgba(37,99,235,.14); border-color: var(--bleu); }
+.cat { transition: transform .18s, box-shadow .18s; }
+.cat:hover { transform: translateY(-3px); }
+.cat:hover .rond { animation: flotte 1.4s ease-in-out infinite; }
+.btn-primaire:hover { animation: pulsation 1.2s infinite; }
+.reveler { opacity: 0; transform: translateY(26px); transition: opacity .6s cubic-bezier(.2,.8,.2,1), transform .6s cubic-bezier(.2,.8,.2,1); }
+.reveler.vu { opacity: 1; transform: none; }
+.bande-chiffres { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; text-align: center; margin: 44px 0 8px; }
+.chiffre strong { font-size: clamp(26px,3.4vw,38px); color: var(--bleu); display: block; font-variant-numeric: tabular-nums; }
+.chiffre span { font-size: 13px; color: var(--gris); font-weight: 600; }
+@media (max-width: 700px) { .bande-chiffres { grid-template-columns: 1fr 1fr; } .carte-rappel { display: none; } }
+.carte-ent { position: relative; }
+.carte-ent .banniere { position: relative; background-size: cover; background-position: center; transition: transform .35s; overflow: hidden; }
+.carte-ent:hover .banniere { transform: scale(1.04); }
+.carte-ent .logo-rond { position: absolute; left: 16px; bottom: -20px; width: 46px; height: 46px; border-radius: 12px; border: 3px solid #fff; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 16px; box-shadow: var(--ombre); overflow: hidden; z-index: 2; }
+.carte-ent .logo-rond img { width: 100%; height: 100%; object-fit: cover; }
+.carte-ent .corps { padding-top: 28px; }
 </style>
 </head>
 <body>
@@ -71,6 +107,8 @@
 </nav>
 
 <header class="hero">
+  <div class="bulle bulle-1"></div>
+  <div class="bulle bulle-2"></div>
   <div class="conteneur hero-int">
     <div>
       <h1>Réservez facilement vos rendez-vous avec <span class="accent">les meilleures entreprises</span></h1>
@@ -93,6 +131,7 @@
     </div>
     <div class="hero-visuel">
       <div class="hero-photo" role="img" aria-label="Illustration de réservation"></div>
+      <div class="carte-rappel">🔔 <span>Rappel envoyé au client</span></div>
       <div class="carte-confirmation">
         <div class="pastille-verte">✓</div>
         <strong>Réservation confirmée !</strong>
@@ -104,7 +143,14 @@
 </header>
 
 <main class="conteneur">
-  <div class="bande-atouts">
+  <div class="bande-chiffres" id="bandeChiffres">
+    <div class="chiffre"><strong data-cible="0" id="cEnt">0</strong><span>Entreprises inscrites</span></div>
+    <div class="chiffre"><strong data-cible="0" id="cAvis">0</strong><span>Avis clients</span></div>
+    <div class="chiffre"><strong id="cNote">—</strong><span>Note moyenne</span></div>
+    <div class="chiffre"><strong>0 HTG</strong><span>Pour commencer</span></div>
+  </div>
+
+  <div class="bande-atouts reveler">
     <div class="atout">
       <div class="ico" style="background:var(--bleu-clair)">💼</div>
       <h3>Pour les entreprises</h3>
@@ -192,9 +238,17 @@ async function charger() {
     cible.innerHTML = '<p class="muet">Aucune entreprise ne correspond à votre recherche pour le moment. Essayez un autre mot-clé ou une autre catégorie.</p>';
     return;
   }
-  cible.innerHTML = liste.map(e => `
-    <a class="carte-ent" href="/${e.slug}">
-      <div class="banniere" style="background:linear-gradient(135deg, ${ech(e.couleur)}, ${ech(e.couleur2)})">${ech(e.logoTexte)}</div>
+  cible.innerHTML = liste.map((e, i) => {
+    const fond = e.photoFond
+      ? `linear-gradient(135deg, ${ech(e.couleur)}99, ${ech(e.couleur2)}66), url('${e.photoFond}')`
+      : `linear-gradient(135deg, ${ech(e.couleur)}, ${ech(e.couleur2)})`;
+    const logo = e.logoImage
+      ? `<img src="${e.logoImage}" alt="Logo ${ech(e.nom)}">`
+      : ech(e.logoTexte);
+    return `
+    <a class="carte-ent reveler" style="transition-delay:${Math.min(i * 70, 350)}ms" href="/${e.slug}">
+      <div class="banniere" style="background:${fond};background-size:cover;background-position:center">${e.photoFond ? '' : ech(e.logoTexte)}</div>
+      <div class="logo-rond" style="background:${ech(e.couleur)}">${logo}</div>
       <div class="corps">
         <div class="flex entre">
           <strong>${ech(e.nom)}</strong>
@@ -206,8 +260,43 @@ async function charger() {
           <span class="btn btn-primaire btn-petit">Réserver</span>
         </div>
       </div>
-    </a>`).join('');
+    </a>`;
+  }).join('');
+  observerReveles();
+  majChiffres(liste);
 }
+
+// ---- Compteurs animés ----
+let chiffresFaits = false;
+function majChiffres(liste){
+  if (chiffresFaits || !liste.length) return;
+  chiffresFaits = true;
+  const totalAvis = liste.reduce((s, e) => s + (e.totalAvis || 0), 0);
+  const notes = liste.filter(e => e.note);
+  const moyenne = notes.length ? (notes.reduce((s, e) => s + +e.note, 0) / notes.length).toFixed(1) : '—';
+  animerCompteur(document.getElementById('cEnt'), liste.length);
+  animerCompteur(document.getElementById('cAvis'), totalAvis);
+  document.getElementById('cNote').textContent = moyenne === '—' ? '—' : moyenne + ' ★';
+}
+function animerCompteur(el, cible){
+  const duree = 1200, depart = performance.now();
+  function pas(t){
+    const p = Math.min(1, (t - depart) / duree);
+    el.textContent = Math.round(cible * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) requestAnimationFrame(pas);
+  }
+  requestAnimationFrame(pas);
+}
+
+// ---- Révélation au défilement ----
+const observateur = new IntersectionObserver((entrees) => {
+  entrees.forEach(en => { if (en.isIntersecting) { en.target.classList.add('vu'); observateur.unobserve(en.target); } });
+}, { threshold: 0.12 });
+function observerReveles(){
+  document.querySelectorAll('.reveler:not(.vu)').forEach(el => observateur.observe(el));
+}
+document.querySelectorAll('.etape, .atout, #comment h2, #apropos .carte').forEach(el => el.classList.add('reveler'));
+observerReveles();
 
 document.getElementById('formRecherche').addEventListener('submit', (ev) => {
   ev.preventDefault(); charger();

@@ -110,8 +110,14 @@ async function charger() {
   document.documentElement.style.setProperty('--marque', ent.couleur);
   document.documentElement.style.setProperty('--marque2', ent.couleur2);
 
+  // Photo de couverture personnalisée (avec voile aux couleurs de la marque)
+  if (ent.photoFond) {
+    document.querySelector('.banniere-ent').style.background =
+      `linear-gradient(130deg, ${ent.couleur}B3, ${ent.couleur2}66), url('${ent.photoFond}') center/cover`;
+  }
+
   document.getElementById('entete').innerHTML = `
-    <div class="logo-ent">${ech(ent.logoTexte)}</div>
+    <div class="logo-ent">${ent.logoImage ? `<img src="${ent.logoImage}" alt="Logo ${ech(ent.nom)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">` : ech(ent.logoTexte)}</div>
     <div style="flex:1;min-width:220px">
       <div class="flex" style="gap:10px;flex-wrap:wrap">
         <h1 style="font-size:24px">${ech(ent.nom)}</h1>
