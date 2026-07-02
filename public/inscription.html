@@ -3,285 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Entreprise — Randevou.ht</title>
+<title>Inscrire mon entreprise — Randevou.ht</title>
 <link rel="stylesheet" href="/style.css">
 <style>
-:root { --marque: #2563EB; --marque2: #F59E0B; }
-.banniere-ent { height: 210px; background: linear-gradient(130deg, var(--marque), var(--marque2)); position: relative; }
-.entete-ent { max-width: 980px; margin: -64px auto 0; padding: 0 20px; position: relative; }
-.carte-entete { background: #fff; border-radius: 18px; box-shadow: 0 10px 34px rgba(16,24,40,.12); padding: 22px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
-.logo-ent { width: 84px; height: 84px; border-radius: 18px; background: var(--marque); color: #fff; display: grid; place-items: center; font-size: 30px; font-weight: 800; flex-shrink: 0; }
-.corps-page { max-width: 980px; margin: 26px auto 60px; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; align-items: start; }
-@media (max-width: 860px) { .corps-page { grid-template-columns: 1fr; } }
-.ligne-service { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #F2F4F7; }
-.ligne-service:last-child { border-bottom: none; }
-.etapes-resa { display: flex; gap: 6px; margin-bottom: 18px; }
-.etapes-resa .pas { flex: 1; height: 5px; border-radius: 99px; background: var(--bordure); }
-.etapes-resa .pas.fait { background: var(--marque); }
-.creneaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin-top: 12px; }
-.creneau { padding: 9px 4px; border: 1px solid var(--bordure); border-radius: 9px; background: #fff; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600; text-align: center; }
-.creneau:hover { border-color: var(--marque); }
-.creneau.choisi { background: var(--marque); color: #fff; border-color: var(--marque); }
-.recap { background: var(--gris-clair); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
-.recap div { display: flex; justify-content: space-between; padding: 3px 0; }
-.horaires-liste div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13.5px; }
+body { background: var(--gris-clair); min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.boite { width: 100%; max-width: 520px; }
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+@media (max-width: 520px) { .deux { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-
-<nav class="nav">
-  <div class="conteneur nav-int">
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Randevou.ht</a>
-    <div class="nav-droite">
-      <a class="btn btn-fantome" href="/">← Retour à l'accueil</a>
-    </div>
-  </div>
-</nav>
-
-<div class="banniere-ent"></div>
-<div class="entete-ent">
-  <div class="carte-entete" id="entete"></div>
-</div>
-
-<main class="corps-page">
-  <div style="display:grid;gap:22px">
-    <section class="carte"><div class="carte-corps">
-      <h2 style="font-size:19px">Services</h2>
-      <div id="listeServices" class="mt"></div>
-    </div></section>
-
-    <section class="carte"><div class="carte-corps">
-      <div class="flex entre">
-        <h2 style="font-size:19px">Avis clients</h2>
-        <button class="btn btn-contour btn-petit" onclick="document.getElementById('voileAvis').classList.add('ouvert')">Laisser un avis</button>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Randevou.ht" style="height:110px;width:auto"></a></div>
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+    <h1 style="font-size:21px">Inscrire mon entreprise</h1>
+    <p class="muet petit" style="margin-top:4px">Créez votre espace en moins de 2 minutes. Votre entreprise sera visible après validation par l'équipe Randevou.ht.</p>
+    <form id="f">
+      <label>Nom de l'entreprise *</label><input id="nomEnt" required placeholder="Ex : Salon Elegance">
+      <div class="deux">
+        <div><label>Catégorie *</label>
+          <select id="cat">
+            <option>Beauté</option><option>Santé</option><option>Formation</option>
+            <option>Auto</option><option>Maison</option><option>Restaurant</option>
+            <option>Juridique</option><option>Autre</option>
+          </select>
+        </div>
+        <div><label>Téléphone</label><input id="tel" placeholder="+509 …"></div>
       </div>
-      <div id="listeAvis" class="mt"></div>
-    </div></section>
-  </div>
-
-  <aside style="display:grid;gap:22px">
-    <section class="carte" id="carteResa"><div class="carte-corps">
-      <h2 style="font-size:19px">Réserver un rendez-vous</h2>
-      <div class="etapes-resa mt" id="barrePas"><div class="pas fait"></div><div class="pas"></div><div class="pas"></div><div class="pas"></div></div>
-      <div id="zonePas"></div>
-    </div></section>
-
-    <section class="carte"><div class="carte-corps">
-      <h2 style="font-size:16px">Informations</h2>
-      <div id="infos" class="mt petit"></div>
-      <h3 style="font-size:14px;margin-top:16px">Horaires</h3>
-      <div class="horaires-liste mt" id="horaires" style="margin-top:8px"></div>
-    </div></section>
-
-    <section class="carte"><div class="carte-corps">
-      <h2 style="font-size:16px">Équipe</h2>
-      <div id="equipe" class="mt"></div>
-    </div></section>
-  </aside>
-</main>
-
-<!-- Modale avis -->
-<div class="voile" id="voileAvis">
-  <div class="modale">
-    <h3>Laisser un avis</h3>
-    <label>Votre nom</label><input id="avisNom" placeholder="Ex : Jean Michel">
-    <label>Note</label>
-    <select id="avisNote"><option value="5">★★★★★ — Excellent</option><option value="4">★★★★☆ — Très bien</option><option value="3">★★★☆☆ — Bien</option><option value="2">★★☆☆☆ — Moyen</option><option value="1">★☆☆☆☆ — Décevant</option></select>
-    <label>Commentaire</label><textarea id="avisTexte" rows="3" placeholder="Partagez votre expérience…"></textarea>
-    <div class="flex mt" style="justify-content:flex-end">
-      <button class="btn btn-fantome" onclick="document.getElementById('voileAvis').classList.remove('ouvert')">Annuler</button>
-      <button class="btn btn-primaire" onclick="envoyerAvis()">Publier l'avis</button>
-    </div>
-  </div>
+      <label>Adresse</label><input id="adresse" placeholder="Ex : Delmas 33, Port-au-Prince">
+      <hr style="border:none;border-top:1px solid var(--bordure);margin:18px 0 4px">
+      <label>Votre nom (responsable) *</label><input id="nomResp" required placeholder="Ex : Marie Dorval">
+      <div class="deux">
+        <div><label>Email *</label><input id="email" type="email" required placeholder="vous@entreprise.ht"></div>
+        <div><label>Mot de passe *</label><input id="mdp" type="password" required minlength="6" placeholder="6 caractères min."></div>
+      </div>
+      <div class="champ-erreur" id="err"></div>
+      <button class="btn btn-primaire btn-large" style="width:100%">Créer mon espace entreprise</button>
+    </form>
+    <p class="petit centre mt">Déjà inscrit ? <a href="/connexion.html">Se connecter</a></p>
+  </div></div>
 </div>
-
 <script src="/app.js"></script>
 <script>
-const slug = location.pathname.replace(/^\//, '').replace(/\.html$/, '') || new URLSearchParams(location.search).get('slug');
-let ent = null;
-let resa = { pas: 1, service: null, date: '', heure: '' };
-const NOMS_JOURS = { lun: 'Lundi', mar: 'Mardi', mer: 'Mercredi', jeu: 'Jeudi', ven: 'Vendredi', sam: 'Samedi', dim: 'Dimanche' };
-
-async function charger() {
-  try { ent = await api('/api/entreprises/' + slug); }
-  catch { document.body.innerHTML = '<div class="conteneur centre" style="padding:80px 20px"><h1>Entreprise introuvable</h1><p class="muet mt">Cette page n\'existe pas ou n\'est pas encore approuvée.</p><a class="btn btn-primaire mt" href="/" style="margin-top:20px">Retour à l\'accueil</a></div>'; return; }
-
-  document.title = ent.nom + ' — Randevou.ht';
-  document.documentElement.style.setProperty('--marque', ent.couleur);
-  document.documentElement.style.setProperty('--marque2', ent.couleur2);
-
-  // Photo de couverture personnalisée (avec voile aux couleurs de la marque)
-  if (ent.photoFond) {
-    document.querySelector('.banniere-ent').style.background =
-      `linear-gradient(130deg, ${ent.couleur}B3, ${ent.couleur2}66), url('${ent.photoFond}') center/cover`;
-  }
-
-  document.getElementById('entete').innerHTML = `
-    <div class="logo-ent">${ent.logoImage ? `<img src="${ent.logoImage}" alt="Logo ${ech(ent.nom)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">` : ech(ent.logoTexte)}</div>
-    <div style="flex:1;min-width:220px">
-      <div class="flex" style="gap:10px;flex-wrap:wrap">
-        <h1 style="font-size:24px">${ech(ent.nom)}</h1>
-        ${ent.plan === 'premium' ? '<span class="badge badge-bleu">Premium</span>' : ''}
-      </div>
-      <p class="muet petit">${ICONES_CAT[ent.categorie] || '✨'} ${ech(ent.categorie)} • ${ech(ent.adresse)}</p>
-      <p class="petit" style="margin-top:6px"><span class="etoiles">${etoiles(ent.note)}</span> <strong>${ent.note || '—'}</strong> <span class="muet">(${ent.totalAvis} avis)</span></p>
-    </div>
-    <div style="display:grid;gap:8px">
-      <a class="btn btn-primaire" href="#carteResa" style="background:var(--marque)">Réserver maintenant</a>
-      ${ent.whatsapp ? `<a class="btn btn-succes" target="_blank" rel="noopener" href="https://wa.me/${ech(ent.whatsapp)}">💬 WhatsApp</a>` : ''}
-      <div class="flex" style="gap:6px;justify-content:center" aria-label="Partager cette page">
-        <button class="btn btn-fantome btn-petit" onclick="partager('whatsapp')" title="Partager sur WhatsApp">🟢</button>
-        <button class="btn btn-fantome btn-petit" onclick="partager('facebook')" title="Partager sur Facebook">🔵</button>
-        <button class="btn btn-fantome btn-petit" onclick="partager('x')" title="Partager sur X (Twitter)">✖️</button>
-        <button class="btn btn-fantome btn-petit" onclick="partager('copier')" title="Copier le lien">🔗</button>
-      </div>
-    </div>`;
-
-  window.partager = async (canal) => {
-    const url = location.href;
-    const texte = `Prenez rendez-vous chez ${ent.nom} sur Randevou.ht : `;
-    if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + url), '_blank');
-    else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
-    else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(url), '_blank');
-    else if (canal === 'copier') {
-      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Randevou.ht', text: texte, url }); return; } catch {} }
-      try { await navigator.clipboard.writeText(url); toast('Lien copié ! Collez-le où vous voulez.'); }
-      catch { prompt('Copiez ce lien :', url); }
-    }
-  };
-
-  document.getElementById('listeServices').innerHTML = ent.description
-    ? `<p class="muet petit" style="margin-bottom:12px">${ech(ent.description)}</p>` : '';
-  document.getElementById('listeServices').innerHTML += ent.services.map(s => `
-    <div class="ligne-service">
-      <div><strong>${ech(s.nom)}</strong><div class="petit muet">⏱ ${s.duree} min</div></div>
-      <div class="flex"><strong>${htg(s.prix)}</strong>
-      <button class="btn btn-contour btn-petit" onclick="choisirService('${s.id}')">Choisir</button></div>
-    </div>`).join('') || '<p class="muet">Aucun service publié pour le moment.</p>';
-
-  document.getElementById('listeAvis').innerHTML = ent.avis.length ? ent.avis.map(a => `
-    <div style="padding:12px 0;border-bottom:1px solid #F2F4F7">
-      <div class="flex entre"><strong class="petit">${ech(a.clientNom)}</strong><span class="etoiles petit">${etoiles(a.note)}</span></div>
-      <p class="petit muet" style="margin-top:4px">${ech(a.commentaire)}</p>
-    </div>`).join('') : '<p class="muet petit">Aucun avis pour le moment. Soyez le premier à partager votre expérience !</p>';
-
-  document.getElementById('infos').innerHTML = `
-    <p>📍 ${ech(ent.adresse) || '—'}</p>
-    <p style="margin-top:6px">📞 ${ech(ent.telephone) || '—'}</p>`;
-  document.getElementById('horaires').innerHTML = ['lun','mar','mer','jeu','ven','sam','dim'].map(j => {
-    const h = ent.horaires[j];
-    return `<div><span>${NOMS_JOURS[j]}</span><span class="${h.ouvert ? '' : 'muet'}">${h.ouvert ? h.debut + ' – ' + h.fin : 'Fermé'}</span></div>`;
-  }).join('');
-  document.getElementById('equipe').innerHTML = ent.employes.map(x => `
-    <div class="flex" style="padding:6px 0"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
-    <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)}</div></div></div>`).join('') || '<p class="muet petit">—</p>';
-
-  dessinerPas();
-}
-
-function choisirService(id) {
-  resa.service = ent.services.find(s => s.id === id);
-  resa.pas = 2; resa.date = ''; resa.heure = '';
-  dessinerPas();
-  document.getElementById('carteResa').scrollIntoView({ behavior: 'smooth' });
-}
-
-function dessinerPas() {
-  document.querySelectorAll('#barrePas .pas').forEach((el, i) => el.classList.toggle('fait', i < resa.pas));
-  const z = document.getElementById('zonePas');
-  const min = new Date().toISOString().slice(0, 10);
-
-  if (resa.pas === 1) {
-    z.innerHTML = `<p class="petit muet">Étape 1 sur 4 — Choisissez un service</p>
-      <div style="display:grid;gap:8px;margin-top:12px">
-      ${ent.services.map(s => `<button class="creneau" style="text-align:left;padding:11px 14px" onclick="choisirService('${s.id}')">${ech(s.nom)} <span class="muet" style="font-weight:400">• ${s.duree} min • ${htg(s.prix)}</span></button>`).join('')}
-      </div>`;
-  }
-  if (resa.pas === 2) {
-    z.innerHTML = `<p class="petit muet">Étape 2 sur 4 — <strong>${ech(resa.service.nom)}</strong> : choisissez une date</p>
-      <label>Date du rendez-vous</label>
-      <input type="date" id="champDate" min="${min}" value="${resa.date || min}">
-      <div class="flex mt" style="justify-content:space-between">
-        <button class="btn btn-fantome btn-petit" onclick="resa.pas=1;dessinerPas()">← Retour</button>
-        <button class="btn btn-primaire" style="background:var(--marque)" onclick="validerDate()">Voir les créneaux</button>
-      </div>`;
-  }
-  if (resa.pas === 3) chargerCreneaux();
-  if (resa.pas === 4) {
-    z.innerHTML = `<p class="petit muet">Étape 4 sur 4 — Vos coordonnées</p>
-      <div class="recap mt">
-        <div><span>Service</span><strong>${ech(resa.service.nom)}</strong></div>
-        <div><span>Date</span><strong>${dateFR(resa.date)}</strong></div>
-        <div><span>Heure</span><strong>${resa.heure}</strong></div>
-        <div><span>Prix</span><strong>${htg(resa.service.prix)}</strong></div>
-      </div>
-      <label>Nom complet *</label><input id="cNom" placeholder="Ex : Jean Michel">
-      <label>Téléphone (WhatsApp) *</label><input id="cTel" placeholder="Ex : +509 3712 0000">
-      <label>Email (recommandé)</label><input id="cEmail" type="email" placeholder="exemple@gmail.com — pour recevoir votre confirmation">
-      <div class="champ-erreur" id="erreurResa"></div>
-      <div class="flex" style="justify-content:space-between">
-        <button class="btn btn-fantome btn-petit" onclick="resa.pas=3;dessinerPas()">← Retour</button>
-        <button class="btn btn-primaire" style="background:var(--marque)" onclick="confirmerResa()">Confirmer le rendez-vous</button>
-      </div>`;
-  }
-}
-
-function validerDate() {
-  resa.date = document.getElementById('champDate').value;
-  if (!resa.date) return toast('Choisissez une date.');
-  resa.pas = 3; dessinerPas();
-}
-
-async function chargerCreneaux() {
-  const z = document.getElementById('zonePas');
-  z.innerHTML = '<p class="petit muet">Chargement des disponibilités…</p>';
-  const { creneaux } = await api(`/api/disponibilites?slug=${slug}&service=${resa.service.id}&date=${resa.date}`);
-  z.innerHTML = `<p class="petit muet">Étape 3 sur 4 — Créneaux du <strong>${dateFR(resa.date)}</strong></p>
-    ${creneaux.length ? `<div class="creneaux">${creneaux.map(h => `<button class="creneau" onclick="choisirHeure('${h}', this)">${h}</button>`).join('')}</div>`
-      : '<p class="muet petit mt">Aucun créneau disponible ce jour-là. Choisissez une autre date.</p>'}
-    <div class="flex mt" style="justify-content:space-between">
-      <button class="btn btn-fantome btn-petit" onclick="resa.pas=2;dessinerPas()">← Changer la date</button>
-      <button class="btn btn-primaire" style="background:var(--marque)" id="btnSuite" disabled onclick="resa.pas=4;dessinerPas()">Continuer</button>
-    </div>`;
-}
-
-function choisirHeure(h, el) {
-  resa.heure = h;
-  document.querySelectorAll('.creneau').forEach(c => c.classList.remove('choisi'));
-  el.classList.add('choisi');
-  document.getElementById('btnSuite').disabled = false;
-}
-
-async function confirmerResa() {
-  const nom = document.getElementById('cNom').value.trim();
-  const tel = document.getElementById('cTel').value.trim();
-  const email = document.getElementById('cEmail').value.trim();
-  const err = document.getElementById('erreurResa');
-  if (!nom || !tel) { err.textContent = 'Le nom et le téléphone sont obligatoires.'; return; }
+document.getElementById('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
   try {
-    const r = await api('/api/reservations', 'POST', { slug, serviceId: resa.service.id, date: resa.date, heure: resa.heure, clientNom: nom, clientTel: tel, clientEmail: email });
-    document.getElementById('zonePas').innerHTML = `
-      <div class="centre" style="padding:14px 0">
-        <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
-        <h3>Demande envoyée !</h3>
-        <p class="petit muet" style="margin-top:8px">Votre demande de rendez-vous chez <strong>${ech(r.entreprise)}</strong> pour <strong>${ech(r.service)}</strong> le <strong>${dateFR(r.date)}</strong> à <strong>${r.heure}</strong> a été transmise.<br><br>Vous recevrez une confirmation dès que l'entreprise l'aura validée.</p>
-        <p class="petit muet" style="margin-top:8px">Référence : <strong>${r.reference}</strong></p>
-        ${r.whatsapp ? `<a class="btn btn-succes mt" style="margin-top:14px" target="_blank" rel="noopener" href="https://wa.me/${r.whatsapp}?text=${encodeURIComponent('Bonjour, je viens de réserver « ' + r.service + ' » le ' + r.date + ' à ' + r.heure + ' (réf. ' + r.reference + ').')}">Prévenir sur WhatsApp</a>` : ''}
-      </div>`;
-    document.querySelectorAll('#barrePas .pas').forEach(el => el.classList.add('fait'));
-  } catch (e) { err.textContent = e.message; }
-}
-
-async function envoyerAvis() {
-  const nom = document.getElementById('avisNom').value.trim();
-  if (!nom) return toast('Indiquez votre nom.');
-  await api('/api/avis', 'POST', { slug, clientNom: nom, note: document.getElementById('avisNote').value, commentaire: document.getElementById('avisTexte').value });
-  document.getElementById('voileAvis').classList.remove('ouvert');
-  toast('Merci pour votre avis !');
-  charger();
-}
-
-charger();
+    await api('/api/inscription', 'POST', {
+      nomEntreprise: nomEnt.value.trim(), categorie: cat.value, telephone: tel.value.trim(),
+      adresse: adresse.value.trim(), nomResponsable: nomResp.value.trim(),
+      email: email.value.trim(), motdepasse: mdp.value
+    });
+    location.href = '/dashboard.html';
+  } catch (e) { document.getElementById('err').textContent = e.message; }
+});
 </script>
 </body>
 </html>

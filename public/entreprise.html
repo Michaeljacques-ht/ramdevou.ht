@@ -3,311 +3,284 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Randevou.ht — Réservez vos rendez-vous en Haïti</title>
-<meta name="description" content="Randevou.ht est la plateforme numéro 1 en Haïti pour trouver et réserver des services de qualité : santé, beauté, formation, auto et plus.">
+<title>Entreprise — Randevou.ht</title>
 <link rel="stylesheet" href="/style.css">
 <style>
-.hero { background: linear-gradient(135deg, #F8FAFF 0%, #EFF4FF 60%, #E7EEFF 100%); border-bottom: 1px solid var(--bordure); }
-.hero-int { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; padding: 64px 0 56px; align-items: center; }
-.hero h1 { font-size: clamp(30px, 4.4vw, 46px); font-weight: 800; }
-.hero h1 .accent { color: var(--bleu); }
-.hero p.intro { color: #475467; font-size: 16px; margin: 16px 0 24px; max-width: 46ch; }
-.barre-recherche { display: flex; background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: var(--ombre); overflow: hidden; }
-.barre-recherche input { border: none; border-radius: 0; padding: 14px 16px; }
-.barre-recherche input:focus { outline: none; }
-.barre-recherche .sep { width: 1px; background: var(--bordure); }
-.barre-recherche button { border-radius: 0; }
-.hero-visuel { position: relative; min-height: 340px; }
-.hero-photo { width: 100%; height: 340px; border-radius: 20px; background: linear-gradient(160deg, var(--marine) 0%, #24437E 55%, var(--bleu) 130%); position: relative; overflow: hidden; }
-.hero-photo::after { content: '📅'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 110px; opacity: .9; }
-.carte-confirmation { position: absolute; right: -8px; bottom: -20px; background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(16,24,40,.16); padding: 18px 20px; width: 240px; }
-.pastille-verte { width: 40px; height: 40px; border-radius: 50%; background: var(--vert); color: #fff; display: grid; place-items: center; font-size: 20px; margin-bottom: 10px; }
-.categories { display: flex; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
-.cat { display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; border: none; background: none; font: inherit; }
-.cat .rond { width: 52px; height: 52px; border-radius: 14px; background: #fff; border: 1px solid var(--bordure); display: grid; place-items: center; font-size: 22px; transition: .15s; }
-.cat:hover .rond, .cat.actif .rond { border-color: var(--bleu); background: var(--bleu-clair); }
-.cat span { font-size: 12.5px; font-weight: 600; color: #475467; }
-.bande-atouts { background: var(--gris-clair); border-radius: 18px; padding: 26px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin: 40px 0; }
-.atout .ico { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; font-size: 20px; margin-bottom: 10px; }
-.atout h3 { font-size: 15px; margin-bottom: 4px; }
-.atout p { font-size: 13px; color: var(--gris); }
-.section { padding: 44px 0; }
-.section h2 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
-.grille-entreprises { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-top: 22px; }
-.carte-ent { border: 1px solid var(--bordure); border-radius: 16px; overflow: hidden; background: #fff; box-shadow: var(--ombre); transition: .15s; }
-.carte-ent:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(16,24,40,.1); }
-.carte-ent .banniere { height: 110px; display: grid; place-items: center; color: #fff; font-size: 30px; font-weight: 800; letter-spacing: .05em; }
-.carte-ent .corps { padding: 16px; }
-.etapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 24px; }
-.etape { background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 22px; }
-.etape .num { width: 34px; height: 34px; border-radius: 10px; background: var(--bleu); color: #fff; display: grid; place-items: center; font-weight: 800; margin-bottom: 12px; }
-.pied { background: var(--marine); color: #94A3B8; margin-top: 40px; padding: 36px 0; font-size: 14px; }
-.pied a { color: #CBD5E1; }
-.pied .logo { color: #fff; }
-@media (max-width: 900px) {
-  .hero-int { grid-template-columns: 1fr; }
-  .hero-visuel { display: none; }
-  .bande-atouts, .etapes { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 560px) { .bande-atouts, .etapes { grid-template-columns: 1fr; } .barre-recherche { flex-direction: column; } .barre-recherche .sep { display: none; } }
-
-/* ===== Animations & interactivité ===== */
-@keyframes montee { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-@keyframes flotte { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-@keyframes flotte2 { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-14px) rotate(2deg); } }
-@keyframes derive { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(26px,-20px) scale(1.12); } }
-@keyframes pulsation { 0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.35); } 60% { box-shadow: 0 0 0 14px rgba(37,99,235,0); } }
-.hero-int > div:first-child > * { animation: montee .6s cubic-bezier(.2,.8,.2,1) both; }
-.hero-int > div:first-child > *:nth-child(2) { animation-delay: .1s; }
-.hero-int > div:first-child > *:nth-child(3) { animation-delay: .2s; }
-.hero-int > div:first-child > *:nth-child(4) { animation-delay: .3s; }
-.hero-int > div:first-child > *:nth-child(5) { animation-delay: .38s; }
-.hero { position: relative; overflow: hidden; }
-.bulle { position: absolute; border-radius: 50%; filter: blur(46px); opacity: .5; pointer-events: none; animation: derive 11s ease-in-out infinite; }
-.bulle-1 { width: 320px; height: 320px; background: #C7DBFF; top: -90px; right: 8%; }
-.bulle-2 { width: 240px; height: 240px; background: #DCE9FF; bottom: -70px; left: 4%; animation-delay: 3s; }
-.hero-visuel { animation: montee .7s .25s cubic-bezier(.2,.8,.2,1) both; }
-.carte-confirmation { animation: flotte 5.5s ease-in-out infinite; }
-.carte-rappel { position: absolute; top: 18px; left: -14px; background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: var(--ombre); padding: 10px 14px; font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: center; animation: flotte2 6.5s .8s ease-in-out infinite; }
-.barre-recherche:focus-within { box-shadow: 0 0 0 4px rgba(37,99,235,.14); border-color: var(--bleu); }
-.cat { transition: transform .18s, box-shadow .18s; }
-.cat:hover { transform: translateY(-3px); }
-.cat:hover .rond { animation: flotte 1.4s ease-in-out infinite; }
-.btn-primaire:hover { animation: pulsation 1.2s infinite; }
-.reveler { opacity: 0; transform: translateY(26px); transition: opacity .6s cubic-bezier(.2,.8,.2,1), transform .6s cubic-bezier(.2,.8,.2,1); }
-.reveler.vu { opacity: 1; transform: none; }
-.bande-chiffres { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; text-align: center; margin: 44px 0 8px; }
-.chiffre strong { font-size: clamp(26px,3.4vw,38px); color: var(--bleu); display: block; font-variant-numeric: tabular-nums; }
-.chiffre span { font-size: 13px; color: var(--gris); font-weight: 600; }
-@media (max-width: 700px) { .bande-chiffres { grid-template-columns: 1fr 1fr; } .carte-rappel { display: none; } }
-.carte-ent { position: relative; }
-.carte-ent .banniere { position: relative; background-size: cover; background-position: center; transition: transform .35s; overflow: hidden; }
-.carte-ent:hover .banniere { transform: scale(1.04); }
-.carte-ent .logo-rond { position: absolute; left: 16px; bottom: -20px; width: 46px; height: 46px; border-radius: 12px; border: 3px solid #fff; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 16px; box-shadow: var(--ombre); overflow: hidden; z-index: 2; }
-.carte-ent .logo-rond img { width: 100%; height: 100%; object-fit: cover; }
-.carte-ent .corps { padding-top: 28px; }
+:root { --marque: #2563EB; --marque2: #F59E0B; }
+.banniere-ent { height: 210px; background: linear-gradient(130deg, var(--marque), var(--marque2)); position: relative; }
+.entete-ent { max-width: 980px; margin: -64px auto 0; padding: 0 20px; position: relative; }
+.carte-entete { background: #fff; border-radius: 18px; box-shadow: 0 10px 34px rgba(16,24,40,.12); padding: 22px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.logo-ent { width: 84px; height: 84px; border-radius: 18px; background: var(--marque); color: #fff; display: grid; place-items: center; font-size: 30px; font-weight: 800; flex-shrink: 0; }
+.corps-page { max-width: 980px; margin: 26px auto 60px; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 860px) { .corps-page { grid-template-columns: 1fr; } }
+.ligne-service { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #F2F4F7; }
+.ligne-service:last-child { border-bottom: none; }
+.etapes-resa { display: flex; gap: 6px; margin-bottom: 18px; }
+.etapes-resa .pas { flex: 1; height: 5px; border-radius: 99px; background: var(--bordure); }
+.etapes-resa .pas.fait { background: var(--marque); }
+.creneaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin-top: 12px; }
+.creneau { padding: 9px 4px; border: 1px solid var(--bordure); border-radius: 9px; background: #fff; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600; text-align: center; }
+.creneau:hover { border-color: var(--marque); }
+.creneau.choisi { background: var(--marque); color: #fff; border-color: var(--marque); }
+.recap { background: var(--gris-clair); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+.recap div { display: flex; justify-content: space-between; padding: 3px 0; }
+.horaires-liste div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13.5px; }
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <div class="conteneur nav-int">
-    <a class="logo" href="/"><span class="logo-icone">📅</span>Randevou.ht</a>
-    <div class="nav-liens">
-      <a href="/" class="actif">Accueil</a>
-      <a href="#comment">Comment ça marche</a>
-      <a href="#categories">Catégories</a>
-      <a href="#apropos">À propos</a>
-    </div>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Randevou.ht</a>
     <div class="nav-droite">
-      <a class="btn btn-contour" href="/connexion.html">Se connecter</a>
-      <a class="btn btn-primaire" href="/inscription.html">Inscrire mon entreprise</a>
+      <a class="btn btn-fantome" href="/">← Retour à l'accueil</a>
     </div>
   </div>
 </nav>
 
-<header class="hero">
-  <div class="bulle bulle-1"></div>
-  <div class="bulle bulle-2"></div>
-  <div class="conteneur hero-int">
-    <div>
-      <h1>Réservez facilement vos rendez-vous avec <span class="accent">les meilleures entreprises</span></h1>
-      <p class="intro">Randevou.ht est la plateforme numéro 1 en Haïti pour trouver et réserver des services de qualité.</p>
-      <form class="barre-recherche" id="formRecherche">
-        <input type="text" id="champQ" placeholder="Que cherchez-vous ?" aria-label="Recherche">
-        <div class="sep"></div>
-        <input type="text" id="champLieu" placeholder="Localisation" aria-label="Localisation">
-        <button class="btn btn-primaire" type="submit">Rechercher</button>
-      </form>
-      <p class="petit muet" style="margin-top:18px;font-weight:600">Catégories populaires :</p>
-      <div class="categories" id="categories">
-        <button class="cat" data-cat="Santé"><span class="rond">🩺</span><span>Santé</span></button>
-        <button class="cat" data-cat="Beauté"><span class="rond">💇</span><span>Beauté</span></button>
-        <button class="cat" data-cat="Formation"><span class="rond">🎓</span><span>Formation</span></button>
-        <button class="cat" data-cat="Auto"><span class="rond">🚗</span><span>Auto</span></button>
-        <button class="cat" data-cat="Maison"><span class="rond">🏠</span><span>Maison</span></button>
-        <button class="cat" data-cat="Tout"><span class="rond">⊞</span><span>Tout</span></button>
-      </div>
-    </div>
-    <div class="hero-visuel">
-      <div class="hero-photo" role="img" aria-label="Illustration de réservation"></div>
-      <div class="carte-rappel">🔔 <span>Rappel envoyé au client</span></div>
-      <div class="carte-confirmation">
-        <div class="pastille-verte">✓</div>
-        <strong>Réservation confirmée !</strong>
-        <p class="petit" style="margin-top:6px"><strong>Salon Elegance</strong><br><span class="muet">Samedi 25 Mai 2026<br>10:00 AM</span></p>
-        <a class="petit" href="/salon-elegance">Voir les détails</a>
-      </div>
-    </div>
-  </div>
-</header>
+<div class="banniere-ent"></div>
+<div class="entete-ent">
+  <div class="carte-entete" id="entete"></div>
+</div>
 
-<main class="conteneur">
-  <div class="bande-chiffres" id="bandeChiffres">
-    <div class="chiffre"><strong data-cible="0" id="cEnt">0</strong><span>Entreprises inscrites</span></div>
-    <div class="chiffre"><strong data-cible="0" id="cAvis">0</strong><span>Avis clients</span></div>
-    <div class="chiffre"><strong id="cNote">—</strong><span>Note moyenne</span></div>
-    <div class="chiffre"><strong>0 HTG</strong><span>Pour commencer</span></div>
+<main class="corps-page">
+  <div style="display:grid;gap:22px">
+    <section class="carte"><div class="carte-corps">
+      <h2 style="font-size:19px">Services</h2>
+      <div id="listeServices" class="mt"></div>
+    </div></section>
+
+    <section class="carte"><div class="carte-corps">
+      <div class="flex entre">
+        <h2 style="font-size:19px">Avis clients</h2>
+        <button class="btn btn-contour btn-petit" onclick="document.getElementById('voileAvis').classList.add('ouvert')">Laisser un avis</button>
+      </div>
+      <div id="listeAvis" class="mt"></div>
+    </div></section>
   </div>
 
-  <div class="bande-atouts reveler">
-    <div class="atout">
-      <div class="ico" style="background:var(--bleu-clair)">💼</div>
-      <h3>Pour les entreprises</h3>
-      <p>Créez votre espace, gérez vos services et recevez plus de clients.</p>
-      <a class="petit" href="/inscription.html" style="font-weight:600">Inscrire mon entreprise →</a>
-    </div>
-    <div class="atout">
-      <div class="ico" style="background:var(--vert-fond)">📅</div>
-      <h3>Réservation rapide</h3>
-      <p>Trouvez un service, choisissez l'horaire qui vous convient et réservez en quelques clics.</p>
-    </div>
-    <div class="atout">
-      <div class="ico" style="background:#F4EBFF">🔔</div>
-      <h3>Notifications automatiques</h3>
-      <p>Recevez des rappels et des notifications par SMS, Email ou WhatsApp.</p>
-    </div>
-    <div class="atout">
-      <div class="ico" style="background:var(--orange-fond)">📊</div>
-      <h3>Gestion efficace</h3>
-      <p>Gérez vos rendez-vous, votre équipe et développez votre entreprise facilement.</p>
-    </div>
-  </div>
+  <aside style="display:grid;gap:22px">
+    <section class="carte" id="carteResa"><div class="carte-corps">
+      <h2 style="font-size:19px">Réserver un rendez-vous</h2>
+      <div class="etapes-resa mt" id="barrePas"><div class="pas fait"></div><div class="pas"></div><div class="pas"></div><div class="pas"></div></div>
+      <div id="zonePas"></div>
+    </div></section>
 
-  <section class="section" id="categories-resultats">
-    <div class="flex entre">
-      <div>
-        <h2 id="titreResultats">Entreprises populaires</h2>
-        <p class="muet petit" id="sousTitreResultats">Découvrez les entreprises les mieux notées de la plateforme.</p>
-      </div>
-    </div>
-    <div class="grille-entreprises" id="listeEntreprises"></div>
-  </section>
+    <section class="carte"><div class="carte-corps">
+      <h2 style="font-size:16px">Informations</h2>
+      <div id="infos" class="mt petit"></div>
+      <h3 style="font-size:14px;margin-top:16px">Horaires</h3>
+      <div class="horaires-liste mt" id="horaires" style="margin-top:8px"></div>
+    </div></section>
 
-  <section class="section" id="comment">
-    <h2>Comment ça marche</h2>
-    <p class="muet petit">Trois étapes simples pour réserver votre prochain rendez-vous.</p>
-    <div class="etapes">
-      <div class="etape"><div class="num">1</div><h3>Recherchez</h3><p class="muet petit mt" style="margin-top:8px">Trouvez l'entreprise qu'il vous faut par nom, catégorie ou localisation.</p></div>
-      <div class="etape"><div class="num">2</div><h3>Réservez</h3><p class="muet petit" style="margin-top:8px">Choisissez un service, une date et un créneau disponible en temps réel.</p></div>
-      <div class="etape"><div class="num">3</div><h3>Recevez la confirmation</h3><p class="muet petit" style="margin-top:8px">L'entreprise confirme votre rendez-vous et vous recevez une notification.</p></div>
-    </div>
-  </section>
-
-  <section class="section" id="apropos">
-    <div class="carte" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none">
-      <div class="carte-corps centre" style="padding:44px 24px;color:#fff">
-        <h2 style="color:#fff">Vous gérez une entreprise ?</h2>
-        <p style="color:#B9C6E4;max-width:52ch;margin:10px auto 22px">Salon, clinique, garage, école, cabinet… Offrez à vos clients la réservation en ligne, gérez votre calendrier et développez votre activité avec Randevou.ht.</p>
-        <a class="btn btn-primaire btn-large" href="/inscription.html">Inscrire mon entreprise gratuitement</a>
-      </div>
-    </div>
-  </section>
+    <section class="carte"><div class="carte-corps">
+      <h2 style="font-size:16px">Équipe</h2>
+      <div id="equipe" class="mt"></div>
+    </div></section>
+  </aside>
 </main>
 
-<footer class="pied">
-  <div class="conteneur">
-    <div class="flex entre" style="flex-wrap:wrap;gap:18px">
-      <a class="logo" href="/"><span class="logo-icone">📅</span>Randevou.ht</a>
-      <div class="flex" style="gap:22px;flex-wrap:wrap">
-        <a href="#comment">Comment ça marche</a>
-        <a href="/inscription.html">Inscrire mon entreprise</a>
-        <a href="/connexion.html">Connexion</a>
-      </div>
+<!-- Modale avis -->
+<div class="voile" id="voileAvis">
+  <div class="modale">
+    <h3>Laisser un avis</h3>
+    <label>Votre nom</label><input id="avisNom" placeholder="Ex : Jean Michel">
+    <label>Note</label>
+    <select id="avisNote"><option value="5">★★★★★ — Excellent</option><option value="4">★★★★☆ — Très bien</option><option value="3">★★★☆☆ — Bien</option><option value="2">★★☆☆☆ — Moyen</option><option value="1">★☆☆☆☆ — Décevant</option></select>
+    <label>Commentaire</label><textarea id="avisTexte" rows="3" placeholder="Partagez votre expérience…"></textarea>
+    <div class="flex mt" style="justify-content:flex-end">
+      <button class="btn btn-fantome" onclick="document.getElementById('voileAvis').classList.remove('ouvert')">Annuler</button>
+      <button class="btn btn-primaire" onclick="envoyerAvis()">Publier l'avis</button>
     </div>
-    <p class="petit" style="margin-top:20px">© 2026 Randevou.ht — La plateforme haïtienne de prise de rendez-vous en ligne.</p>
   </div>
-</footer>
+</div>
 
 <script src="/app.js"></script>
 <script>
-let catActive = 'Tout';
+const slug = location.pathname.replace(/^\//, '').replace(/\.html$/, '') || new URLSearchParams(location.search).get('slug');
+let ent = null;
+let resa = { pas: 1, service: null, date: '', heure: '' };
+const NOMS_JOURS = { lun: 'Lundi', mar: 'Mardi', mer: 'Mercredi', jeu: 'Jeudi', ven: 'Vendredi', sam: 'Samedi', dim: 'Dimanche' };
 
 async function charger() {
-  const q = document.getElementById('champQ').value.trim();
-  const lieu = document.getElementById('champLieu').value.trim();
-  const recherche = [q, lieu].filter(Boolean).join(' ');
-  const params = new URLSearchParams();
-  if (recherche) params.set('q', recherche);
-  if (catActive !== 'Tout') params.set('categorie', catActive);
-  const liste = await api('/api/entreprises?' + params);
-  const cible = document.getElementById('listeEntreprises');
-  document.getElementById('titreResultats').textContent =
-    recherche || catActive !== 'Tout' ? `Résultats (${liste.length})` : 'Entreprises populaires';
-  if (!liste.length) {
-    cible.innerHTML = '<p class="muet">Aucune entreprise ne correspond à votre recherche pour le moment. Essayez un autre mot-clé ou une autre catégorie.</p>';
-    return;
+  try { ent = await api('/api/entreprises/' + slug); }
+  catch { document.body.innerHTML = '<div class="conteneur centre" style="padding:80px 20px"><h1>Entreprise introuvable</h1><p class="muet mt">Cette page n\'existe pas ou n\'est pas encore approuvée.</p><a class="btn btn-primaire mt" href="/" style="margin-top:20px">Retour à l\'accueil</a></div>'; return; }
+
+  document.title = ent.nom + ' — Randevou.ht';
+  document.documentElement.style.setProperty('--marque', ent.couleur);
+  document.documentElement.style.setProperty('--marque2', ent.couleur2);
+
+  // Photo de couverture personnalisée (avec voile aux couleurs de la marque)
+  if (ent.photoFond) {
+    document.querySelector('.banniere-ent').style.background =
+      `linear-gradient(130deg, ${ent.couleur}B3, ${ent.couleur2}66), url('${ent.photoFond}') center/cover`;
   }
-  cible.innerHTML = liste.map((e, i) => {
-    const fond = e.photoFond
-      ? `linear-gradient(135deg, ${ech(e.couleur)}99, ${ech(e.couleur2)}66), url('${e.photoFond}')`
-      : `linear-gradient(135deg, ${ech(e.couleur)}, ${ech(e.couleur2)})`;
-    const logo = e.logoImage
-      ? `<img src="${e.logoImage}" alt="Logo ${ech(e.nom)}">`
-      : ech(e.logoTexte);
-    return `
-    <a class="carte-ent reveler" style="transition-delay:${Math.min(i * 70, 350)}ms" href="/${e.slug}">
-      <div class="banniere" style="background:${fond};background-size:cover;background-position:center">${e.photoFond ? '' : ech(e.logoTexte)}</div>
-      <div class="logo-rond" style="background:${ech(e.couleur)}">${logo}</div>
-      <div class="corps">
-        <div class="flex entre">
-          <strong>${ech(e.nom)}</strong>
-          ${e.plan === 'premium' ? '<span class="badge badge-bleu">Premium</span>' : ''}
-        </div>
-        <p class="petit muet">${ICONES_CAT[e.categorie] || '✨'} ${ech(e.categorie)} • ${ech(e.adresse.split(',').pop().trim())}</p>
-        <div class="flex entre mt" style="margin-top:12px">
-          <span class="petit"><span class="etoiles">${etoiles(e.note)}</span> <strong>${e.note || '—'}</strong> <span class="muet">(${e.totalAvis} avis)</span></span>
-          <span class="btn btn-primaire btn-petit">Réserver</span>
-        </div>
+
+  document.getElementById('entete').innerHTML = `
+    <div class="logo-ent">${ent.logoImage ? `<img src="${ent.logoImage}" alt="Logo ${ech(ent.nom)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">` : ech(ent.logoTexte)}</div>
+    <div style="flex:1;min-width:220px">
+      <div class="flex" style="gap:10px;flex-wrap:wrap">
+        <h1 style="font-size:24px">${ech(ent.nom)}</h1>
+        ${ent.plan === 'premium' ? '<span class="badge badge-bleu">Premium</span>' : ''}
       </div>
-    </a>`;
+      <p class="muet petit">${ICONES_CAT[ent.categorie] || '✨'} ${ech(ent.categorie)} • ${ech(ent.adresse)}</p>
+      <p class="petit" style="margin-top:6px"><span class="etoiles">${etoiles(ent.note)}</span> <strong>${ent.note || '—'}</strong> <span class="muet">(${ent.totalAvis} avis)</span></p>
+    </div>
+    <div style="display:grid;gap:8px">
+      <a class="btn btn-primaire" href="#carteResa" style="background:var(--marque)">Réserver maintenant</a>
+      ${ent.whatsapp ? `<a class="btn btn-succes" target="_blank" rel="noopener" href="https://wa.me/${ech(ent.whatsapp)}">💬 WhatsApp</a>` : ''}
+      <div class="flex" style="gap:6px;justify-content:center" aria-label="Partager cette page">
+        <button class="btn btn-fantome btn-petit" onclick="partager('whatsapp')" title="Partager sur WhatsApp">🟢</button>
+        <button class="btn btn-fantome btn-petit" onclick="partager('facebook')" title="Partager sur Facebook">🔵</button>
+        <button class="btn btn-fantome btn-petit" onclick="partager('x')" title="Partager sur X (Twitter)">✖️</button>
+        <button class="btn btn-fantome btn-petit" onclick="partager('copier')" title="Copier le lien">🔗</button>
+      </div>
+    </div>`;
+
+  window.partager = async (canal) => {
+    const url = location.href;
+    const texte = `Prenez rendez-vous chez ${ent.nom} sur Randevou.ht : `;
+    if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + url), '_blank');
+    else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
+    else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(url), '_blank');
+    else if (canal === 'copier') {
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Randevou.ht', text: texte, url }); return; } catch {} }
+      try { await navigator.clipboard.writeText(url); toast('Lien copié ! Collez-le où vous voulez.'); }
+      catch { prompt('Copiez ce lien :', url); }
+    }
+  };
+
+  document.getElementById('listeServices').innerHTML = ent.description
+    ? `<p class="muet petit" style="margin-bottom:12px">${ech(ent.description)}</p>` : '';
+  document.getElementById('listeServices').innerHTML += ent.services.map(s => `
+    <div class="ligne-service">
+      <div><strong>${ech(s.nom)}</strong><div class="petit muet">⏱ ${s.duree} min</div></div>
+      <div class="flex"><strong>${htg(s.prix)}</strong>
+      <button class="btn btn-contour btn-petit" onclick="choisirService('${s.id}')">Choisir</button></div>
+    </div>`).join('') || '<p class="muet">Aucun service publié pour le moment.</p>';
+
+  document.getElementById('listeAvis').innerHTML = ent.avis.length ? ent.avis.map(a => `
+    <div style="padding:12px 0;border-bottom:1px solid #F2F4F7">
+      <div class="flex entre"><strong class="petit">${ech(a.clientNom)}</strong><span class="etoiles petit">${etoiles(a.note)}</span></div>
+      <p class="petit muet" style="margin-top:4px">${ech(a.commentaire)}</p>
+    </div>`).join('') : '<p class="muet petit">Aucun avis pour le moment. Soyez le premier à partager votre expérience !</p>';
+
+  document.getElementById('infos').innerHTML = `
+    <p>📍 ${ech(ent.adresse) || '—'}</p>
+    <p style="margin-top:6px">📞 ${ech(ent.telephone) || '—'}</p>`;
+  document.getElementById('horaires').innerHTML = ['lun','mar','mer','jeu','ven','sam','dim'].map(j => {
+    const h = ent.horaires[j];
+    return `<div><span>${NOMS_JOURS[j]}</span><span class="${h.ouvert ? '' : 'muet'}">${h.ouvert ? h.debut + ' – ' + h.fin : 'Fermé'}</span></div>`;
   }).join('');
-  observerReveles();
-  majChiffres(liste);
+  document.getElementById('equipe').innerHTML = ent.employes.map(x => `
+    <div class="flex" style="padding:6px 0"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+    <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)}</div></div></div>`).join('') || '<p class="muet petit">—</p>';
+
+  dessinerPas();
 }
 
-// ---- Compteurs animés ----
-let chiffresFaits = false;
-function majChiffres(liste){
-  if (chiffresFaits || !liste.length) return;
-  chiffresFaits = true;
-  const totalAvis = liste.reduce((s, e) => s + (e.totalAvis || 0), 0);
-  const notes = liste.filter(e => e.note);
-  const moyenne = notes.length ? (notes.reduce((s, e) => s + +e.note, 0) / notes.length).toFixed(1) : '—';
-  animerCompteur(document.getElementById('cEnt'), liste.length);
-  animerCompteur(document.getElementById('cAvis'), totalAvis);
-  document.getElementById('cNote').textContent = moyenne === '—' ? '—' : moyenne + ' ★';
+function choisirService(id) {
+  resa.service = ent.services.find(s => s.id === id);
+  resa.pas = 2; resa.date = ''; resa.heure = '';
+  dessinerPas();
+  document.getElementById('carteResa').scrollIntoView({ behavior: 'smooth' });
 }
-function animerCompteur(el, cible){
-  const duree = 1200, depart = performance.now();
-  function pas(t){
-    const p = Math.min(1, (t - depart) / duree);
-    el.textContent = Math.round(cible * (1 - Math.pow(1 - p, 3)));
-    if (p < 1) requestAnimationFrame(pas);
+
+function dessinerPas() {
+  document.querySelectorAll('#barrePas .pas').forEach((el, i) => el.classList.toggle('fait', i < resa.pas));
+  const z = document.getElementById('zonePas');
+  const min = new Date().toISOString().slice(0, 10);
+
+  if (resa.pas === 1) {
+    z.innerHTML = `<p class="petit muet">Étape 1 sur 4 — Choisissez un service</p>
+      <div style="display:grid;gap:8px;margin-top:12px">
+      ${ent.services.map(s => `<button class="creneau" style="text-align:left;padding:11px 14px" onclick="choisirService('${s.id}')">${ech(s.nom)} <span class="muet" style="font-weight:400">• ${s.duree} min • ${htg(s.prix)}</span></button>`).join('')}
+      </div>`;
   }
-  requestAnimationFrame(pas);
+  if (resa.pas === 2) {
+    z.innerHTML = `<p class="petit muet">Étape 2 sur 4 — <strong>${ech(resa.service.nom)}</strong> : choisissez une date</p>
+      <label>Date du rendez-vous</label>
+      <input type="date" id="champDate" min="${min}" value="${resa.date || min}">
+      <div class="flex mt" style="justify-content:space-between">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=1;dessinerPas()">← Retour</button>
+        <button class="btn btn-primaire" style="background:var(--marque)" onclick="validerDate()">Voir les créneaux</button>
+      </div>`;
+  }
+  if (resa.pas === 3) chargerCreneaux();
+  if (resa.pas === 4) {
+    z.innerHTML = `<p class="petit muet">Étape 4 sur 4 — Vos coordonnées</p>
+      <div class="recap mt">
+        <div><span>Service</span><strong>${ech(resa.service.nom)}</strong></div>
+        <div><span>Date</span><strong>${dateFR(resa.date)}</strong></div>
+        <div><span>Heure</span><strong>${resa.heure}</strong></div>
+        <div><span>Prix</span><strong>${htg(resa.service.prix)}</strong></div>
+      </div>
+      <label>Nom complet *</label><input id="cNom" placeholder="Ex : Jean Michel">
+      <label>Téléphone (WhatsApp) *</label><input id="cTel" placeholder="Ex : +509 3712 0000">
+      <label>Email (recommandé)</label><input id="cEmail" type="email" placeholder="exemple@gmail.com — pour recevoir votre confirmation">
+      <div class="champ-erreur" id="erreurResa"></div>
+      <div class="flex" style="justify-content:space-between">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=3;dessinerPas()">← Retour</button>
+        <button class="btn btn-primaire" style="background:var(--marque)" onclick="confirmerResa()">Confirmer le rendez-vous</button>
+      </div>`;
+  }
 }
 
-// ---- Révélation au défilement ----
-const observateur = new IntersectionObserver((entrees) => {
-  entrees.forEach(en => { if (en.isIntersecting) { en.target.classList.add('vu'); observateur.unobserve(en.target); } });
-}, { threshold: 0.12 });
-function observerReveles(){
-  document.querySelectorAll('.reveler:not(.vu)').forEach(el => observateur.observe(el));
+function validerDate() {
+  resa.date = document.getElementById('champDate').value;
+  if (!resa.date) return toast('Choisissez une date.');
+  resa.pas = 3; dessinerPas();
 }
-document.querySelectorAll('.etape, .atout, #comment h2, #apropos .carte').forEach(el => el.classList.add('reveler'));
-observerReveles();
 
-document.getElementById('formRecherche').addEventListener('submit', (ev) => {
-  ev.preventDefault(); charger();
-  document.getElementById('categories-resultats').scrollIntoView({ behavior: 'smooth' });
-});
-document.querySelectorAll('.cat').forEach(b => b.addEventListener('click', () => {
-  catActive = b.dataset.cat;
-  document.querySelectorAll('.cat').forEach(x => x.classList.toggle('actif', x === b));
+async function chargerCreneaux() {
+  const z = document.getElementById('zonePas');
+  z.innerHTML = '<p class="petit muet">Chargement des disponibilités…</p>';
+  const { creneaux } = await api(`/api/disponibilites?slug=${slug}&service=${resa.service.id}&date=${resa.date}`);
+  z.innerHTML = `<p class="petit muet">Étape 3 sur 4 — Créneaux du <strong>${dateFR(resa.date)}</strong></p>
+    ${creneaux.length ? `<div class="creneaux">${creneaux.map(h => `<button class="creneau" onclick="choisirHeure('${h}', this)">${h}</button>`).join('')}</div>`
+      : '<p class="muet petit mt">Aucun créneau disponible ce jour-là. Choisissez une autre date.</p>'}
+    <div class="flex mt" style="justify-content:space-between">
+      <button class="btn btn-fantome btn-petit" onclick="resa.pas=2;dessinerPas()">← Changer la date</button>
+      <button class="btn btn-primaire" style="background:var(--marque)" id="btnSuite" disabled onclick="resa.pas=4;dessinerPas()">Continuer</button>
+    </div>`;
+}
+
+function choisirHeure(h, el) {
+  resa.heure = h;
+  document.querySelectorAll('.creneau').forEach(c => c.classList.remove('choisi'));
+  el.classList.add('choisi');
+  document.getElementById('btnSuite').disabled = false;
+}
+
+async function confirmerResa() {
+  const nom = document.getElementById('cNom').value.trim();
+  const tel = document.getElementById('cTel').value.trim();
+  const email = document.getElementById('cEmail').value.trim();
+  const err = document.getElementById('erreurResa');
+  if (!nom || !tel) { err.textContent = 'Le nom et le téléphone sont obligatoires.'; return; }
+  try {
+    const r = await api('/api/reservations', 'POST', { slug, serviceId: resa.service.id, date: resa.date, heure: resa.heure, clientNom: nom, clientTel: tel, clientEmail: email });
+    document.getElementById('zonePas').innerHTML = `
+      <div class="centre" style="padding:14px 0">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
+        <h3>Demande envoyée !</h3>
+        <p class="petit muet" style="margin-top:8px">Votre demande de rendez-vous chez <strong>${ech(r.entreprise)}</strong> pour <strong>${ech(r.service)}</strong> le <strong>${dateFR(r.date)}</strong> à <strong>${r.heure}</strong> a été transmise.<br><br>Vous recevrez une confirmation dès que l'entreprise l'aura validée.</p>
+        <p class="petit muet" style="margin-top:8px">Référence : <strong>${r.reference}</strong></p>
+        ${r.whatsapp ? `<a class="btn btn-succes mt" style="margin-top:14px" target="_blank" rel="noopener" href="https://wa.me/${r.whatsapp}?text=${encodeURIComponent('Bonjour, je viens de réserver « ' + r.service + ' » le ' + r.date + ' à ' + r.heure + ' (réf. ' + r.reference + ').')}">Prévenir sur WhatsApp</a>` : ''}
+      </div>`;
+    document.querySelectorAll('#barrePas .pas').forEach(el => el.classList.add('fait'));
+  } catch (e) { err.textContent = e.message; }
+}
+
+async function envoyerAvis() {
+  const nom = document.getElementById('avisNom').value.trim();
+  if (!nom) return toast('Indiquez votre nom.');
+  await api('/api/avis', 'POST', { slug, clientNom: nom, note: document.getElementById('avisNote').value, commentaire: document.getElementById('avisTexte').value });
+  document.getElementById('voileAvis').classList.remove('ouvert');
+  toast('Merci pour votre avis !');
   charger();
-  document.getElementById('categories-resultats').scrollIntoView({ behavior: 'smooth' });
-}));
+}
+
 charger();
 </script>
 </body>
