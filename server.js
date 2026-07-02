@@ -22,7 +22,7 @@ function json(res, code, data) {
 function lireCorps(req) {
   return new Promise((resolve) => {
     let b = '';
-    req.on('data', (c) => { b += c; if (b.length > 1e6) req.destroy(); });
+    req.on('data', (c) => { b += c; if (b.length > 4e6) req.destroy(); });
     req.on('end', () => { try { resolve(JSON.parse(b || '{}')); } catch { resolve({}); } });
   });
 }
@@ -53,7 +53,7 @@ function notifier(entrepriseId, type, message) {
 }
 function publicEntreprise(e) {
   const { note, total } = noteMoyenne(e.id);
-  return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, horaires: e.horaires, plan: e.plan, note, totalAvis: total };
+  return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, logoImage: e.logoImage || '', photoFond: e.photoFond || '', horaires: e.horaires, plan: e.plan, note, totalAvis: total };
 }
 
 // ---------------- Calcul des créneaux disponibles ----------------
@@ -62,7 +62,10 @@ function creneauxDisponibles(entreprise, service, dateStr) {
   const jour = JOURS[new Date(dateStr + 'T12:00:00').getDay()];
   const h = entreprise.horaires[jour];
   if (!h || !h.ouvert) return [];
-  const capacite = Math.max(1, db.employes.filter((p) => p.entrepriseId === entreprise.id && p.actif).length);
+  // Capacité : réglage manuel de l'entreprise s'il existe, sinon nombre d'employés actifs
+  const capacite = +entreprise.capaciteMax > 0
+    ? +entreprise.capaciteMax
+    : Math.max(1, db.employes.filter((p) => p.entrepriseId === entreprise.id && p.actif).length);
   const versMin = (t) => +t.slice(0, 2) * 60 + +t.slice(3, 5);
   const versHeure = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   const pris = db.rendezvous.filter((r) => r.entrepriseId === entreprise.id && r.date === dateStr && ['en_attente', 'confirme'].includes(r.statut));
@@ -199,6 +202,17 @@ async function api(req, res, url) {
       ['nom', 'description', 'adresse', 'telephone', 'whatsapp', 'email', 'categorie', 'couleur', 'couleur2', 'logoTexte', 'horaires'].forEach((k) => {
         if (corps[k] !== undefined) e[k] = corps[k];
       });
+      if (corps.capaciteMax !== undefined) e.capaciteMax = Math.max(0, Math.min(50, +corps.capaciteMax || 0));
+      // Images (base64) : logo max ~350 Ko, photo de fond max ~1,5 Mo
+      const imgValide = (v, max) => v === '' || (typeof v === 'string' && v.startsWith('data:image/') && v.length <= max);
+      if (corps.logoImage !== undefined) {
+        if (!imgValide(corps.logoImage, 350000)) return json(res, 400, { erreur: 'Logo invalide ou trop lourd (350 Ko max après compression).' });
+        e.logoImage = corps.logoImage;
+      }
+      if (corps.photoFond !== undefined) {
+        if (!imgValide(corps.photoFond, 1500000)) return json(res, 400, { erreur: 'Photo invalide ou trop lourde (1,5 Mo max après compression).' });
+        e.photoFond = corps.photoFond;
+      }
       store.save(); return json(res, 200, e);
     }
 
