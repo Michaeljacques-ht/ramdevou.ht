@@ -51,6 +51,47 @@ function notifier(entrepriseId, type, message) {
   db.notifications.unshift({ id: store.uid(), entrepriseId, type, message, lu: false, creeLe: new Date().toISOString() });
   store.save();
 }
+
+// ---------------- Envoi d'emails (API Brevo, gratuit 300/jour) ----------------
+// Configuration par variables d'environnement sur Render :
+//   BREVO_API_KEY    = votre clé API Brevo (xkeysib-...)
+//   EMAIL_EXPEDITEUR = l'adresse expéditrice vérifiée dans Brevo
+// Sans ces variables, l'email est simplement affiché dans les journaux (mode simulation).
+const https = require('https');
+function envoyerEmail(destinataire, sujet, html) {
+  if (!destinataire || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(destinataire)) return;
+  const cle = process.env.BREVO_API_KEY, exp = process.env.EMAIL_EXPEDITEUR;
+  if (!cle || !exp) {
+    console.log(`[EMAIL simulation → ${destinataire}] ${sujet}`);
+    return;
+  }
+  const corps = JSON.stringify({
+    sender: { name: 'Randevou.ht', email: exp },
+    to: [{ email: destinataire }],
+    subject: sujet,
+    htmlContent: html
+  });
+  const req = https.request({
+    hostname: 'api.brevo.com', path: '/v3/smtp/email', method: 'POST',
+    headers: { 'api-key': cle, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(corps) }
+  }, (rep) => {
+    if (rep.statusCode >= 300) console.log(`[EMAIL erreur ${rep.statusCode} → ${destinataire}]`);
+    rep.resume();
+  });
+  req.on('error', (e) => console.log('[EMAIL erreur]', e.message));
+  req.end(corps);
+}
+function gabaritEmail(titre, couleur, lignes, pied) {
+  return `<!DOCTYPE html><html lang="fr"><body style="margin:0;background:#F2F4F7;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:560px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #E4E7EC">
+    <div style="background:${couleur};color:#fff;padding:22px 26px">
+      <div style="font-size:13px;opacity:.85;font-weight:bold">📅 Randevou.ht</div>
+      <h1 style="margin:6px 0 0;font-size:21px">${titre}</h1>
+    </div>
+    <div style="padding:24px 26px;color:#101828;font-size:15px;line-height:1.65">${lignes}</div>
+    <div style="padding:16px 26px;border-top:1px solid #E4E7EC;color:#667085;font-size:12px">${pied || 'Randevou.ht — La plateforme haïtienne de prise de rendez-vous en ligne.'}</div>
+  </div></body></html>`;
+}
 function publicEntreprise(e) {
   const { note, total } = noteMoyenne(e.id);
   return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, logoImage: e.logoImage || '', photoFond: e.photoFond || '', horaires: e.horaires, plan: e.plan, note, totalAvis: total };
@@ -178,7 +219,23 @@ async function api(req, res, url) {
     const rdv = { id: store.uid(), entrepriseId: e.id, serviceId: s.id, clientNom: corps.clientNom, clientTel: corps.clientTel, clientEmail: corps.clientEmail || '', date: corps.date, heure: corps.heure, statut: 'en_attente', creeLe: new Date().toISOString() };
     db.rendezvous.push(rdv);
     notifier(e.id, 'nouveau_rdv', `Nouveau rendez-vous : ${rdv.clientNom} — ${s.nom} le ${rdv.date} à ${rdv.heure}`);
-    // Simulation d'envoi (à remplacer par Twilio/SendGrid en production)
+    // Email de confirmation au client
+    envoyerEmail(rdv.clientEmail, `Réservation enregistrée — ${e.nom}`, gabaritEmail(
+      'Réservation enregistrée ✅', e.couleur || '#2563EB',
+      `<p>Bonjour <strong>${rdv.clientNom}</strong>,</p>
+       <p>Votre demande de rendez-vous a bien été enregistrée. Voici le récapitulatif :</p>
+       <table style="width:100%;border-collapse:collapse;margin:14px 0">
+         <tr><td style="padding:8px 0;color:#667085">Entreprise</td><td style="padding:8px 0;text-align:right"><strong>${e.nom}</strong></td></tr>
+         <tr><td style="padding:8px 0;color:#667085">Service</td><td style="padding:8px 0;text-align:right"><strong>${s.nom}</strong></td></tr>
+         <tr><td style="padding:8px 0;color:#667085">Date</td><td style="padding:8px 0;text-align:right"><strong>${rdv.date}</strong></td></tr>
+         <tr><td style="padding:8px 0;color:#667085">Heure</td><td style="padding:8px 0;text-align:right"><strong>${rdv.heure}</strong></td></tr>
+         <tr><td style="padding:8px 0;color:#667085">Adresse</td><td style="padding:8px 0;text-align:right">${e.adresse || ''}</td></tr>
+         <tr><td style="padding:8px 0;color:#667085">Référence</td><td style="padding:8px 0;text-align:right">${rdv.id}</td></tr>
+       </table>
+       <p style="background:#FEF0C7;border-radius:10px;padding:12px 14px;font-size:14px">⏳ <strong>${e.nom}</strong> va confirmer votre rendez-vous. Vous recevrez un second email dès que c'est fait.</p>`,
+      `Besoin de modifier ? Contactez directement ${e.nom}${e.telephone ? ' au ' + e.telephone : ''}.`
+    ));
+    // Simulation d'envoi SMS (à remplacer par Twilio en production)
     console.log(`[NOTIFICATION SMS/WhatsApp → ${rdv.clientTel}] Votre demande de rendez-vous chez ${e.nom} (${s.nom}, ${rdv.date} ${rdv.heure}) a été envoyée.`);
     return json(res, 200, { ok: true, reference: rdv.id, entreprise: e.nom, service: s.nom, date: rdv.date, heure: rdv.heure, whatsapp: e.whatsapp });
   }
@@ -262,6 +319,17 @@ async function api(req, res, url) {
       if (corps.statut && ['confirme', 'annule', 'termine', 'en_attente'].includes(corps.statut)) {
         r.statut = corps.statut;
         const libelle = { confirme: 'confirmé', annule: 'annulé', termine: 'terminé', en_attente: 'remis en attente' }[corps.statut];
+        if (['confirme', 'annule'].includes(corps.statut)) {
+          const srv = db.services.find((x) => x.id === r.serviceId);
+          const conf = corps.statut === 'confirme';
+          envoyerEmail(r.clientEmail, `Rendez-vous ${libelle} — ${e.nom}`, gabaritEmail(
+            conf ? 'Rendez-vous confirmé 🎉' : 'Rendez-vous annulé', conf ? (e.couleur || '#2563EB') : '#B42318',
+            `<p>Bonjour <strong>${r.clientNom}</strong>,</p>
+             <p>Votre rendez-vous chez <strong>${e.nom}</strong>${srv ? ' (' + srv.nom + ')' : ''} du <strong>${r.date}</strong> à <strong>${r.heure}</strong> a été <strong>${libelle}</strong>.</p>
+             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Présentez-vous quelques minutes en avance${e.adresse ? ' à : ' + e.adresse : ''}.</p>` : `<p>Vous pouvez réserver un autre créneau à tout moment sur Randevou.ht.</p>`}`,
+            `Référence : ${r.id}`
+          ));
+        }
         console.log(`[NOTIFICATION → ${r.clientTel}] Votre rendez-vous chez ${e.nom} le ${r.date} à ${r.heure} a été ${libelle}.`);
       }
       if (corps.date) r.date = corps.date;
