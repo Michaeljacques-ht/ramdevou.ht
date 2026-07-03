@@ -45,7 +45,7 @@ const BADGE_STATUT = {
   termine: '<span class="badge badge-gris">Terminé</span>'
 };
 
-const ICONES_CAT = { 'Santé': '🩺', 'Beauté': '💇', 'Formation': '🎓', 'Auto': '🚗', 'Maison': '🏠', 'Restaurant': '🍽️', 'Juridique': '⚖️', 'Autre': '✨' };
+const ICONES_CAT = { 'Santé': '🩺', 'Beauté': '💇', 'Formation': '🎓', 'Auto': '🚗', 'Maison': '🏠', 'Restaurant': '🍽️', 'Hôtels & Restaurants': '🏨', 'Juridique': '⚖️', 'Autre': '✨' };
 
 // ===== PWA (Play Store) : manifest + service worker =====
 (function () {

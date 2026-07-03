@@ -54,6 +54,7 @@ body { background: var(--gris-clair); }
     <button class="lien-lat" data-sec="rdv">🗓 Rendez-vous</button>
     <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
     <button class="lien-lat" data-sec="services">🧰 Services</button>
+    <button class="lien-lat" data-sec="chambres">🛏️ Chambres &amp; Séjours</button>
     <button class="lien-lat" data-sec="employes">👥 Employés</button>
     <button class="lien-lat" data-sec="avis">⭐ Avis &amp; Notes</button>
     <button class="lien-lat" data-sec="perso">🎨 Personnalisation</button>
@@ -150,6 +151,24 @@ body { background: var(--gris-clair); }
         </div></div>
       </section>
 
+      <!-- ===== Chambres & Séjours ===== -->
+      <section id="sec-chambres" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Mes chambres</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirChambre()">+ Ajouter une chambre</button></div>
+          <p class="petit muet mt">Pour hôtels, auberges et guesthouses : définissez vos types de chambres, votre inventaire et vos prix par nuit. Une section « Chambres &amp; Séjours » apparaîtra automatiquement sur votre page publique.</p>
+          <div style="overflow:auto" class="mt"><table id="tableChambres"></table></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Demandes de séjour</h2>
+            <select id="filtreSejours" onchange="chargerSejours()" class="btn-petit">
+              <option value="">Tous les statuts</option><option value="en_attente">En attente</option>
+              <option value="confirme">Confirmés</option><option value="annule">Annulés</option><option value="termine">Terminés</option>
+            </select></div>
+          <div style="overflow:auto" class="mt"><table id="tableSejours"></table></div>
+        </div></div>
+      </section>
+
       <!-- ===== Employés ===== -->
       <section id="sec-employes" class="section-cache">
         <div class="carte"><div class="carte-corps">
@@ -214,7 +233,7 @@ body { background: var(--gris-clair); }
             <h2 style="font-size:16px">Informations de l'entreprise</h2>
             <label>Nom</label><input id="iNom">
             <label>Catégorie</label>
-            <select id="iCat"><option>Beauté</option><option>Santé</option><option>Formation</option><option>Auto</option><option>Maison</option><option>Restaurant</option><option>Juridique</option><option>Autre</option></select>
+            <select id="iCat"><option>Beauté</option><option>Santé</option><option>Formation</option><option>Auto</option><option>Maison</option><option>Hôtels &amp; Restaurants</option><option>Juridique</option><option>Autre</option></select>
             <label>Adresse</label><input id="iAdresse">
             <label>Téléphone</label><input id="iTel">
             <label>Numéro WhatsApp (chiffres uniquement)</label><input id="iWhats" placeholder="Ex : 50937120000">
@@ -246,6 +265,24 @@ body { background: var(--gris-clair); }
   </div>
 </div></div>
 
+<!-- Modale chambre -->
+<div class="voile" id="voileChambre"><div class="modale">
+  <h3 id="titreModaleChambre">Ajouter une chambre</h3>
+  <label>Type de chambre *</label><input id="chNom" placeholder="Ex : Chambre Standard, Suite Vue Mer">
+  <label>Description</label><input id="chDesc" placeholder="Ex : Lit double, climatisation, wifi">
+  <label>Prix par nuit (HTG) *</label><input id="chPrix" type="number" min="1" value="5000">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Capacité (personnes)</label><input id="chCap" type="number" min="1" max="20" value="2"></div>
+    <div><label>Nombre de chambres de ce type</label><input id="chQte" type="number" min="1" max="200" value="1"></div>
+  </div>
+  <label>Photo de la chambre — facultatif</label><input type="file" id="chPhoto" accept="image/*">
+  <div id="chApercu" class="mt"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileChambre')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerChambre()">Enregistrer</button>
+  </div>
+</div></div>
+
 <!-- Modale employé -->
 <div class="voile" id="voileEmploye"><div class="modale">
   <h3>Ajouter un employé</h3>
@@ -262,7 +299,7 @@ body { background: var(--gris-clair); }
 let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
 const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','#101828'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
-const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
 
 function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
 async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
@@ -303,7 +340,7 @@ async function demarrer(){
       <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Randevou.ht examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
   }
   await Promise.all([chargerStats(), chargerRdv(), chargerNotifs()]);
-  chargerServices(); chargerEmployes(); chargerAvis(); remplirPerso(); remplirParam();
+  chargerServices(); chargerEmployes(); chargerAvis(); remplirPerso(); remplirParam(); chargerChambres(); chargerSejours();
 }
 
 // ---- Statistiques ----
@@ -434,6 +471,76 @@ async function enregistrerService(){
   fermer('voileService'); toast('Service enregistré.'); chargerServices();
 }
 async function basculerService(id, actif){ await api('/api/mon-entreprise/services/'+id,'PUT',{actif}); chargerServices(); }
+
+// ===== Chambres & Séjours =====
+let chambreEnCours = null, photoChambre = '';
+async function chargerChambres(){
+  const liste = await api('/api/mon-entreprise/chambres');
+  document.getElementById('tableChambres').innerHTML = liste.length ? `
+    <tr><th>Chambre</th><th>Prix/nuit</th><th>Cap.</th><th>Qté</th><th>Statut</th><th></th></tr>` +
+    liste.map(c => `<tr>
+      <td><strong>${ech(c.nom)}</strong><br><span class="petit muet">${ech(c.description||'')}</span></td>
+      <td>${(+c.prixNuit).toLocaleString('fr-HT')} HTG</td>
+      <td>${c.capacite}</td><td>${c.quantite}</td>
+      <td><span class="badge ${c.actif?'badge-vert':'badge-gris'}">${c.actif?'Active':'Masquée'}</span></td>
+      <td class="flex" style="gap:6px">
+        <button class="btn btn-fantome btn-petit" onclick='ouvrirChambre(${JSON.stringify(c).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerChambre('${c.id}',${!c.actif})">${c.actif?'👁️‍🗨️':'👁️'}</button>
+        <button class="btn btn-fantome btn-petit" onclick="supprimerChambre('${c.id}')">🗑️</button>
+      </td></tr>`).join('')
+    : '<tr><td class="muet petit">Aucune chambre. Cliquez sur « + Ajouter une chambre » pour commencer.</td></tr>';
+}
+function ouvrirChambre(c){
+  chambreEnCours = c || null; photoChambre = c && c.photo || '';
+  document.getElementById('titreModaleChambre').textContent = c ? 'Modifier la chambre' : 'Ajouter une chambre';
+  chNom.value = c ? c.nom : ''; chDesc.value = c ? (c.description||'') : '';
+  chPrix.value = c ? c.prixNuit : 5000; chCap.value = c ? c.capacite : 2; chQte.value = c ? c.quantite : 1;
+  document.getElementById('chPhoto').value = '';
+  document.getElementById('chApercu').innerHTML = photoChambre ? `<img src="${photoChambre}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  document.getElementById('voileChambre').classList.add('ouvert');
+}
+document.getElementById('chPhoto')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { photoChambre = await compresserImage(f, 900, 0.78);
+    document.getElementById('chApercu').innerHTML = `<img src="${photoChambre}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">`;
+  } catch { toast('Image illisible.'); }
+});
+async function enregistrerChambre(){
+  const corps = { nom: chNom.value.trim(), description: chDesc.value.trim(), prixNuit: +chPrix.value, capacite: +chCap.value, quantite: +chQte.value, photo: photoChambre };
+  if (!corps.nom || !(corps.prixNuit > 0)) { toast('Nom et prix par nuit obligatoires.'); return; }
+  try {
+    if (chambreEnCours) await api('/api/mon-entreprise/chambres/'+chambreEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/chambres','POST',corps);
+    fermer('voileChambre'); toast('Chambre enregistrée.'); chargerChambres();
+  } catch(e){ toast(e.message); }
+}
+async function basculerChambre(id, actif){ await api('/api/mon-entreprise/chambres/'+id,'PUT',{actif}); chargerChambres(); }
+async function supprimerChambre(id){
+  if (!confirm('Supprimer cette chambre ? Les séjours existants restent dans l\'historique.')) return;
+  await api('/api/mon-entreprise/chambres/'+id,'DELETE'); toast('Chambre supprimée.'); chargerChambres();
+}
+async function chargerSejours(){
+  const liste = await api('/api/sejours');
+  const filtre = document.getElementById('filtreSejours').value;
+  const visibles = filtre ? liste.filter(s => s.statut === filtre) : liste;
+  document.getElementById('tableSejours').innerHTML = visibles.length ? `
+    <tr><th>Client</th><th>Chambre</th><th>Dates</th><th>Total</th><th>Statut</th><th>Actions</th></tr>` +
+    visibles.map(s => `<tr>
+      <td><strong>${ech(s.clientNom)}</strong><br><span class="petit muet">${ech(s.clientTel)} • ${s.nbPersonnes} pers.</span></td>
+      <td>${ech(s.chambre ? s.chambre.nom : '—')}</td>
+      <td>${s.arrivee} → ${s.depart}<br><span class="petit muet">${s.nuits} nuit${s.nuits>1?'s':''}</span></td>
+      <td><strong>${(+s.prixTotal).toLocaleString('fr-HT')} HTG</strong></td>
+      <td>${BADGE_STATUT[s.statut] || s.statut}</td>
+      <td class="flex" style="gap:6px;flex-wrap:wrap">
+        ${s.statut==='en_attente' ? `<button class="btn btn-succes btn-petit" onclick="statutSejour('${s.id}','confirme')">✓ Confirmer</button>` : ''}
+        ${['en_attente','confirme'].includes(s.statut) ? `<button class="btn btn-danger btn-petit" onclick="statutSejour('${s.id}','annule')">✕ Annuler</button>` : ''}
+        ${s.statut==='confirme' ? `<button class="btn btn-fantome btn-petit" onclick="statutSejour('${s.id}','termine')">Terminé</button>` : ''}
+      </td></tr>`).join('')
+    : '<tr><td class="muet petit">Aucune demande de séjour pour le moment.</td></tr>';
+}
+async function statutSejour(id, statut){
+  await api('/api/sejours/'+id,'PUT',{statut}); toast('Séjour mis à jour. Le client est prévenu par email.'); chargerSejours();
+}
 async function supprimerService(id){ if(confirm('Supprimer ce service ?')){ await api('/api/mon-entreprise/services/'+id,'DELETE'); toast('Service supprimé.'); chargerServices(); } }
 
 // ---- Employés ----

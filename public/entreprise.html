@@ -50,6 +50,29 @@
       <div id="listeServices" class="mt"></div>
     </div></section>
 
+    <section class="carte" id="carteChambres" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🛏️ Chambres & Séjours</h2>
+      <div id="listeChambres" class="mt"></div>
+      <div class="mt" style="border-top:1px solid var(--bordure);padding-top:16px">
+        <h3 style="font-size:15px;margin-bottom:10px">Réserver un séjour</h3>
+        <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label>Arrivée</label><input type="date" id="sjArrivee"></div>
+          <div><label>Départ</label><input type="date" id="sjDepart"></div>
+        </div>
+        <label>Type de chambre</label>
+        <select id="sjChambre"></select>
+        <label>Nombre de personnes</label>
+        <input type="number" id="sjPersonnes" min="1" value="2">
+        <div id="sjDispo" class="mt"></div>
+        <div id="sjCoordonnees" style="display:none">
+          <label>Votre nom complet *</label><input id="sjNom">
+          <label>Téléphone (WhatsApp) *</label><input id="sjTel" placeholder="Ex : 50937120000">
+          <label>Email (recommandé)</label><input id="sjEmail" type="email" placeholder="Pour recevoir votre confirmation">
+          <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="reserverSejour()">Confirmer la demande de séjour</button>
+        </div>
+      </div>
+    </div></section>
+
     <section class="carte"><div class="carte-corps">
       <div class="flex entre">
         <h2 style="font-size:19px">Avis clients</h2>
@@ -152,6 +175,60 @@ async function charger() {
 
   document.getElementById('listeServices').innerHTML = ent.description
     ? `<p class="muet petit" style="margin-bottom:12px">${ech(ent.description)}</p>` : '';
+
+  // ---- Module Chambres & Séjours ----
+  if (ent.chambres && ent.chambres.length) {
+    document.getElementById('carteChambres').style.display = '';
+    document.getElementById('listeChambres').innerHTML = ent.chambres.map(c => `
+      <div class="flex" style="gap:12px;padding:10px 0;border-bottom:1px solid var(--bordure);align-items:flex-start">
+        ${c.photo ? `<img src="${c.photo}" alt="${ech(c.nom)}" style="width:86px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0">` : `<div style="width:86px;height:64px;border-radius:10px;background:linear-gradient(135deg,var(--marque),var(--marque2));display:grid;place-items:center;font-size:26px;flex-shrink:0">🛏️</div>`}
+        <div style="flex:1">
+          <div class="flex entre"><strong>${ech(c.nom)}</strong><strong style="color:var(--marque)">${(+c.prixNuit).toLocaleString('fr-HT')} HTG<span class="muet petit">/nuit</span></strong></div>
+          <p class="petit muet">${ech(c.description || '')}</p>
+          <p class="petit muet">👥 ${c.capacite} pers. max • ${c.quantite} chambre${c.quantite > 1 ? 's' : ''} de ce type</p>
+        </div>
+      </div>`).join('');
+    const sel = document.getElementById('sjChambre');
+    sel.innerHTML = ent.chambres.map(c => `<option value="${c.id}">${ech(c.nom)} — ${(+c.prixNuit).toLocaleString('fr-HT')} HTG/nuit</option>`).join('');
+    const auj = new Date(), dem = new Date(Date.now() + 86400000);
+    document.getElementById('sjArrivee').min = auj.toISOString().slice(0,10);
+    document.getElementById('sjDepart').min = dem.toISOString().slice(0,10);
+    ['sjArrivee','sjDepart','sjChambre'].forEach(id => document.getElementById(id).addEventListener('change', verifierSejour));
+  }
+
+  window.verifierSejour = async () => {
+    const a = document.getElementById('sjArrivee').value, d = document.getElementById('sjDepart').value;
+    const zone = document.getElementById('sjDispo'), coord = document.getElementById('sjCoordonnees');
+    coord.style.display = 'none';
+    if (!a || !d) { zone.innerHTML = ''; return; }
+    zone.innerHTML = '<p class="petit muet">Vérification…</p>';
+    try {
+      const r = await api(`/api/disponibilites-sejour?slug=${slug}&chambre=${document.getElementById('sjChambre').value}&arrivee=${a}&depart=${d}`);
+      if (r.disponible) {
+        zone.innerHTML = `<div style="background:#D1FADF;border-radius:10px;padding:12px 14px" class="petit">✅ <strong>Disponible</strong> — ${r.nuits} nuit${r.nuits>1?'s':''} × ${(+r.prixNuit).toLocaleString('fr-HT')} HTG = <strong>${(+r.prixTotal).toLocaleString('fr-HT')} HTG</strong> <span class="muet">(paiement sur place)</span></div>`;
+        coord.style.display = '';
+      } else {
+        zone.innerHTML = `<div style="background:#FEE4E2;border-radius:10px;padding:12px 14px" class="petit">❌ Complet sur ces dates. Essayez d'autres dates ou un autre type de chambre.</div>`;
+      }
+    } catch (err) { zone.innerHTML = `<div style="background:#FEE4E2;border-radius:10px;padding:12px 14px" class="petit">${ech(err.message)}</div>`; }
+  };
+
+  window.reserverSejour = async () => {
+    const nom = document.getElementById('sjNom').value.trim();
+    const tel = document.getElementById('sjTel').value.trim();
+    if (!nom || !tel) { toast('Nom et téléphone obligatoires.'); return; }
+    try {
+      const r = await api('/api/sejours', 'POST', {
+        slug, chambreId: document.getElementById('sjChambre').value,
+        arrivee: document.getElementById('sjArrivee').value, depart: document.getElementById('sjDepart').value,
+        nbPersonnes: +document.getElementById('sjPersonnes').value || 1,
+        clientNom: nom, clientTel: tel, clientEmail: document.getElementById('sjEmail').value.trim()
+      });
+      document.getElementById('sjCoordonnees').style.display = 'none';
+      document.getElementById('sjDispo').innerHTML = `<div style="background:#D1FADF;border-radius:10px;padding:14px" class="petit">🎉 <strong>Demande envoyée !</strong> ${ech(r.entreprise)} va confirmer votre séjour (${ech(r.chambre)}, ${r.arrivee} → ${r.depart}, ${(+r.prixTotal).toLocaleString('fr-HT')} HTG).${document.getElementById('sjEmail').value ? ' Un email de confirmation vous a été envoyé.' : ''} Référence : <strong>${r.reference}</strong></div>`;
+      toast('Demande de séjour envoyée !');
+    } catch (err) { toast(err.message); }
+  };
   document.getElementById('listeServices').innerHTML += ent.services.map(s => `
     <div class="ligne-service">
       <div><strong>${ech(s.nom)}</strong><div class="petit muet">⏱ ${s.duree} min</div></div>
