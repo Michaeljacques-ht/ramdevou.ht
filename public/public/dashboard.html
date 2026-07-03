@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau de bord — Randevou.ht</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--gris-clair); }
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.lateral { background: var(--marine); color: #C6D2E8; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+.lateral .logo { color: #fff; padding: 6px 10px 18px; }
+.lien-lat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: #C6D2E8; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; font-family: inherit; text-align: left; width: 100%; }
+.lien-lat:hover { background: var(--marine-2); color: #fff; }
+.lien-lat.actif { background: var(--bleu); color: #fff; }
+.bloc-user { margin-top: auto; background: var(--marine-2); border-radius: 12px; padding: 12px; display: flex; gap: 10px; align-items: center; }
+.entete-haut { background: #fff; border-bottom: 1px solid var(--bordure); padding: 14px 24px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 40; }
+.principal { padding: 24px; max-width: 1060px; }
+.cartes-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.stat { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 16px 18px; }
+.stat .valeur { font-size: 28px; font-weight: 800; margin-top: 4px; }
+.stat .delta { font-size: 12px; font-weight: 700; }
+.cloche { position: relative; margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; }
+.cloche .point { position: absolute; top: -4px; right: -6px; background: var(--rouge); color: #fff; font-size: 10px; font-weight: 700; border-radius: 99px; padding: 1px 5px; }
+.panneau-notifs { position: absolute; right: 24px; top: 60px; width: 330px; max-height: 400px; overflow: auto; background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: 0 16px 44px rgba(16,24,40,.18); display: none; z-index: 60; }
+.panneau-notifs.ouvert { display: block; }
+.notif { padding: 12px 14px; border-bottom: 1px solid #F2F4F7; font-size: 13.5px; }
+.notif.non-lu { background: var(--bleu-clair); }
+.cal-semaine { display: grid; grid-template-columns: 54px repeat(7, 1fr); font-size: 12px; }
+.cal-cellule { border-top: 1px solid #F2F4F7; border-left: 1px solid #F2F4F7; min-height: 44px; position: relative; }
+.cal-entete { padding: 8px 4px; text-align: center; font-weight: 700; color: var(--gris); }
+.cal-heure { color: var(--gris); text-align: right; padding: 2px 6px 0 0; }
+.rdv-bloc { position: absolute; left: 3px; right: 3px; border-radius: 7px; padding: 3px 6px; font-size: 11px; font-weight: 600; overflow: hidden; cursor: pointer; }
+.pastilles { display: flex; gap: 8px; flex-wrap: wrap; }
+.pastille-couleur { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.pastille-couleur.choisie { border-color: var(--encre); }
+.section-cache { display: none; }
+.section-cache.visible { display: block; }
+#menuMobile { display: none; }
+@media (max-width: 880px) {
+  .app { grid-template-columns: 1fr; }
+  .lateral { position: fixed; inset: 0 30% 0 0; z-index: 90; transform: translateX(-100%); transition: .2s; }
+  .lateral.ouvert { transform: none; }
+  #menuMobile { display: inline-flex; }
+  .cartes-stats { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="lateral" id="lateral">
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Randevou.ht</a>
+    <button class="lien-lat actif" data-sec="bord">▦ Tableau de bord</button>
+    <button class="lien-lat" data-sec="rdv">🗓 Rendez-vous</button>
+    <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
+    <button class="lien-lat" data-sec="services">🧰 Services</button>
+    <button class="lien-lat" data-sec="chambres">🛏️ Chambres &amp; Séjours</button>
+    <button class="lien-lat" data-sec="employes">👥 Employés</button>
+    <button class="lien-lat" data-sec="avis">⭐ Avis &amp; Notes</button>
+    <button class="lien-lat" data-sec="perso">🎨 Personnalisation</button>
+    <button class="lien-lat" data-sec="param">⚙️ Paramètres &amp; horaires</button>
+    <div class="bloc-user">
+      <span class="avatar" id="avatarUser">–</span>
+      <div style="flex:1;min-width:0">
+        <strong style="color:#fff;font-size:13px;display:block" id="nomEnt">…</strong>
+        <span class="petit" style="font-size:12px" id="nomUser">…</span>
+      </div>
+      <button class="btn btn-fantome btn-petit" style="color:#C6D2E8" onclick="deconnexion()" title="Se déconnecter">⎋</button>
+    </div>
+  </aside>
+
+  <div>
+    <header class="entete-haut">
+      <button class="btn btn-fantome btn-petit" id="menuMobile" onclick="document.getElementById('lateral').classList.toggle('ouvert')">☰</button>
+      <h1 style="font-size:17px" id="titreSection">Tableau de bord</h1>
+      <button class="cloche" onclick="basculerNotifs()" aria-label="Notifications">🔔<span class="point" id="ptNotif" style="display:none">0</span></button>
+      <a class="btn btn-contour btn-petit" id="lienPublic" target="_blank" href="#">Voir ma page publique ↗</a>
+    </header>
+    <div class="panneau-notifs" id="panneauNotifs"></div>
+
+    <main class="principal">
+      <div id="alerteStatut"></div>
+
+      <!-- ===== Tableau de bord ===== -->
+      <section id="sec-bord" class="section-cache visible">
+        <div class="carte" style="margin-bottom:14px"><div class="carte-corps flex entre" style="flex-wrap:wrap;gap:12px">
+          <div style="min-width:220px">
+            <h2 style="font-size:15px">📣 Partagez votre page de réservation</h2>
+            <p class="petit muet" id="lienPublic" style="word-break:break-all;margin-top:4px"></p>
+          </div>
+          <div class="flex" style="gap:8px;flex-wrap:wrap">
+            <button class="btn btn-fantome btn-petit" onclick="partagerPage('copier')">🔗 Copier le lien</button>
+            <button class="btn btn-succes btn-petit" onclick="partagerPage('whatsapp')">💬 WhatsApp</button>
+            <button class="btn btn-primaire btn-petit" onclick="partagerPage('facebook')">📘 Facebook</button>
+            <button class="btn btn-fantome btn-petit" onclick="partagerPage('x')">✖️ X</button>
+          </div>
+        </div></div>
+        <div class="cartes-stats" id="stats"></div>
+        <div class="grille mt" style="grid-template-columns:1.4fr 1fr">
+          <div class="carte"><div class="carte-corps">
+            <div class="flex entre"><h2 style="font-size:16px">Rendez-vous récents</h2>
+              <button class="btn btn-fantome btn-petit" onclick="allerSection('rdv')">Voir tous →</button></div>
+            <div id="rdvRecents" class="mt"></div>
+          </div></div>
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Activité — 14 derniers jours</h2>
+            <canvas id="graphe" height="190" class="mt" style="width:100%"></canvas>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- ===== Rendez-vous ===== -->
+      <section id="sec-rdv" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+            <h2 style="font-size:16px">Tous les rendez-vous</h2>
+            <select id="filtreStatut" style="width:auto" onchange="dessinerRdv()">
+              <option value="">Tous les statuts</option>
+              <option value="en_attente">En attente</option>
+              <option value="confirme">Confirmés</option>
+              <option value="termine">Terminés</option>
+              <option value="annule">Annulés</option>
+            </select>
+          </div>
+          <div style="overflow:auto" class="mt"><table id="tableRdv"></table></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Calendrier ===== -->
+      <section id="sec-calendrier" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+            <h2 style="font-size:16px" id="titreSemaine">Semaine</h2>
+            <div class="flex">
+              <button class="btn btn-contour btn-petit" onclick="bougerSemaine(-1)">←</button>
+              <button class="btn btn-contour btn-petit" onclick="semaineOffset=0;dessinerCalendrier()">Aujourd'hui</button>
+              <button class="btn btn-contour btn-petit" onclick="bougerSemaine(1)">→</button>
+            </div>
+          </div>
+          <div style="overflow:auto" class="mt"><div class="cal-semaine" id="calendrier" style="min-width:760px"></div></div>
+          <p class="petit mt"><span class="badge badge-vert">Confirmé</span> <span class="badge badge-orange">En attente</span> <span class="badge badge-gris">Terminé</span> <span class="badge badge-rouge">Annulé</span></p>
+        </div></div>
+      </section>
+
+      <!-- ===== Services ===== -->
+      <section id="sec-services" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Mes services</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirService()">+ Ajouter un service</button></div>
+          <div style="overflow:auto" class="mt"><table id="tableServices"></table></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Chambres & Séjours ===== -->
+      <section id="sec-chambres" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Mes chambres</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirChambre()">+ Ajouter une chambre</button></div>
+          <p class="petit muet mt">Pour hôtels, auberges et guesthouses : définissez vos types de chambres, votre inventaire et vos prix par nuit. Une section « Chambres &amp; Séjours » apparaîtra automatiquement sur votre page publique.</p>
+          <div style="overflow:auto" class="mt"><table id="tableChambres"></table></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Demandes de séjour</h2>
+            <select id="filtreSejours" onchange="chargerSejours()" class="btn-petit">
+              <option value="">Tous les statuts</option><option value="en_attente">En attente</option>
+              <option value="confirme">Confirmés</option><option value="annule">Annulés</option><option value="termine">Terminés</option>
+            </select></div>
+          <div style="overflow:auto" class="mt"><table id="tableSejours"></table></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Employés ===== -->
+      <section id="sec-employes" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Mon équipe</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirEmploye()">+ Ajouter un employé</button></div>
+          <p class="petit muet mt">Le nombre d'employés actifs détermine combien de rendez-vous peuvent être pris sur un même créneau.</p>
+          <div id="listeEmployes" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Avis ===== -->
+      <section id="sec-avis" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <h2 style="font-size:16px">Avis des clients</h2>
+          <div id="listeAvis" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Personnalisation ===== -->
+      <section id="sec-perso" class="section-cache">
+        <div class="grille" style="grid-template-columns:1.2fr .8fr">
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Personnaliser mon espace</h2>
+            <label>Couleur principale</label>
+            <div class="pastilles" id="pastilles1"></div>
+            <label>Couleur secondaire</label>
+            <div class="pastilles" id="pastilles2"></div>
+            <label>Logo (initiales, 1 à 3 lettres)</label><input id="pLogo" maxlength="3">
+            <label>Logo (image) — facultatif</label>
+            <div class="flex" style="gap:10px;align-items:center">
+              <input type="file" id="pLogoImg" accept="image/*" style="flex:1">
+              <button class="btn btn-fantome btn-petit" type="button" onclick="retirerImage('logoImage')">Retirer</button>
+            </div>
+            <p class="petit muet" style="margin:4px 0 0">PNG ou JPG carré de préférence. Compressé automatiquement. Remplace les initiales.</p>
+            <label>Photo de couverture — facultatif</label>
+            <div class="flex" style="gap:10px;align-items:center">
+              <input type="file" id="pPhotoFond" accept="image/*" style="flex:1">
+              <button class="btn btn-fantome btn-petit" type="button" onclick="retirerImage('photoFond')">Retirer</button>
+            </div>
+            <p class="petit muet" style="margin:4px 0 0">Photo de votre salon, clinique ou local. Affichée en bannière sur votre page et dans l'annuaire.</p>
+            <label>Description de l'entreprise</label><textarea id="pDesc" rows="4" placeholder="Présentez votre entreprise à vos clients…"></textarea>
+            <button class="btn btn-primaire mt" onclick="enregistrerPerso()">Enregistrer</button>
+          </div></div>
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Aperçu</h2>
+            <div class="mt" style="border:1px solid var(--bordure);border-radius:14px;overflow:hidden">
+              <div id="apercuBanniere" style="height:80px"></div>
+              <div style="padding:14px;display:flex;gap:12px;align-items:center">
+                <div id="apercuLogo" style="width:52px;height:52px;border-radius:12px;color:#fff;display:grid;place-items:center;font-weight:800;font-size:19px"></div>
+                <div><strong id="apercuNom"></strong><p class="petit muet" id="apercuDesc"></p></div>
+              </div>
+            </div>
+            <p class="petit muet mt">Ces couleurs s'appliquent à votre page publique et à vos cartes dans l'annuaire.</p>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- ===== Paramètres ===== -->
+      <section id="sec-param" class="section-cache">
+        <div class="grille" style="grid-template-columns:1fr 1fr">
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Informations de l'entreprise</h2>
+            <label>Nom</label><input id="iNom">
+            <label>Catégorie</label>
+            <select id="iCat"><option>Beauté</option><option>Santé</option><option>Formation</option><option>Auto</option><option>Maison</option><option>Hôtels &amp; Restaurants</option><option>Juridique</option><option>Autre</option></select>
+            <label>Adresse</label><input id="iAdresse">
+            <label>Téléphone</label><input id="iTel">
+            <label>Numéro WhatsApp (chiffres uniquement)</label><input id="iWhats" placeholder="Ex : 50937120000">
+            <label>Rendez-vous simultanés maximum</label>
+            <input id="iCapacite" type="number" min="0" max="50" placeholder="0 = automatique">
+            <p style="font-size:12px;color:var(--gris);margin:4px 0 0">Mettez <b>1</b> pour n'accepter qu'un seul rendez-vous à la fois. Laissez <b>0</b> (ou vide) pour le mode automatique : autant de rendez-vous simultanés que d'employés actifs.</p>
+            <button class="btn btn-primaire mt" onclick="enregistrerInfos()">Enregistrer les informations</button>
+          </div></div>
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Horaires d'ouverture</h2>
+            <div id="grilleHoraires" class="mt"></div>
+            <button class="btn btn-primaire mt" onclick="enregistrerHoraires()">Enregistrer les horaires</button>
+          </div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Modale service -->
+<div class="voile" id="voileService"><div class="modale">
+  <h3 id="titreModaleService">Ajouter un service</h3>
+  <label>Nom du service *</label><input id="sNom" placeholder="Ex : Consultation">
+  <label>Durée (minutes) *</label><input id="sDuree" type="number" min="10" step="5" value="30">
+  <label>Prix (HTG)</label><input id="sPrix" type="number" min="0" value="0">
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileService')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerService()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- Modale chambre -->
+<div class="voile" id="voileChambre"><div class="modale">
+  <h3 id="titreModaleChambre">Ajouter une chambre</h3>
+  <label>Type de chambre *</label><input id="chNom" placeholder="Ex : Chambre Standard, Suite Vue Mer">
+  <label>Description</label><input id="chDesc" placeholder="Ex : Lit double, climatisation, wifi">
+  <label>Prix par nuit (HTG) *</label><input id="chPrix" type="number" min="1" value="5000">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Capacité (personnes)</label><input id="chCap" type="number" min="1" max="20" value="2"></div>
+    <div><label>Nombre de chambres de ce type</label><input id="chQte" type="number" min="1" max="200" value="1"></div>
+  </div>
+  <label>Photo de la chambre — facultatif</label><input type="file" id="chPhoto" accept="image/*">
+  <div id="chApercu" class="mt"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileChambre')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerChambre()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- Modale employé -->
+<div class="voile" id="voileEmploye"><div class="modale">
+  <h3>Ajouter un employé</h3>
+  <label>Nom complet *</label><input id="eNom" placeholder="Ex : Stéphania Louis">
+  <label>Poste</label><input id="ePoste" placeholder="Ex : Esthéticienne">
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileEmploye')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerEmploye()">Ajouter</button>
+  </div>
+</div></div>
+
+<script src="/app.js"></script>
+<script>
+let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
+const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','#101828'];
+const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
+
+function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
+async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
+
+function allerSection(sec){
+  document.querySelectorAll('.lien-lat').forEach(b=>b.classList.toggle('actif', b.dataset.sec===sec));
+  document.querySelectorAll('main > section').forEach(s=>s.classList.toggle('visible', s.id==='sec-'+sec));
+  document.getElementById('titreSection').textContent = TITRES[sec];
+  document.getElementById('lateral').classList.remove('ouvert');
+  if(sec==='calendrier') dessinerCalendrier();
+}
+document.querySelectorAll('.lien-lat').forEach(b=>b.addEventListener('click',()=>allerSection(b.dataset.sec)));
+
+async function demarrer(){
+  try { moi = await api('/api/moi'); } catch { location.href='/connexion.html'; return; }
+  if (moi.role !== 'responsable') { location.href='/admin.html'; return; }
+  ent = moi.entreprise;
+  document.getElementById('nomEnt').textContent = ent.nom;
+  document.getElementById('nomUser').textContent = moi.nom;
+  // Lien public à partager
+  const lienPub = location.origin + '/' + ent.slug;
+  document.getElementById('lienPublic').textContent = lienPub;
+  window.partagerPage = async (canal) => {
+    const texte = `Prenez rendez-vous chez ${ent.nom} en ligne sur Randevou.ht : `;
+    if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + lienPub), '_blank');
+    else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lienPub), '_blank');
+    else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(lienPub), '_blank');
+    else {
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Randevou.ht', text: texte, url: lienPub }); return; } catch {} }
+      try { await navigator.clipboard.writeText(lienPub); toast('Lien copié ! Partagez-le avec vos clients.'); }
+      catch { prompt('Copiez ce lien :', lienPub); }
+    }
+  };
+  document.getElementById('avatarUser').textContent = moi.nom.split(' ').map(w=>w[0]).join('').slice(0,2);
+  document.getElementById('lienPublic').href = '/' + ent.slug;
+  if (ent.statut !== 'approuvee') {
+    document.getElementById('alerteStatut').innerHTML = `<div class="carte mb" style="border-color:var(--orange)"><div class="carte-corps" style="padding:14px 18px;background:var(--orange-fond);border-radius:14px">
+      <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Randevou.ht examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
+  }
+  await Promise.all([chargerStats(), chargerRdv(), chargerNotifs()]);
+  chargerServices(); chargerEmployes(); chargerAvis(); remplirPerso(); remplirParam(); chargerChambres(); chargerSejours();
+}
+
+// ---- Statistiques ----
+async function chargerStats(){
+  const s = await api('/api/stats');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span class="petit muet">Rendez-vous aujourd'hui</span><div class="valeur">${s.rdvAujourdhui}</div></div>
+    <div class="stat"><span class="petit muet">Rendez-vous ce mois</span><div class="valeur">${s.rdvCeMois}</div></div>
+    <div class="stat"><span class="petit muet">Clients totaux</span><div class="valeur">${s.clientsTotaux}</div></div>
+    <div class="stat"><span class="petit muet">Avis positifs</span><div class="valeur">${s.note || '—'}<span style="font-size:15px;color:var(--gris)">/5</span></div><span class="delta" style="color:var(--vert)">${s.totalAvis} avis</span></div>`;
+  dessinerGraphe(s.parJour);
+}
+
+function dessinerGraphe(parJour){
+  const c = document.getElementById('graphe');
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = 190;
+  c.width = w*dpr; c.height = h*dpr; ctx.scale(dpr,dpr);
+  const vals = Object.values(parJour), cles = Object.keys(parJour);
+  const max = Math.max(1, ...vals);
+  const marge = 22, lw = (w - marge) / vals.length;
+  ctx.clearRect(0,0,w,h);
+  vals.forEach((v,i)=>{
+    const bh = (v/max)*(h-46);
+    const x = marge + i*lw + 3, y = h-26-bh;
+    ctx.fillStyle = i===vals.length-1 ? '#2563EB' : '#C7D7FE';
+    ctx.beginPath(); ctx.roundRect(x, y, lw-6, bh || 2, 4); ctx.fill();
+    if (i % 3 === 0 || i === vals.length-1){
+      ctx.fillStyle = '#98A2B3'; ctx.font = '10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(cles[i].slice(8)+'/'+cles[i].slice(5,7), x+(lw-6)/2, h-8);
+    }
+  });
+}
+
+// ---- Rendez-vous ----
+async function chargerRdv(){
+  tousRdv = await api('/api/rendezvous');
+  const auj = new Date().toISOString().slice(0,10);
+  const recents = tousRdv.filter(r=>r.date>=auj).slice(0,5);
+  document.getElementById('rdvRecents').innerHTML = recents.length ? recents.map(r=>`
+    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid #F2F4F7;gap:10px">
+      <div class="flex"><span class="avatar">${ech(r.clientNom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+        <div><strong class="petit">${ech(r.clientNom)}</strong><div class="petit muet">${ech(r.service ? r.service.nom : '—')}</div></div></div>
+      <div class="centre petit muet">${r.date.slice(8)}/${r.date.slice(5,7)}<br>${r.heure}</div>
+      <div>${BADGE_STATUT[r.statut]}</div>
+    </div>`).join('') : '<p class="muet petit mt">Aucun rendez-vous à venir. Partagez votre lien public pour recevoir des réservations !</p>';
+  dessinerRdv();
+}
+
+function dessinerRdv(){
+  const f = document.getElementById('filtreStatut').value;
+  const liste = tousRdv.filter(r=>!f || r.statut===f).slice().reverse();
+  document.getElementById('tableRdv').innerHTML = `
+    <tr><th>Client</th><th>Service</th><th>Date &amp; heure</th><th>Contact</th><th>Statut</th><th>Actions</th></tr>` +
+    (liste.length ? liste.map(r=>`
+    <tr>
+      <td><strong>${ech(r.clientNom)}</strong></td>
+      <td>${ech(r.service ? r.service.nom : '—')}<div class="petit muet">${r.service ? r.service.duree+' min • '+htg(r.service.prix) : ''}</div></td>
+      <td>${dateFR(r.date)}<div class="petit muet">${r.heure}</div></td>
+      <td class="petit">${ech(r.clientTel)}${r.clientTel ? ` <a target="_blank" rel="noopener" href="https://wa.me/${r.clientTel.replace(/\\D/g,'')}" title="WhatsApp">💬</a>` : ''}</td>
+      <td>${BADGE_STATUT[r.statut]}</td>
+      <td><div class="flex" style="gap:6px">
+        ${r.statut==='en_attente' ? `<button class="btn btn-succes btn-petit" onclick="changerStatut('${r.id}','confirme')">Confirmer</button>` : ''}
+        ${r.statut==='confirme' ? `<button class="btn btn-contour btn-petit" onclick="changerStatut('${r.id}','termine')">Terminer</button>` : ''}
+        ${['en_attente','confirme'].includes(r.statut) ? `<button class="btn btn-danger btn-petit" onclick="changerStatut('${r.id}','annule')">Annuler</button>` : ''}
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="muet centre">Aucun rendez-vous pour ce filtre.</td></tr>');
+}
+
+async function changerStatut(id, statut){
+  await api('/api/rendezvous/'+id, 'PUT', { statut });
+  toast('Rendez-vous ' + ({confirme:'confirmé — le client sera notifié',annule:'annulé — le client sera notifié',termine:'marqué comme terminé'}[statut]));
+  await chargerRdv(); chargerStats(); dessinerCalendrier();
+}
+
+// ---- Calendrier hebdomadaire ----
+function bougerSemaine(n){ semaineOffset += n; dessinerCalendrier(); }
+function dessinerCalendrier(){
+  const base = new Date(); base.setDate(base.getDate() - ((base.getDay()+6)%7) + semaineOffset*7);
+  const jours = [...Array(7)].map((_,i)=>{ const d=new Date(base); d.setDate(d.getDate()+i); return d; });
+  const iso = d=>d.toISOString().slice(0,10);
+  document.getElementById('titreSemaine').textContent =
+    `${jours[0].getDate()} ${MOIS_FR[jours[0].getMonth()]} – ${jours[6].getDate()} ${MOIS_FR[jours[6].getMonth()]} ${jours[6].getFullYear()}`;
+  const heures = [...Array(11)].map((_,i)=>7+i); // 07h → 17h
+  const couleurs = { confirme:'#D1FADF;color:#067647', en_attente:'#FEF0C7;color:#B54708', termine:'#F2F4F7;color:#475467', annule:'#FEE4E2;color:#B42318' };
+  let html = '<div></div>' + jours.map(d=>`<div class="cal-entete">${JOURS_FR[d.getDay()].slice(0,3)} ${d.getDate()}</div>`).join('');
+  heures.forEach(h=>{
+    html += `<div class="cal-cellule cal-heure">${String(h).padStart(2,'0')}:00</div>`;
+    jours.forEach(d=>{
+      const rdvs = tousRdv.filter(r=>r.date===iso(d) && +r.heure.slice(0,2)===h);
+      html += `<div class="cal-cellule">${rdvs.map(r=>{
+        const min = +r.heure.slice(3,5);
+        return `<div class="rdv-bloc" style="top:${min/60*100}%;background:${couleurs[r.statut]}" title="${ech(r.clientNom)} — ${ech(r.service?r.service.nom:'')} à ${r.heure}" onclick="allerSection('rdv')">${r.heure} ${ech(r.clientNom.split(' ')[0])}</div>`;
+      }).join('')}</div>`;
+    });
+  });
+  document.getElementById('calendrier').innerHTML = html;
+}
+
+// ---- Services ----
+async function chargerServices(){
+  const liste = await api('/api/mon-entreprise/services');
+  document.getElementById('tableServices').innerHTML =
+    '<tr><th>Service</th><th>Durée</th><th>Prix</th><th>Statut</th><th>Actions</th></tr>' +
+    (liste.length ? liste.map(s=>`
+    <tr>
+      <td><strong>${ech(s.nom)}</strong></td><td>${s.duree} min</td><td>${htg(s.prix)}</td>
+      <td>${s.actif ? '<span class="badge badge-vert">Actif</span>' : '<span class="badge badge-gris">Masqué</span>'}</td>
+      <td><div class="flex" style="gap:6px">
+        <button class="btn btn-contour btn-petit" onclick='ouvrirService(${JSON.stringify(s)})'>Modifier</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerService('${s.id}',${!s.actif})">${s.actif?'Masquer':'Activer'}</button>
+        <button class="btn btn-danger btn-petit" onclick="supprimerService('${s.id}')">Supprimer</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="muet centre">Aucun service. Ajoutez votre premier service pour recevoir des réservations.</td></tr>');
+}
+function ouvrirService(s){
+  serviceEnCours = s || null;
+  document.getElementById('titreModaleService').textContent = s ? 'Modifier le service' : 'Ajouter un service';
+  sNom.value = s ? s.nom : ''; sDuree.value = s ? s.duree : 30; sPrix.value = s ? s.prix : 0;
+  document.getElementById('voileService').classList.add('ouvert');
+}
+async function enregistrerService(){
+  if(!sNom.value.trim()) return toast('Indiquez le nom du service.');
+  const donnees = { nom:sNom.value.trim(), duree:sDuree.value, prix:sPrix.value };
+  if (serviceEnCours) await api('/api/mon-entreprise/services/'+serviceEnCours.id,'PUT',donnees);
+  else await api('/api/mon-entreprise/services','POST',donnees);
+  fermer('voileService'); toast('Service enregistré.'); chargerServices();
+}
+async function basculerService(id, actif){ await api('/api/mon-entreprise/services/'+id,'PUT',{actif}); chargerServices(); }
+
+// ===== Chambres & Séjours =====
+let chambreEnCours = null, photoChambre = '';
+async function chargerChambres(){
+  const liste = await api('/api/mon-entreprise/chambres');
+  document.getElementById('tableChambres').innerHTML = liste.length ? `
+    <tr><th>Chambre</th><th>Prix/nuit</th><th>Cap.</th><th>Qté</th><th>Statut</th><th></th></tr>` +
+    liste.map(c => `<tr>
+      <td><strong>${ech(c.nom)}</strong><br><span class="petit muet">${ech(c.description||'')}</span></td>
+      <td>${(+c.prixNuit).toLocaleString('fr-HT')} HTG</td>
+      <td>${c.capacite}</td><td>${c.quantite}</td>
+      <td><span class="badge ${c.actif?'badge-vert':'badge-gris'}">${c.actif?'Active':'Masquée'}</span></td>
+      <td class="flex" style="gap:6px">
+        <button class="btn btn-fantome btn-petit" onclick='ouvrirChambre(${JSON.stringify(c).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerChambre('${c.id}',${!c.actif})">${c.actif?'👁️‍🗨️':'👁️'}</button>
+        <button class="btn btn-fantome btn-petit" onclick="supprimerChambre('${c.id}')">🗑️</button>
+      </td></tr>`).join('')
+    : '<tr><td class="muet petit">Aucune chambre. Cliquez sur « + Ajouter une chambre » pour commencer.</td></tr>';
+}
+function ouvrirChambre(c){
+  chambreEnCours = c || null; photoChambre = c && c.photo || '';
+  document.getElementById('titreModaleChambre').textContent = c ? 'Modifier la chambre' : 'Ajouter une chambre';
+  chNom.value = c ? c.nom : ''; chDesc.value = c ? (c.description||'') : '';
+  chPrix.value = c ? c.prixNuit : 5000; chCap.value = c ? c.capacite : 2; chQte.value = c ? c.quantite : 1;
+  document.getElementById('chPhoto').value = '';
+  document.getElementById('chApercu').innerHTML = photoChambre ? `<img src="${photoChambre}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  document.getElementById('voileChambre').classList.add('ouvert');
+}
+document.getElementById('chPhoto')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { photoChambre = await compresserImage(f, 900, 0.78);
+    document.getElementById('chApercu').innerHTML = `<img src="${photoChambre}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">`;
+  } catch { toast('Image illisible.'); }
+});
+async function enregistrerChambre(){
+  const corps = { nom: chNom.value.trim(), description: chDesc.value.trim(), prixNuit: +chPrix.value, capacite: +chCap.value, quantite: +chQte.value, photo: photoChambre };
+  if (!corps.nom || !(corps.prixNuit > 0)) { toast('Nom et prix par nuit obligatoires.'); return; }
+  try {
+    if (chambreEnCours) await api('/api/mon-entreprise/chambres/'+chambreEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/chambres','POST',corps);
+    fermer('voileChambre'); toast('Chambre enregistrée.'); chargerChambres();
+  } catch(e){ toast(e.message); }
+}
+async function basculerChambre(id, actif){ await api('/api/mon-entreprise/chambres/'+id,'PUT',{actif}); chargerChambres(); }
+async function supprimerChambre(id){
+  if (!confirm('Supprimer cette chambre ? Les séjours existants restent dans l\'historique.')) return;
+  await api('/api/mon-entreprise/chambres/'+id,'DELETE'); toast('Chambre supprimée.'); chargerChambres();
+}
+async function chargerSejours(){
+  const liste = await api('/api/sejours');
+  const filtre = document.getElementById('filtreSejours').value;
+  const visibles = filtre ? liste.filter(s => s.statut === filtre) : liste;
+  document.getElementById('tableSejours').innerHTML = visibles.length ? `
+    <tr><th>Client</th><th>Chambre</th><th>Dates</th><th>Total</th><th>Statut</th><th>Actions</th></tr>` +
+    visibles.map(s => `<tr>
+      <td><strong>${ech(s.clientNom)}</strong><br><span class="petit muet">${ech(s.clientTel)} • ${s.nbPersonnes} pers.</span></td>
+      <td>${ech(s.chambre ? s.chambre.nom : '—')}</td>
+      <td>${s.arrivee} → ${s.depart}<br><span class="petit muet">${s.nuits} nuit${s.nuits>1?'s':''}</span></td>
+      <td><strong>${(+s.prixTotal).toLocaleString('fr-HT')} HTG</strong></td>
+      <td>${BADGE_STATUT[s.statut] || s.statut}</td>
+      <td class="flex" style="gap:6px;flex-wrap:wrap">
+        ${s.statut==='en_attente' ? `<button class="btn btn-succes btn-petit" onclick="statutSejour('${s.id}','confirme')">✓ Confirmer</button>` : ''}
+        ${['en_attente','confirme'].includes(s.statut) ? `<button class="btn btn-danger btn-petit" onclick="statutSejour('${s.id}','annule')">✕ Annuler</button>` : ''}
+        ${s.statut==='confirme' ? `<button class="btn btn-fantome btn-petit" onclick="statutSejour('${s.id}','termine')">Terminé</button>` : ''}
+      </td></tr>`).join('')
+    : '<tr><td class="muet petit">Aucune demande de séjour pour le moment.</td></tr>';
+}
+async function statutSejour(id, statut){
+  await api('/api/sejours/'+id,'PUT',{statut}); toast('Séjour mis à jour. Le client est prévenu par email.'); chargerSejours();
+}
+async function supprimerService(id){ if(confirm('Supprimer ce service ?')){ await api('/api/mon-entreprise/services/'+id,'DELETE'); toast('Service supprimé.'); chargerServices(); } }
+
+// ---- Employés ----
+async function chargerEmployes(){
+  const liste = await api('/api/mon-entreprise/employes');
+  document.getElementById('listeEmployes').innerHTML = liste.length ? liste.map(x=>`
+    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid #F2F4F7">
+      <div class="flex"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+        <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)||'—'}</div></div></div>
+      <button class="btn btn-danger btn-petit" onclick="supprimerEmploye('${x.id}')">Retirer</button>
+    </div>`).join('') : '<p class="muet petit">Aucun employé enregistré.</p>';
+}
+function ouvrirEmploye(){ eNom.value=''; ePoste.value=''; document.getElementById('voileEmploye').classList.add('ouvert'); }
+async function enregistrerEmploye(){
+  if(!eNom.value.trim()) return toast("Indiquez le nom de l'employé.");
+  await api('/api/mon-entreprise/employes','POST',{nom:eNom.value.trim(),poste:ePoste.value.trim()});
+  fermer('voileEmploye'); toast('Employé ajouté.'); chargerEmployes();
+}
+async function supprimerEmploye(id){ if(confirm('Retirer cet employé ?')){ await api('/api/mon-entreprise/employes/'+id,'DELETE'); chargerEmployes(); } }
+
+// ---- Avis ----
+async function chargerAvis(){
+  const liste = await api('/api/mon-entreprise/avis');
+  document.getElementById('listeAvis').innerHTML = liste.length ? liste.map(a=>`
+    <div style="padding:12px 0;border-bottom:1px solid #F2F4F7">
+      <div class="flex entre"><strong class="petit">${ech(a.clientNom)}</strong><span class="etoiles petit">${etoiles(a.note)}</span></div>
+      <p class="petit muet" style="margin-top:4px">${ech(a.commentaire)}</p>
+    </div>`).join('') : '<p class="muet petit">Aucun avis pour le moment.</p>';
+}
+
+// ---- Personnalisation ----
+function remplirPerso(){
+  const zone1 = document.getElementById('pastilles1'), zone2 = document.getElementById('pastilles2');
+  zone1.innerHTML = COULEURS.map(c=>`<button class="pastille-couleur ${c===ent.couleur?'choisie':''}" style="background:${c}" data-c="${c}" aria-label="Couleur ${c}"></button>`).join('');
+  zone2.innerHTML = COULEURS.map(c=>`<button class="pastille-couleur ${c===ent.couleur2?'choisie':''}" style="background:${c}" data-c="${c}" aria-label="Couleur ${c}"></button>`).join('');
+  zone1.querySelectorAll('button').forEach(b=>b.onclick=()=>{ ent.couleur=b.dataset.c; remplirPerso(); });
+  zone2.querySelectorAll('button').forEach(b=>b.onclick=()=>{ ent.couleur2=b.dataset.c; remplirPerso(); });
+  pLogo.value = ent.logoTexte; pDesc.value = ent.description || '';
+  const ban = document.getElementById('apercuBanniere');
+  if (ent.photoFond) {
+    ban.style.background = `linear-gradient(130deg, ${ent.couleur}CC, ${ent.couleur2}99), url('${ent.photoFond}') center/cover`;
+  } else {
+    ban.style.background = `linear-gradient(130deg, ${ent.couleur}, ${ent.couleur2})`;
+  }
+  const lg = document.getElementById('apercuLogo');
+  if (ent.logoImage) {
+    lg.style.background = '#fff';
+    lg.innerHTML = `<img src="${ent.logoImage}" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`;
+  } else {
+    lg.style.background = ent.couleur;
+    lg.textContent = pLogo.value || ent.logoTexte;
+  }
+  document.getElementById('apercuNom').textContent = ent.nom;
+  document.getElementById('apercuDesc').textContent = (pDesc.value || '').slice(0,60) || 'Votre description apparaîtra ici.';
+}
+pLogo?.addEventListener?.('input', remplirPerso);
+
+// Compression d'image dans le navigateur (canvas) avant envoi
+function compresserImage(fichier, maxCote, qualite){
+  return new Promise((resoudre, rejeter) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(1, maxCote / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * ratio); c.height = Math.round(img.height * ratio);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resoudre(c.toDataURL('image/jpeg', qualite));
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => rejeter(new Error('Image illisible'));
+    img.src = URL.createObjectURL(fichier);
+  });
+}
+document.getElementById('pLogoImg')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { ent.logoImage = await compresserImage(f, 256, 0.85); remplirPerso(); toast('Logo chargé. Cliquez sur Enregistrer pour publier.'); }
+  catch { toast("Impossible de lire cette image."); }
+});
+document.getElementById('pPhotoFond')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { ent.photoFond = await compresserImage(f, 1400, 0.78); remplirPerso(); toast('Photo chargée. Cliquez sur Enregistrer pour publier.'); }
+  catch { toast("Impossible de lire cette image."); }
+});
+function retirerImage(champ){
+  ent[champ] = '';
+  document.getElementById(champ === 'logoImage' ? 'pLogoImg' : 'pPhotoFond').value = '';
+  remplirPerso(); toast('Image retirée. Cliquez sur Enregistrer pour publier.');
+}
+async function enregistrerPerso(){
+  ent = await api('/api/mon-entreprise','PUT',{ couleur:ent.couleur, couleur2:ent.couleur2, logoTexte:pLogo.value.toUpperCase()||ent.logoTexte, description:pDesc.value.trim(), logoImage:ent.logoImage||'', photoFond:ent.photoFond||'' });
+  toast('Personnalisation enregistrée. Votre page publique est à jour.');
+  remplirPerso();
+}
+
+// ---- Paramètres & horaires ----
+function remplirParam(){
+  iNom.value=ent.nom; iCat.value=ent.categorie; iAdresse.value=ent.adresse; iTel.value=ent.telephone; iWhats.value=ent.whatsapp||''; iCapacite.value=ent.capaciteMax||0;
+  document.getElementById('grilleHoraires').innerHTML = ['lun','mar','mer','jeu','ven','sam','dim'].map(j=>{
+    const h = ent.horaires[j];
+    return `<div class="flex" style="gap:8px;padding:5px 0">
+      <label style="margin:0;width:86px">${NOMS_JOURS[j]}</label>
+      <input type="checkbox" style="width:auto" id="h_${j}_o" ${h.ouvert?'checked':''} aria-label="Ouvert ${NOMS_JOURS[j]}">
+      <input type="time" id="h_${j}_d" value="${h.debut}" style="width:110px">
+      <span class="muet">→</span>
+      <input type="time" id="h_${j}_f" value="${h.fin}" style="width:110px">
+    </div>`;
+  }).join('');
+}
+async function enregistrerInfos(){
+  ent = await api('/api/mon-entreprise','PUT',{ nom:iNom.value.trim(), categorie:iCat.value, adresse:iAdresse.value.trim(), telephone:iTel.value.trim(), whatsapp:iWhats.value.replace(/\D/g,''), capaciteMax:+iCapacite.value||0 });
+  document.getElementById('nomEnt').textContent = ent.nom;
+  toast('Informations enregistrées.');
+}
+async function enregistrerHoraires(){
+  const horaires = {};
+  ['lun','mar','mer','jeu','ven','sam','dim'].forEach(j=>{
+    horaires[j] = { ouvert: document.getElementById('h_'+j+'_o').checked, debut: document.getElementById('h_'+j+'_d').value, fin: document.getElementById('h_'+j+'_f').value };
+  });
+  ent = await api('/api/mon-entreprise','PUT',{ horaires });
+  toast('Horaires enregistrés. Les créneaux de réservation sont mis à jour.');
+}
+
+// ---- Notifications ----
+async function chargerNotifs(){
+  const notifs = await api('/api/notifications');
+  const nonLues = notifs.filter(n=>!n.lu).length;
+  const pt = document.getElementById('ptNotif');
+  pt.style.display = nonLues ? 'block' : 'none'; pt.textContent = nonLues;
+  document.getElementById('panneauNotifs').innerHTML = notifs.length ? notifs.map(n=>`
+    <div class="notif ${n.lu?'':'non-lu'}">${ech(n.message)}<div class="petit muet">${new Date(n.creeLe).toLocaleString('fr-FR')}</div></div>`).join('')
+    : '<div class="notif muet">Aucune notification.</div>';
+}
+async function basculerNotifs(){
+  const p = document.getElementById('panneauNotifs');
+  p.classList.toggle('ouvert');
+  if (p.classList.contains('ouvert')) { await api('/api/notifications','PUT'); setTimeout(chargerNotifs, 400); }
+}
+
+demarrer();
+setInterval(()=>{ chargerNotifs(); chargerRdv(); }, 20000); // actualisation automatique
+</script>
+</body>
+</html>
