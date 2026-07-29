@@ -1,5 +1,5 @@
 // Randevou.ht — Service Worker (requis pour PWA / Play Store)
-const CACHE = 'randevou-v1';
+const CACHE = 'randevou-v4';
 const STATIQUES = [
   '/style.css',
   '/app.js',
@@ -61,16 +61,16 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Statiques : cache d'abord
+  // Statiques : réseau d'abord, cache en secours.
+  // (Le « cache d'abord » figeait les anciennes versions de app.js / style.css
+  //  et empêchait toute mise à jour d'arriver jusqu'au navigateur.)
   e.respondWith(
-    caches.match(e.request).then(
-      (r) =>
-        r ||
-        fetch(e.request).then((rep) => {
-          const copie = rep.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copie));
-          return rep;
-        })
-    )
+    fetch(e.request)
+      .then((rep) => {
+        const copie = rep.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copie));
+        return rep;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

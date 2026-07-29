@@ -382,20 +382,24 @@ const translations = {
 };
 
 // Fonction pour obtenir la traduction
+// Les clés sont stockées à plat ('acc.nav.accueil'), pas en objets imbriqués.
 function t(key, lang = null) {
   const langue = lang || (localStorage.getItem('langue') || 'fr');
-  const parts = key.split('.');
-  let text = translations[langue];
-  
-  for (let part of parts) {
-    if (text && typeof text === 'object') {
-      text = text[part];
-    } else {
-      return key; // Retourne la clé si traduction non trouvée
-    }
+  const table = translations[langue] || translations.fr;
+
+  // 1) clé plate dans la langue demandée
+  if (table && Object.prototype.hasOwnProperty.call(table, key)) return table[key];
+
+  // 2) repli sur le français
+  if (translations.fr && Object.prototype.hasOwnProperty.call(translations.fr, key)) return translations.fr[key];
+
+  // 3) compatibilité : structure imbriquée éventuelle
+  let text = table;
+  for (const part of key.split('.')) {
+    if (text && typeof text === 'object' && part in text) text = text[part];
+    else return key;
   }
-  
-  return text || key;
+  return typeof text === 'string' ? text : key;
 }
 
 // Fonction pour changer de langue
