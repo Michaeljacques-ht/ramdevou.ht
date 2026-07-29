@@ -374,7 +374,7 @@ async function confirmerResa() {
           <p style="font-weight:600;font-size:18px;margin-top:8px;color:#16A34A">Montant : ${htg(resa.service.prix)}</p>
           <button class="btn btn-primaire" style="width:100%;margin-top:12px;background:var(--marque)" onclick="initierPaiementRdv('${r.reference}')">💳 Payer maintenant</button>
         </div>
-        ${r.whatsapp ? `<a class="btn btn-succes mt" style="margin-top:14px" target="_blank" rel="noopener" href="https://wa.me/${r.whatsapp}?text=${encodeURIComponent('Bonjour, j\\'ai réservé « ' + r.service + ' » le ' + r.date + ' à ' + r.heure + ' (réf. ' + r.reference + ').')}">Contacter sur WhatsApp</a>` : ''}
+        ${r.whatsapp ? `<a class="btn btn-succes mt" style="margin-top:14px" target="_blank" rel="noopener" href="https://wa.me/${r.whatsapp}?text=${encodeURIComponent("Bonjour, j'ai réservé « " + r.service + " » le " + r.date + " à " + r.heure + " (réf. " + r.reference + ").")}">Contacter sur WhatsApp</a>` : ''}
       </div>`;
     document.querySelectorAll('#barrePas .pas').forEach(el => el.classList.add('fait'));
     window.rdvReference = r.reference;  // Stocker pour le paiement
