@@ -465,6 +465,42 @@ async function api(req, res, url) {
     return json(res, 200, { ok: true, reference: sejour.id, prix: sejour.prixTotal });
   }
 
+  // ---- Créneaux disponibles (client) ----
+  if (p === '/api/disponibilites' && req.method === 'GET') {
+    const e = db.entreprises.find((x) => x.slug === q.get('slug'));
+    const s = e && db.services.find((x) => x.id === q.get('service') && x.entrepriseId === e.id);
+    if (!e || !s || !q.get('date')) return json(res, 400, { erreur: 'Paramètres invalides' });
+    return json(res, 200, { creneaux: creneauxDisponibles(e, s, q.get('date')) });
+  }
+
+  // ---- Réservation d'un rendez-vous (client) ----
+  if (p === '/api/reservations' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    const s = e && db.services.find((x) => x.id === corps.serviceId && x.entrepriseId === e.id);
+    if (!e || !s) return json(res, 400, { erreur: 'Entreprise ou service invalide.' });
+    if (!corps.clientNom || !corps.clientTel || !corps.date || !corps.heure)
+      return json(res, 400, { erreur: 'Nom, téléphone, date et heure sont obligatoires.' });
+    if (!creneauxDisponibles(e, s, corps.date).includes(corps.heure))
+      return json(res, 409, { erreur: "Ce créneau n'est plus disponible. Choisissez-en un autre." });
+    const rdv = { id: store.uid(), entrepriseId: e.id, serviceId: s.id, clientNom: corps.clientNom, clientTel: corps.clientTel, clientEmail: corps.clientEmail || '', date: corps.date, heure: corps.heure, statut: 'en_attente', paye: false, prixTotal: s.prix || 0, creeLe: new Date().toISOString() };
+    db.rendezvous.push(rdv);
+    store.save();
+    notifier(e.id, 'nouveau_rdv', `Nouveau rendez-vous : ${rdv.clientNom} — ${s.nom} le ${rdv.date} à ${rdv.heure}`);
+    // Notification WhatsApp uniquement (les emails clients ont été retirés)
+    envoyerWhatsApp(rdv.clientTel, 'rdv_recu', [rdv.clientNom, e.nom, s.nom, rdv.date, rdv.heure]);
+    return json(res, 200, { ok: true, reference: rdv.id, entreprise: e.nom, service: s.nom, date: rdv.date, heure: rdv.heure, whatsapp: e.whatsapp });
+  }
+
+  // ---- Avis client ----
+  if (p === '/api/avis' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    if (!e || !corps.clientNom || !corps.note) return json(res, 400, { erreur: 'Données invalides.' });
+    db.avis.unshift({ id: store.uid(), entrepriseId: e.id, clientNom: corps.clientNom, note: Math.min(5, Math.max(1, +corps.note)), commentaire: (corps.commentaire || '').slice(0, 500), creeLe: new Date().toISOString() });
+    store.save();
+    notifier(e.id, 'nouvel_avis', `Nouvel avis (${corps.note}/5) de ${corps.clientNom}`);
+    return json(res, 200, { ok: true });
+  }
+
   // Espace responsable (authentifié) 
   if (p.startsWith('/api/mon-') || p.startsWith('/api/rendezvous') || p.startsWith('/api/sejours') || p === '/api/stats' || p === '/api/notifications') {
     if (!user || user.role !== 'responsable') return json(res, 401, { erreur: 'Connexion requise' });

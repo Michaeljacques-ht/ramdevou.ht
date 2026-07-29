@@ -337,7 +337,17 @@ function validerDate() {
 async function chargerCreneaux() {
   const z = document.getElementById('zonePas');
   z.innerHTML = '<p class="petit muet">Chargement des disponibilités…</p>';
-  const { creneaux } = await api(`/api/disponibilites?slug=${slug}&service=${resa.service.id}&date=${resa.date}`);
+  let creneaux;
+  try {
+    ({ creneaux } = await api(`/api/disponibilites?slug=${slug}&service=${resa.service.id}&date=${resa.date}`));
+  } catch (e) {
+    z.innerHTML = `<p class="petit" style="color:var(--rouge,#DC2626)">Impossible de charger les disponibilités : ${ech(e.message || 'erreur réseau')}</p>
+      <div class="flex mt" style="gap:8px">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=2;dessinerPas()">← Changer la date</button>
+        <button class="btn btn-contour btn-petit" onclick="chargerCreneaux()">Réessayer</button>
+      </div>`;
+    return;
+  }
   z.innerHTML = `<p class="petit muet">Étape 3 sur 4 — Créneaux du <strong>${dateFR(resa.date)}</strong></p>
     ${creneaux.length ? `<div class="creneaux">${creneaux.map(h => `<button class="creneau" onclick="choisirHeure('${h}', this)">${h}</button>`).join('')}</div>`
       : '<p class="muet petit mt">Aucun créneau disponible ce jour-là. Choisissez une autre date.</p>'}
