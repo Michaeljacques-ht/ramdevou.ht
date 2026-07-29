@@ -94,15 +94,15 @@
   <div class="conteneur nav-int">
     <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Randevou.ht</a>
     <div class="nav-liens">
-      <a href="/" class="actif">Accueil</a>
-      <a href="#comment">Comment ça marche</a>
-      <a href="#categories">Catégories</a>
-      <a href="#apropos">À propos</a>
+      <a href="/" class="actif" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="#comment" data-i18n="acc.nav.comment">Comment ça marche</a>
+      <a href="#categories" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="#apropos" data-i18n="acc.nav.apropos">À propos</a>
     </div>
     <div class="nav-droite">
       <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
-      <a class="btn btn-contour" href="/connexion.html">Se connecter</a>
-      <a class="btn btn-primaire" href="/inscription.html">Inscrire mon entreprise</a>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
     </div>
   </div>
 </nav>
@@ -112,23 +112,23 @@
   <div class="bulle bulle-2"></div>
   <div class="conteneur hero-int">
     <div>
-      <h1>Réservez facilement vos rendez-vous avec <span class="accent">les meilleures entreprises</span></h1>
-      <p class="intro">Randevou.ht est la plateforme numéro 1 en Haïti pour trouver et réserver des services de qualité.</p>
+      <h1><span data-i18n="acc.hero.titre1">Réservez facilement vos rendez-vous avec </span><span class="accent" data-i18n="acc.hero.accent">les meilleures entreprises</span></h1>
+      <p class="intro" data-i18n="acc.hero.intro">Randevou.ht est la plateforme numéro 1 en Haïti pour trouver et réserver des services de qualité.</p>
       <form class="barre-recherche" id="formRecherche">
-        <input type="text" id="champQ" placeholder="Que cherchez-vous ?" aria-label="Recherche">
+        <input type="text" id="champQ" placeholder="Que cherchez-vous ?" data-i18n-placeholder="acc.rech.q" aria-label="Recherche">
         <div class="sep"></div>
-        <input type="text" id="champLieu" placeholder="Localisation" aria-label="Localisation">
-        <button class="btn btn-primaire" type="submit">Rechercher</button>
+        <input type="text" id="champLieu" placeholder="Localisation" data-i18n-placeholder="acc.rech.lieu" aria-label="Localisation">
+        <button class="btn btn-primaire" type="submit" data-i18n="acc.rech.bouton">Rechercher</button>
       </form>
-      <p class="petit muet" style="margin-top:18px;font-weight:600">Catégories populaires :</p>
+      <p class="petit muet" style="margin-top:18px;font-weight:600" data-i18n="acc.cat.populaires">Catégories populaires :</p>
       <div class="categories" id="categories">
-        <button class="cat" data-cat="Santé"><span class="rond">🩺</span><span>Santé</span></button>
-        <button class="cat" data-cat="Beauté"><span class="rond">💇</span><span>Beauté</span></button>
-        <button class="cat" data-cat="Formation"><span class="rond">🎓</span><span>Formation</span></button>
-        <button class="cat" data-cat="Auto"><span class="rond">🚗</span><span>Auto</span></button>
-        <button class="cat" data-cat="Maison"><span class="rond">🏠</span><span>Maison</span></button>
-        <button class="cat" data-cat="Hôtels &amp; Restaurants"><span class="rond">🏨</span><span>Hôtels &amp; Restos</span></button>
-        <button class="cat" data-cat="Tout"><span class="rond">⊞</span><span>Tout</span></button>
+        <button class="cat" data-cat="Santé"><span class="rond">🩺</span><span data-i18n="cat.sante">Santé</span></button>
+        <button class="cat" data-cat="Beauté"><span class="rond">💇</span><span data-i18n="cat.beaute">Beauté</span></button>
+        <button class="cat" data-cat="Formation"><span class="rond">🎓</span><span data-i18n="cat.formation">Formation</span></button>
+        <button class="cat" data-cat="Auto"><span class="rond">🚗</span><span data-i18n="cat.auto">Auto</span></button>
+        <button class="cat" data-cat="Maison"><span class="rond">🏠</span><span data-i18n="cat.maison">Maison</span></button>
+        <button class="cat" data-cat="Hôtels &amp; Restaurants"><span class="rond">🏨</span><span data-i18n="cat.hotels">Hôtels &amp; Restos</span></button>
+        <button class="cat" data-cat="Tout"><span class="rond">⊞</span><span data-i18n="cat.tout">Tout</span></button>
       </div>
     </div>
     <div class="hero-visuel">
@@ -145,53 +145,53 @@
 
 <main class="conteneur">
   <div class="bande-chiffres" id="bandeChiffres">
-    <div class="chiffre"><strong data-cible="0" id="cEnt">0</strong><span>Entreprises inscrites</span></div>
-    <div class="chiffre"><strong data-cible="0" id="cAvis">0</strong><span>Avis clients</span></div>
-    <div class="chiffre"><strong id="cNote">—</strong><span>Note moyenne</span></div>
-    <div class="chiffre"><strong>0 HTG</strong><span>Pour commencer</span></div>
+    <div class="chiffre"><strong data-cible="0" id="cEnt">0</strong><span data-i18n="acc.chiffre.entreprises">Entreprises inscrites</span></div>
+    <div class="chiffre"><strong data-cible="0" id="cAvis">0</strong><span data-i18n="acc.chiffre.avis">Avis clients</span></div>
+    <div class="chiffre"><strong id="cNote">—</strong><span data-i18n="acc.chiffre.note">Note moyenne</span></div>
+    <div class="chiffre"><strong>0 HTG</strong><span data-i18n="acc.chiffre.gratuit">Pour commencer</span></div>
   </div>
 
   <div class="bande-atouts reveler">
     <div class="atout">
       <div class="ico" style="background:var(--bleu-clair)">💼</div>
-      <h3>Pour les entreprises</h3>
-      <p>Créez votre espace, gérez vos services et recevez plus de clients.</p>
-      <a class="petit" href="/inscription.html" style="font-weight:600">Inscrire mon entreprise →</a>
+      <h3 data-i18n="acc.atout.ent.titre">Pour les entreprises</h3>
+      <p data-i18n="acc.atout.ent.desc">Créez votre espace, gérez vos services et recevez plus de clients.</p>
+      <a class="petit" href="/inscription.html" style="font-weight:600" data-i18n="acc.atout.ent.lien">Inscrire mon entreprise →</a>
     </div>
     <div class="atout">
       <div class="ico" style="background:var(--vert-fond)">📅</div>
-      <h3>Réservation rapide</h3>
-      <p>Trouvez un service, choisissez l'horaire qui vous convient et réservez en quelques clics.</p>
+      <h3 data-i18n="acc.atout.rapide.titre">Réservation rapide</h3>
+      <p data-i18n="acc.atout.rapide.desc">Trouvez un service, choisissez l'horaire qui vous convient et réservez en quelques clics.</p>
     </div>
     <div class="atout">
       <div class="ico" style="background:#F4EBFF">🔔</div>
-      <h3>Notifications automatiques</h3>
-      <p>Recevez des rappels et des notifications par SMS, Email ou WhatsApp.</p>
+      <h3 data-i18n="acc.atout.notif.titre">Notifications automatiques</h3>
+      <p data-i18n="acc.atout.notif.desc">Recevez des rappels et des notifications par WhatsApp.</p>
     </div>
     <div class="atout">
       <div class="ico" style="background:var(--orange-fond)">📊</div>
-      <h3>Gestion efficace</h3>
-      <p>Gérez vos rendez-vous, votre équipe et développez votre entreprise facilement.</p>
+      <h3 data-i18n="acc.atout.gestion.titre">Gestion efficace</h3>
+      <p data-i18n="acc.atout.gestion.desc">Gérez vos rendez-vous, votre équipe et développez votre entreprise facilement.</p>
     </div>
   </div>
 
   <section class="section" id="categories-resultats">
     <div class="flex entre">
       <div>
-        <h2 id="titreResultats">Entreprises populaires</h2>
-        <p class="muet petit" id="sousTitreResultats">Découvrez les entreprises les mieux notées de la plateforme.</p>
+        <h2 id="titreResultats" data-i18n="acc.res.titre">Entreprises populaires</h2>
+        <p class="muet petit" id="sousTitreResultats" data-i18n="acc.res.sous">Découvrez les entreprises les mieux notées de la plateforme.</p>
       </div>
     </div>
     <div class="grille-entreprises" id="listeEntreprises"></div>
   </section>
 
   <section class="section" id="comment">
-    <h2>Comment ça marche</h2>
-    <p class="muet petit">Trois étapes simples pour réserver votre prochain rendez-vous.</p>
+    <h2 data-i18n="acc.comment.titre">Comment ça marche</h2>
+    <p class="muet petit" data-i18n="acc.comment.sous">Trois étapes simples pour réserver votre prochain rendez-vous.</p>
     <div class="etapes">
-      <div class="etape"><div class="num">1</div><h3>Recherchez</h3><p class="muet petit mt" style="margin-top:8px">Trouvez l'entreprise qu'il vous faut par nom, catégorie ou localisation.</p></div>
-      <div class="etape"><div class="num">2</div><h3>Réservez</h3><p class="muet petit" style="margin-top:8px">Choisissez un service, une date et un créneau disponible en temps réel.</p></div>
-      <div class="etape"><div class="num">3</div><h3>Recevez la confirmation</h3><p class="muet petit" style="margin-top:8px">L'entreprise confirme votre rendez-vous et vous recevez une notification.</p></div>
+      <div class="etape"><div class="num">1</div><h3 data-i18n="acc.comment.e1t">Recherchez</h3><p class="muet petit mt" style="margin-top:8px" data-i18n="acc.comment.e1d">Trouvez l'entreprise qu'il vous faut par nom, catégorie ou localisation.</p></div>
+      <div class="etape"><div class="num">2</div><h3 data-i18n="acc.comment.e2t">Réservez</h3><p class="muet petit" style="margin-top:8px" data-i18n="acc.comment.e2d">Choisissez un service, une date et un créneau disponible en temps réel.</p></div>
+      <div class="etape"><div class="num">3</div><h3 data-i18n="acc.comment.e3t">Recevez la confirmation</h3><p class="muet petit" style="margin-top:8px" data-i18n="acc.comment.e3d">L'entreprise confirme votre rendez-vous et vous recevez une notification.</p></div>
     </div>
   </section>
 

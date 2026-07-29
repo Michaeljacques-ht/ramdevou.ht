@@ -64,18 +64,23 @@ const ICONES_CAT = { 'Santé': '🩺', 'Beauté': '💇', 'Formation': '🎓', '
   document.head.appendChild(f);
   // Enregistrement du service worker
   if ('serviceWorker' in navigator) {
-// 🌐 Gestion des langues
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+})();
+
+// 🌐 Gestion des langues (sans effet si translations.js n'est pas chargé)
 function basculerLangue() {
+  if (typeof changerLangue !== 'function') return;
   const langueActuelle = localStorage.getItem('langue') || 'fr';
-  const nouvelleLangue = langueActuelle === 'fr' ? 'ht' : 'fr';
-  changerLangue(nouvelleLangue);
+  changerLangue(langueActuelle === 'fr' ? 'ht' : 'fr');
 }
 
 // Mettre à jour le texte du bouton langue
 window.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('btnLangue');
-  if (btn) {
-    const langue = getLangue();
-    btn.textContent = langue === 'fr' ? '🌐 HT' : '🌐 FR';
-  }
+  if (!btn) return;
+  const langue = localStorage.getItem('langue') || 'fr';
+  btn.textContent = langue === 'fr' ? '🌐 HT' : '🌐 FR';
 });
