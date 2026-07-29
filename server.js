@@ -42,6 +42,13 @@ function slugifier(s) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
 }
+// Distance en km entre deux points (formule de Haversine)
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, rad = (d) => (d * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 function noteMoyenne(entrepriseId) {
   const a = db.avis.filter((x) => x.entrepriseId === entrepriseId);
   if (!a.length) return { note: 0, total: 0 };
@@ -65,6 +72,27 @@ const https = require('https');
 //   WHATSAPP_LANG      = langue des modèles (défaut : fr)
 // Les modèles rdv_recu, rdv_statut et rdv_rappel doivent être approuvés dans Meta Business.
 // Sans configuration, les messages sont affichés dans les journaux (mode simulation).
+// -------- Gestion portefeuille --------
+function creerOuObtenirPortefeuille(entrepriseId) {
+  let p = db.portefeuilles.find((x) => x.id === entrepriseId);
+  if (!p) {
+    p = { id: entrepriseId, solde: 0, soldeBloque: 0, totalRecu: 0, totalRetire: 0, creeLe: new Date().toISOString() };
+    db.portefeuilles.push(p);
+  }
+  return p;
+}
+function creerPaiement(entrepriseId, commandeType, commandeId, montant, methodePaiement, clientEmail, clientNom) {
+  const reference = `${commandeType[0].toUpperCase()}${commandeId.slice(0, 8)}${Date.now().toString(36).toUpperCase()}`;
+  const paiement = {
+    id: store.uid(), entrepriseId, reference, commandeType, commandeId, montantBrut: montant,
+    commission: Math.round(montant * COMMISSION_RANDEVOU), montantNet: Math.round(montant * (1 - COMMISSION_RANDEVOU)),
+    methodePaiement: methodePaiement || 'all', clientEmail, clientNom,
+    statut: 'en_attente', transactionId: null, creeLe: new Date().toISOString()
+  };
+  db.paiements.push(paiement);
+  return paiement;
+}
+
 function normaliserTel(tel) {
   let n = String(tel || '').replace(/\D/g, '');
   if (n.length === 8) n = '509' + n; // numéro haïtien local → indicatif 509
@@ -133,7 +161,7 @@ function gabaritEmail(titre, couleur, lignes, pied) {
 }
 function publicEntreprise(e) {
   const { note, total } = noteMoyenne(e.id);
-  return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, logoImage: e.logoImage || '', photoFond: e.photoFond || '', horaires: e.horaires, plan: e.plan, note, totalAvis: total };
+  return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, logoImage: e.logoImage || '', photoFond: e.photoFond || '', horaires: e.horaires, plan: e.plan, latitude: e.latitude ?? null, longitude: e.longitude ?? null, note, totalAvis: total };
 }
 
 // ---------------- Calcul des créneaux disponibles ----------------
@@ -249,6 +277,19 @@ async function api(req, res, url) {
     const cat = q.get('categorie'), recherche = (q.get('q') || '').toLowerCase();
     if (cat && cat !== 'Tout') liste = liste.filter((e) => e.categorie === cat);
     if (recherche) liste = liste.filter((e) => (e.nom + ' ' + e.description + ' ' + e.adresse + ' ' + e.categorie).toLowerCase().includes(recherche));
+    // Tri par distance si le client partage sa position (?lat=&lng=)
+    const lat0 = Number(q.get('lat')), lng0 = Number(q.get('lng'));
+    if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
+      const sortie = liste.map((e) => {
+        const v = publicEntreprise(e);
+        v.distanceKm = (e.latitude != null && e.longitude != null)
+          ? Math.round(distanceKm(lat0, lng0, e.latitude, e.longitude) * 10) / 10
+          : null;
+        return v;
+      });
+      sortie.sort((a, b) => (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9));
+      return json(res, 200, sortie);
+    }
     return json(res, 200, liste.map(publicEntreprise));
   }
 
@@ -278,7 +319,119 @@ async function api(req, res, url) {
     return json(res, 200, { disponible: restantes > 0, restantes, nuits, prixNuit: c.prixNuit, prixTotal: nuits * c.prixNuit });
   }
 
-  // Réservation publique d'un séjour
+  // ---- Paiement d'une réservation ----
+  if (p === '/api/paiements/ouvrir' && req.method === 'POST') {
+    const { commandeType, commandeId, slug } = corps;
+    if (!['rdv', 'sejour'].includes(commandeType)) return json(res, 400, { erreur: 'Type de commande invalide' });
+    const e = db.entreprises.find((x) => x.slug === slug && x.statut === 'approuvee');
+    if (!e) return json(res, 404, { erreur: 'Entreprise introuvable' });
+    
+    let montant = 0, clientNom = '', clientEmail = '';
+    if (commandeType === 'rdv') {
+      const r = db.rendezvous.find((x) => x.id === commandeId && x.entrepriseId === e.id);
+      if (!r) return json(res, 404, { erreur: 'Rendez-vous introuvable' });
+      const s = db.services.find((x) => x.id === r.serviceId);
+      montant = s ? s.prix : 0;
+      clientNom = r.clientNom; clientEmail = r.clientEmail;
+    } else {
+      const s = db.sejours.find((x) => x.id === commandeId && x.entrepriseId === e.id);
+      if (!s) return json(res, 404, { erreur: 'Séjour introuvable' });
+      montant = s.prixTotal;
+      clientNom = s.clientNom; clientEmail = s.clientEmail;
+    }
+    
+    if (montant < plopplop.PLOP.montantMinHTG) return json(res, 400, { erreur: `Montant minimum : ${plopplop.PLOP.montantMinHTG} HTG` });
+    
+    const paiement = creerPaiement(e.id, commandeType, commandeId, montant, 'all', clientEmail, clientNom);
+    try {
+      const result = await plopplop.initierPaiement({ reference: paiement.reference, montant, methode: 'all' });
+      if (result.ok) {
+        paiement.transactionId = result.transactionId;
+        paiement.urlPaiement = result.url;
+        store.save();
+        return json(res, 200, { ok: true, paiementId: paiement.id, urlPaiement: result.urlPaiement, montant, reference: paiement.reference });
+      } else {
+        db.paiements = db.paiements.filter((x) => x !== paiement);
+        return json(res, 402, { erreur: result.error });
+      }
+    } catch (err) {
+      db.paiements = db.paiements.filter((x) => x !== paiement);
+      return json(res, 503, { erreur: 'Passerelle de paiement indisponible. Réessayez ultérieurement.' });
+    }
+  }
+
+  // ---- Vérifier un paiement ----
+  if (p === '/api/paiements/verifier' && req.method === 'POST') {
+    const { paiementId } = corps;
+    const paiement = db.paiements.find((x) => x.id === paiementId);
+    if (!paiement) return json(res, 404, { erreur: 'Paiement introuvable' });
+    
+    try {
+      const verification = await plopplop.verifierPaiement({ reference: paiement.reference });
+      if (verification.ok && verification.trans_status === 'ok') {
+        paiement.statut = 'confirme'; 
+        paiement.methode = verification.method;
+        paiement.dateConfirmation = new Date().toISOString();
+        paiement.idTransaction = verification.id_transaction;
+        
+        // Créditer le portefeuille de l'entreprise
+        const port = creerOuObtenirPortefeuille(paiement.entrepriseId);
+        port.solde += paiement.montantNet;
+        port.totalRecu += paiement.montantNet;
+        
+        // Traiter selon le type de commande
+        const e = db.entreprises.find((x) => x.id === paiement.entrepriseId);
+        if (paiement.commandeType === 'rdv') {
+          const r = db.rendezvous.find((x) => x.id === paiement.commandeId);
+          if (r) {
+            r.paye = true;
+            r.statut = 'confirme';  // Automatiquement confirmé après paiement
+            r.transactionId = paiement.idTransaction;
+            // Notification WhatsApp uniquement (avec montant + référence)
+            const svc = db.services.find(s => s.id === r.serviceId);
+            envoyerWhatsApp(r.clientTel, 'rdv_statut_paye', [
+              r.clientNom,
+              e?.nom || '',
+              svc?.nom || '',
+              r.date,
+              r.heure,
+              r.prixTotal.toLocaleString('fr-HT'),
+              e?.adresse || '',
+              r.id
+            ]);
+            // Notifier l'entreprise
+            notifier(paiement.entrepriseId, 'rdv_paye', `Rendez-vous payé : ${r.clientNom} — ${db.services.find(s => s.id === r.serviceId)?.nom || ''} le ${r.date}`);
+          }
+        } else if (paiement.commandeType === 'sejour') {
+          const s = db.sejours.find((x) => x.id === paiement.commandeId);
+          if (s) {
+            s.paye = true;
+            s.transactionId = paiement.idTransaction;
+            // Notification WhatsApp uniquement (avec montant + référence)
+            const chambre = db.chambres.find(c => c.id === s.chambreId);
+            envoyerWhatsApp(s.clientTel, 'sejour_statut_paye', [
+              s.clientNom,
+              e?.nom || '',
+              chambre?.nom || '',
+              s.arrivee,
+              s.depart,
+              s.nuits,
+              s.prixTotal.toLocaleString('fr-HT'),
+              e?.adresse || '',
+              s.id
+            ]);
+          }
+        }
+        
+        store.save();
+        return json(res, 200, { ok: true, statut: 'confirme', montantNet: paiement.montantNet });
+      } else {
+        return json(res, 402, { ok: false, statut: verification.statut || 'echec' });
+      }
+    } catch (err) {
+      return json(res, 503, { erreur: 'Vérification impossible. Réessayez ultérieurement.' });
+    }
+  }
   if (p === '/api/sejours' && req.method === 'POST') {
     const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
     const c = e && db.chambres.find((x) => x.id === corps.chambreId && x.entrepriseId === e.id && x.actif);
@@ -299,76 +452,20 @@ async function api(req, res, url) {
     };
     db.sejours.push(sejour);
     notifier(e.id, 'nouveau_sejour', `Nouveau séjour : ${sejour.clientNom} — ${c.nom}, du ${sejour.arrivee} au ${sejour.depart} (${nuits} nuit${nuits > 1 ? 's' : ''})`);
-    envoyerEmail(sejour.clientEmail, `Demande de séjour enregistrée — ${e.nom}`, gabaritEmail(
-      'Demande de séjour enregistrée 🛏️', e.couleur || '#2563EB',
-      `<p>Bonjour <strong>${sejour.clientNom}</strong>,</p>
-       <p>Votre demande de réservation a bien été enregistrée :</p>
-       <table style="width:100%;border-collapse:collapse;margin:14px 0">
-         <tr><td style="padding:8px 0;color:#667085">Établissement</td><td style="padding:8px 0;text-align:right"><strong>${e.nom}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Chambre</td><td style="padding:8px 0;text-align:right"><strong>${c.nom}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Arrivée</td><td style="padding:8px 0;text-align:right"><strong>${sejour.arrivee}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Départ</td><td style="padding:8px 0;text-align:right"><strong>${sejour.depart}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Nuits</td><td style="padding:8px 0;text-align:right"><strong>${nuits}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Personnes</td><td style="padding:8px 0;text-align:right"><strong>${sejour.nbPersonnes}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Prix total</td><td style="padding:8px 0;text-align:right"><strong>${sejour.prixTotal.toLocaleString('fr-HT')} HTG</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Référence</td><td style="padding:8px 0;text-align:right">${sejour.id}</td></tr>
-       </table>
-       <p style="background:#FEF0C7;border-radius:10px;padding:12px 14px;font-size:14px">⏳ <strong>${e.nom}</strong> va confirmer votre séjour. Vous recevrez un email dès que c'est fait. Le paiement se fait directement auprès de l'établissement.</p>`,
-      `Besoin de modifier ? Contactez ${e.nom}${e.telephone ? ' au ' + e.telephone : ''}.`
-    ));
-    envoyerWhatsApp(sejour.clientTel, 'rdv_recu', [sejour.clientNom, e.nom, c.nom, sejour.arrivee + ' → ' + sejour.depart, nuits + ' nuit(s), ' + sejour.prixTotal.toLocaleString('fr-HT') + ' HTG']);
-    store.save();
-    return json(res, 200, { ok: true, reference: sejour.id, entreprise: e.nom, chambre: c.nom, arrivee: sejour.arrivee, depart: sejour.depart, nuits, prixTotal: sejour.prixTotal, whatsapp: e.whatsapp || '' });
+    // WhatsApp Séjour reçu (plus d'email) — voir CONFIG-WHATSAPP-TEMPLATES.md
+    envoyerWhatsApp(sejour.clientTel, 'sejour_recu', [
+      sejour.clientNom,
+      e.nom,
+      sejour.arrivee,
+      sejour.depart,
+      sejour.nuits,
+      sejour.nbPersonnes,
+      sejour.prixTotal.toLocaleString('fr-HT')
+    ]);
+    return json(res, 200, { ok: true, reference: sejour.id, prix: sejour.prixTotal });
   }
 
-  if (p === '/api/disponibilites' && req.method === 'GET') {
-    const e = db.entreprises.find((x) => x.slug === q.get('slug'));
-    const s = e && db.services.find((x) => x.id === q.get('service') && x.entrepriseId === e.id);
-    if (!e || !s || !q.get('date')) return json(res, 400, { erreur: 'Paramètres invalides' });
-    return json(res, 200, { creneaux: creneauxDisponibles(e, s, q.get('date')) });
-  }
-
-  // ---- Réservation (client) ----
-  if (p === '/api/reservations' && req.method === 'POST') {
-    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
-    const s = e && db.services.find((x) => x.id === corps.serviceId && x.entrepriseId === e.id);
-    if (!e || !s) return json(res, 400, { erreur: 'Entreprise ou service invalide.' });
-    if (!corps.clientNom || !corps.clientTel || !corps.date || !corps.heure)
-      return json(res, 400, { erreur: 'Nom, téléphone, date et heure sont obligatoires.' });
-    if (!creneauxDisponibles(e, s, corps.date).includes(corps.heure))
-      return json(res, 409, { erreur: "Ce créneau n'est plus disponible. Choisissez-en un autre." });
-    const rdv = { id: store.uid(), entrepriseId: e.id, serviceId: s.id, clientNom: corps.clientNom, clientTel: corps.clientTel, clientEmail: corps.clientEmail || '', date: corps.date, heure: corps.heure, statut: 'en_attente', creeLe: new Date().toISOString() };
-    db.rendezvous.push(rdv);
-    notifier(e.id, 'nouveau_rdv', `Nouveau rendez-vous : ${rdv.clientNom} — ${s.nom} le ${rdv.date} à ${rdv.heure}`);
-    // Email de confirmation au client
-    envoyerEmail(rdv.clientEmail, `Réservation enregistrée — ${e.nom}`, gabaritEmail(
-      'Réservation enregistrée ✅', e.couleur || '#2563EB',
-      `<p>Bonjour <strong>${rdv.clientNom}</strong>,</p>
-       <p>Votre demande de rendez-vous a bien été enregistrée. Voici le récapitulatif :</p>
-       <table style="width:100%;border-collapse:collapse;margin:14px 0">
-         <tr><td style="padding:8px 0;color:#667085">Entreprise</td><td style="padding:8px 0;text-align:right"><strong>${e.nom}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Service</td><td style="padding:8px 0;text-align:right"><strong>${s.nom}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Date</td><td style="padding:8px 0;text-align:right"><strong>${rdv.date}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Heure</td><td style="padding:8px 0;text-align:right"><strong>${rdv.heure}</strong></td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Adresse</td><td style="padding:8px 0;text-align:right">${e.adresse || ''}</td></tr>
-         <tr><td style="padding:8px 0;color:#667085">Référence</td><td style="padding:8px 0;text-align:right">${rdv.id}</td></tr>
-       </table>
-       <p style="background:#FEF0C7;border-radius:10px;padding:12px 14px;font-size:14px">⏳ <strong>${e.nom}</strong> va confirmer votre rendez-vous. Vous recevrez un second email dès que c'est fait.</p>`,
-      `Besoin de modifier ? Contactez directement ${e.nom}${e.telephone ? ' au ' + e.telephone : ''}.`
-    ));
-    envoyerWhatsApp(rdv.clientTel, 'rdv_recu', [rdv.clientNom, e.nom, s.nom, rdv.date, rdv.heure]);
-    return json(res, 200, { ok: true, reference: rdv.id, entreprise: e.nom, service: s.nom, date: rdv.date, heure: rdv.heure, whatsapp: e.whatsapp });
-  }
-
-  if (p === '/api/avis' && req.method === 'POST') {
-    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
-    if (!e || !corps.clientNom || !corps.note) return json(res, 400, { erreur: 'Données invalides.' });
-    db.avis.unshift({ id: store.uid(), entrepriseId: e.id, clientNom: corps.clientNom, note: Math.min(5, Math.max(1, +corps.note)), commentaire: (corps.commentaire || '').slice(0, 500), creeLe: new Date().toISOString() });
-    notifier(e.id, 'nouvel_avis', `Nouvel avis (${corps.note}/5) de ${corps.clientNom}`);
-    return json(res, 200, { ok: true });
-  }
-
-  // ---- Espace responsable (authentifié) ----
+  // Espace responsable (authentifié) 
   if (p.startsWith('/api/mon-') || p.startsWith('/api/rendezvous') || p.startsWith('/api/sejours') || p === '/api/stats' || p === '/api/notifications') {
     if (!user || user.role !== 'responsable') return json(res, 401, { erreur: 'Connexion requise' });
     const e = monEntreprise();
@@ -379,6 +476,17 @@ async function api(req, res, url) {
       ['nom', 'description', 'adresse', 'telephone', 'whatsapp', 'email', 'categorie', 'couleur', 'couleur2', 'logoTexte', 'horaires'].forEach((k) => {
         if (corps[k] !== undefined) e[k] = corps[k];
       });
+      // Position géographique (latitude / longitude)
+      if (corps.latitude !== undefined || corps.longitude !== undefined) {
+        if (corps.latitude === '' || corps.latitude === null) { e.latitude = null; e.longitude = null; }
+        else {
+          const lat = Number(corps.latitude), lng = Number(corps.longitude);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180)
+            return json(res, 400, { erreur: 'Coordonnées invalides. Latitude entre -90 et 90, longitude entre -180 et 180.' });
+          e.latitude = Math.round(lat * 1e6) / 1e6;
+          e.longitude = Math.round(lng * 1e6) / 1e6;
+        }
+      }
       if (corps.capaciteMax !== undefined) e.capaciteMax = Math.max(0, Math.min(50, +corps.capaciteMax || 0));
       // Images (base64) : logo max ~350 Ko, photo de fond max ~1,5 Mo
       const imgValide = (v, max) => v === '' || (typeof v === 'string' && v.startsWith('data:image/') && v.length <= max);
@@ -477,6 +585,46 @@ async function api(req, res, url) {
         store.save(); return json(res, 200, s);
       }
       return json(res, 400, { erreur: 'Statut invalide' });
+    }
+
+    // ---- Portefeuille et transactions ----
+    if (p === '/api/mon-entreprise/portefeuille' && req.method === 'GET') {
+      const port = creerOuObtenirPortefeuille(e.id);
+      const transactions = db.paiements.filter((x) => x.entrepriseId === e.id)
+        .sort((a, b) => b.creeLe.localeCompare(a.creeLe))
+        .slice(0, 50);  // 50 dernières
+      const retraits = db.retraits.filter((x) => x.entrepriseId === e.id)
+        .sort((a, b) => b.demandeLe.localeCompare(a.demandeLe));
+      return json(res, 200, { portefeuille: port, transactions, retraits });
+    }
+
+    // ---- Demander un retrait ----
+    if (p === '/api/mon-entreprise/retraits' && req.method === 'POST') {
+      const { montant, methode, destinataire } = corps;
+      const port = creerOuObtenirPortefeuille(e.id);
+      if (montant < MONTANT_MIN_RETRAIT) return json(res, 400, { erreur: `Montant minimum : ${MONTANT_MIN_RETRAIT} HTG` });
+      if (montant > port.solde) return json(res, 402, { erreur: 'Solde insuffisant' });
+      if (!['moncash', 'natcash'].includes(methode)) return json(res, 400, { erreur: 'Méthode invalide' });
+      if (!destinataire || destinataire.length < 5) return json(res, 400, { erreur: 'Identifiant destinataire invalide' });
+      
+      const retrait = {
+        id: store.uid(), entrepriseId: e.id, montant, methode, destinataire,
+        statut: 'en_attente', reference: 'RET' + Date.now().toString(36).toUpperCase(),
+        demandeLe: new Date().toISOString(), transactionId: null
+      };
+      db.retraits.push(retrait);
+      port.soldeBloque += montant;  // Le montant est bloqué en attendant le retrait
+      store.save();
+      
+      console.log(`[RETRAIT demandé] ${e.nom} — ${montant} HTG via ${methode} → ${destinataire}`);
+      return json(res, 200, { ok: true, retraitId: retrait.id, reference: retrait.reference });
+    }
+
+    // ---- Historique des retraits ----
+    if (p === '/api/mon-entreprise/retraits' && req.method === 'GET') {
+      const retraits = db.retraits.filter((x) => x.entrepriseId === e.id)
+        .sort((a, b) => b.demandeLe.localeCompare(a.demandeLe));
+      return json(res, 200, retraits);
     }
 
     if (p === '/api/mon-entreprise/employes' && req.method === 'GET')
