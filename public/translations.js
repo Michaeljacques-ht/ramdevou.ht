@@ -426,7 +426,6 @@ function appliquerTraductions(lang = null) {
   });
 }
 
-// Modifier la fonction changerLangue pour appliquer traductions
 // Obtenir la langue courante
 function getLangue() {
   return localStorage.getItem('langue') || 'fr';
@@ -437,4 +436,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const langue = getLangue();
   document.documentElement.lang = langue;
   document.body.dataset.langue = langue;
+  appliquerTraductions(langue);
+  const btn = document.getElementById('btnLangue');
+  if (btn) btn.textContent = langue === 'fr' ? '🌐 HT' : '🌐 FR';
 });
