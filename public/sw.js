@@ -1,5 +1,5 @@
 // Randevou.ht — Service Worker (requis pour PWA / Play Store)
-const CACHE = 'randevou-v10';
+const CACHE = 'randevou-v11';
 const STATIQUES = [
   '/style.css',
   '/app.js',

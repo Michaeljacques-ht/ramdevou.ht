@@ -1,6 +1,10 @@
 // 🌐 Traductions Français / Kreyòl Ayisyen
 const translations = {
   fr: {
+    'acc.visu.rappel': 'Rappel envoyé au client',
+    'acc.visu.confirme': 'Réservation confirmée !',
+    'acc.visu.etab': 'Votre établissement',
+    'acc.visu.detail': "Aujourd'hui — service confirmé",
     // Pied de page
     'pied.desc': "La solution de prise de rendez-vous en ligne pour les entreprises haïtiennes.",
     'pied.atout1': 'Gagnez du temps',
@@ -220,6 +224,10 @@ const translations = {
   },
   
   ht: {
+    'acc.visu.rappel': 'Ranpèl voye bay kliyan an',
+    'acc.visu.confirme': 'Rezèvasyon konfime !',
+    'acc.visu.etab': 'Etablisman ou',
+    'acc.visu.detail': 'Jodi a — sèvis konfime',
     // Pye paj la
     'pied.desc': 'Solisyon pou pran randevou an liy pou antrepriz ayisyen yo.',
     'pied.atout1': 'Ekonomize tan',
