@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entreprise — Randevou.ht</title>
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root { --marque: #2563EB; --marque2: #F59E0B; }
 .banniere-ent { height: 210px; background: linear-gradient(130deg, var(--marque), var(--marque2)); position: relative; }
@@ -101,6 +103,13 @@
       <div id="infos" class="mt petit"></div>
       <h3 style="font-size:14px;margin-top:16px">Horaires</h3>
       <div class="horaires-liste mt" id="horaires" style="margin-top:8px"></div>
+    </div></section>
+
+    <section class="carte" id="carteLocalisation" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:16px">📍 Localisation</h2>
+      <div id="mapDistance" style="height:260px;border-radius:12px;margin-top:12px;background:#EEF2F7"></div>
+      <div id="infoDistance" class="petit muet" style="margin-top:10px"></div>
+      <button class="btn btn-contour btn-petit" style="width:100%;margin-top:10px" id="btnMaPosition" onclick="afficherMaPosition()">📡 Voir la distance depuis ma position</button>
     </div></section>
 
     <section class="carte"><div class="carte-corps">
@@ -279,6 +288,66 @@ async function charger() {
     <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)}</div></div></div>`).join('') || '<p class="muet petit">—</p>';
 
   dessinerPas();
+  initCarte();
+}
+
+// ===== Carte de localisation et distance =====
+let carteLeaflet = null, marqueurClient = null, ligneDistance = null;
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, rad = d => d * Math.PI / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function initCarte(essai = 0) {
+  if (ent.latitude == null || ent.longitude == null) return;  // pas de position enregistrée
+  const section = document.getElementById('carteLocalisation');
+  section.style.display = '';
+  if (typeof L === 'undefined') {
+    // Leaflet est chargé en différé : on réessaie brièvement avant d'abandonner
+    if (essai < 20) return setTimeout(() => initCarte(essai + 1), 250);
+    document.getElementById('mapDistance').innerHTML =
+      '<p class="petit muet" style="padding:16px">Carte indisponible (connexion requise).</p>';
+    document.getElementById('btnMaPosition').style.display = 'none';
+    return;
+  }
+  if (carteLeaflet) return;  // déjà initialisée
+  carteLeaflet = L.map('mapDistance').setView([ent.latitude, ent.longitude], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(carteLeaflet);
+  L.marker([ent.latitude, ent.longitude]).addTo(carteLeaflet)
+    .bindPopup(`<strong>${ech(ent.nom)}</strong><br>${ech(ent.adresse || '')}`).openPopup();
+  document.getElementById('infoDistance').textContent = 'Position de l\'établissement.';
+}
+
+function afficherMaPosition() {
+  if (!carteLeaflet) return;
+  const btn = document.getElementById('btnMaPosition');
+  const info = document.getElementById('infoDistance');
+  if (!navigator.geolocation) { info.textContent = 'Votre navigateur ne permet pas la géolocalisation.'; return; }
+  btn.disabled = true; info.textContent = 'Recherche de votre position…';
+  navigator.geolocation.getCurrentPosition(pos => {
+    btn.disabled = false;
+    const cLat = pos.coords.latitude, cLng = pos.coords.longitude;
+    const eLat = ent.latitude, eLng = ent.longitude;
+    if (marqueurClient) carteLeaflet.removeLayer(marqueurClient);
+    if (ligneDistance) carteLeaflet.removeLayer(ligneDistance);
+    marqueurClient = L.circleMarker([cLat, cLng], { radius: 8, color: '#16A34A', fillColor: '#16A34A', fillOpacity: .9 })
+      .addTo(carteLeaflet).bindPopup('Vous êtes ici');
+    ligneDistance = L.polyline([[cLat, cLng], [eLat, eLng]], { color: ent.couleur || '#2563EB', weight: 3, dashArray: '8 6' })
+      .addTo(carteLeaflet);
+    carteLeaflet.fitBounds(ligneDistance.getBounds(), { padding: [30, 30] });
+    const d = distanceKm(cLat, cLng, eLat, eLng);
+    info.innerHTML = `Distance à vol d'oiseau : <strong>${d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km'}</strong>`;
+  }, err => {
+    btn.disabled = false;
+    info.textContent = err.code === 1
+      ? 'Autorisation refusée. Activez la localisation pour voir la distance.'
+      : 'Position introuvable. Réessayez.';
+  }, { enableHighAccuracy: true, timeout: 12000 });
 }
 
 function choisirService(id) {

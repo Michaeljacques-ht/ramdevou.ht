@@ -391,8 +391,30 @@ async function demarrer(){
     document.getElementById('alerteStatut').innerHTML = `<div class="carte mb" style="border-color:var(--orange)"><div class="carte-corps" style="padding:14px 18px;background:var(--orange-fond);border-radius:14px">
       <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Randevou.ht examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
   }
+  // Le module Chambres & Séjours ne concerne que l'hôtellerie
+  appliquerModuleHotellerie();
   await Promise.all([chargerStats(), chargerRdv(), chargerNotifs()]);
-  chargerServices(); chargerEmployes(); chargerAvis(); remplirPerso(); remplirParam(); chargerChambres(); chargerSejours(); chargerPortefeuille();
+  chargerServices(); chargerEmployes(); chargerAvis(); remplirPerso(); remplirParam(); chargerPortefeuille();
+  if (estHotellerie()) { chargerChambres(); chargerSejours(); }
+}
+
+// ---- Module hôtellerie (chambres & séjours) ----
+function estHotellerie(){
+  return (ent.categorie || '').toLowerCase().includes('hôtel')
+      || (ent.categorie || '').toLowerCase().includes('hotel');
+}
+function appliquerModuleHotellerie(){
+  const actif = estHotellerie();
+  const bouton = document.querySelector('.lien-lat[data-sec="chambres"]');
+  if (bouton) bouton.style.display = actif ? '' : 'none';
+  // Si la section était ouverte et ne l'est plus, revenir au tableau de bord
+  if (!actif) {
+    const sec = document.getElementById('sec-chambres');
+    if (sec && !sec.classList.contains('section-cache')) {
+      const accueil = document.querySelector('.lien-lat[data-sec="bord"]');
+      if (accueil) accueil.click();
+    }
+  }
 }
 
 // ---- Statistiques ----
@@ -742,6 +764,8 @@ function remplirParam(){
 async function enregistrerInfos(){
   ent = await api('/api/mon-entreprise','PUT',{ nom:iNom.value.trim(), categorie:iCat.value, adresse:iAdresse.value.trim(), telephone:iTel.value.trim(), whatsapp:iWhats.value.replace(/\D/g,''), capaciteMax:+iCapacite.value||0 });
   document.getElementById('nomEnt').textContent = ent.nom;
+  appliquerModuleHotellerie();
+  if (estHotellerie()) { chargerChambres(); chargerSejours(); }
   toast('Informations enregistrées.');
 }
 // ---- Position géographique ----
