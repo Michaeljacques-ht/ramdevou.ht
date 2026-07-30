@@ -44,6 +44,7 @@ body { background: var(--gris-clair); }
   #menuMobile { display: inline-flex; }
   .cartes-stats { grid-template-columns: 1fr 1fr; }
 }
+.ico-partage { width: 16px; height: 16px; object-fit: contain; vertical-align: -3px; display: inline-block; }
 </style>
 </head>
 <body>
@@ -91,9 +92,9 @@ body { background: var(--gris-clair); }
           </div>
           <div class="flex" style="gap:8px;flex-wrap:wrap">
             <button class="btn btn-fantome btn-petit" onclick="partagerPage('copier')">🔗 Copier le lien</button>
-            <button class="btn btn-succes btn-petit" onclick="partagerPage('whatsapp')">💬 WhatsApp</button>
-            <button class="btn btn-primaire btn-petit" onclick="partagerPage('facebook')">📘 Facebook</button>
-            <button class="btn btn-fantome btn-petit" onclick="partagerPage('x')">✖️ X</button>
+            <button class="btn btn-succes btn-petit" onclick="partagerPage('whatsapp')"><img src="/logos/whatsapp.png" alt="" class="ico-partage"> WhatsApp</button>
+            <button class="btn btn-primaire btn-petit" onclick="partagerPage('facebook')"><img src="/logos/facebook.png" alt="" class="ico-partage"> Facebook</button>
+            <button class="btn btn-fantome btn-petit" onclick="partagerPage('x')"><img src="/logos/x.png" alt="" class="ico-partage"> X</button>
           </div>
         </div></div>
         <div class="cartes-stats" id="stats"></div>

@@ -98,9 +98,10 @@
 .pied-contact { display: grid; gap: 8px; font-size: 14px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1); }
 .pied-col h4 { color: #60A5FA; font-size: 13px; letter-spacing: .08em; margin-bottom: 16px; font-weight: 700; }
 .pied-col a { display: block; font-size: 14px; margin-bottom: 12px; }
-.pied-reseaux { display: flex; gap: 10px; }
-.pied-reseaux a { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); display: grid; place-items: center; font-size: 16px; }
-.pied-reseaux a:hover { border-color: #60A5FA; background: rgba(96,165,250,.12); }
+.pied-reseaux { display: flex; gap: 10px; flex-wrap: wrap; }
+.pied-reseaux a { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); display: grid; place-items: center; background: #fff; transition: transform .15s, border-color .15s; }
+.pied-reseaux img { width: 24px; height: 24px; object-fit: contain; display: block; }
+.pied-reseaux a:hover { border-color: #60A5FA; transform: translateY(-2px); }
 .pied-garanties { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding: 28px 0; border-top: 1px solid rgba(255,255,255,.1); border-bottom: 1px solid rgba(255,255,255,.1); }
 .pied-garanties > div { display: flex; align-items: center; gap: 14px; }
 .pied-garanties span { font-size: 26px; }
@@ -109,7 +110,7 @@
 .pied-bas { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 22px 0 28px; }
 .pied-bas strong { color: #60A5FA; }
 .pied-paiements { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.pied-paiements em { font-style: normal; font-size: 12px; font-weight: 700; background: #fff; color: #0A1628; padding: 5px 10px; border-radius: 5px; }
+.pied-paiements img { height: 26px; width: auto; background: #fff; padding: 4px 8px; border-radius: 5px; display: block; }
 @media (max-width: 980px) { .pied-grille { grid-template-columns: 1fr 1fr; } .pied-garanties { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 620px) { .pied-grille { grid-template-columns: 1fr; gap: 28px; } .pied-garanties { grid-template-columns: 1fr; } .pied-bas { flex-direction: column; align-items: flex-start; } }
 </style>
@@ -275,9 +276,12 @@
       <div class="pied-col pied-suivi">
         <h4 data-i18n="pied.suivez">SUIVEZ-NOUS</h4>
         <div class="pied-reseaux">
-          <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook">f</a>
-          <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram">◉</a>
-          <a href="https://wa.me/50948245566" target="_blank" rel="noopener" aria-label="WhatsApp">✆</a>
+          <a href="https://wa.me/50948245566" target="_blank" rel="noopener" title="WhatsApp"><img src="/logos/whatsapp.png" alt="WhatsApp"></a>
+          <a href="https://www.facebook.com/" target="_blank" rel="noopener" title="Facebook"><img src="/logos/facebook.png" alt="Facebook"></a>
+          <a href="https://www.instagram.com/" target="_blank" rel="noopener" title="Instagram"><img src="/logos/instagram.png" alt="Instagram"></a>
+          <a href="https://t.me/" target="_blank" rel="noopener" title="Telegram"><img src="/logos/telegram.png" alt="Telegram"></a>
+          <a href="https://x.com/" target="_blank" rel="noopener" title="X"><img src="/logos/x.png" alt="X"></a>
+          <a href="https://www.threads.net/" target="_blank" rel="noopener" title="Threads"><img src="/logos/threads.png" alt="Threads"></a>
         </div>
       </div>
 
@@ -295,7 +299,9 @@
       <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
       <div class="pied-paiements">
         <span class="petit">🔒 <span data-i18n="pied.paiements">Paiements sécurisés</span></span>
-        <em>MonCash</em><em>NatCash</em><em>Kashpaw</em>
+        <img src="/logos/moncash.png" alt="MonCash" title="MonCash">
+        <img src="/logos/natcash.png" alt="NatCash" title="NatCash">
+        <img src="/logos/kashpaw.png" alt="Kash Paw" title="Kash Paw">
       </div>
     </div>
   </div>
