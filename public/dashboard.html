@@ -10,24 +10,24 @@ body { background: var(--gris-clair); }
 .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
 .lateral { background: var(--marine); color: #C6D2E8; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
 .lateral .logo { color: #fff; padding: 6px 10px 18px; }
-.lien-lat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: #C6D2E8; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; font-family: inherit; text-align: left; width: 100%; }
+.lien-lat { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: var(--r-pilule); color: #C6D2E8; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; font-family: inherit; text-align: left; width: 100%; }
 .lien-lat:hover { background: var(--marine-2); color: #fff; }
-.lien-lat.actif { background: var(--bleu); color: #fff; }
-.bloc-user { margin-top: auto; background: var(--marine-2); border-radius: 12px; padding: 12px; display: flex; gap: 10px; align-items: center; }
+.lien-lat.actif { background: var(--degrade); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,.28); }
+.bloc-user { margin-top: auto; background: var(--marine-2); border-radius: var(--r-champ); padding: 12px; display: flex; gap: 10px; align-items: center; }
 .entete-haut { background: #fff; border-bottom: 1px solid var(--bordure); padding: 14px 24px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 40; }
 .principal { padding: 24px; max-width: 1060px; }
 .cartes-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.stat { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 16px 18px; }
+.stat { background: #fff; border: 1px solid var(--bordure); border-radius: var(--r-carte); padding: 18px 20px; box-shadow: var(--ombre); }
 .stat .valeur { font-size: 28px; font-weight: 800; margin-top: 4px; }
 .stat .delta { font-size: 12px; font-weight: 700; }
 .cloche { position: relative; margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; }
 .cloche .point { position: absolute; top: -4px; right: -6px; background: var(--rouge); color: #fff; font-size: 10px; font-weight: 700; border-radius: 99px; padding: 1px 5px; }
 .panneau-notifs { position: absolute; right: 24px; top: 60px; width: 330px; max-height: 400px; overflow: auto; background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: 0 16px 44px rgba(16,24,40,.18); display: none; z-index: 60; }
 .panneau-notifs.ouvert { display: block; }
-.notif { padding: 12px 14px; border-bottom: 1px solid #F2F4F7; font-size: 13.5px; }
+.notif { padding: 12px 14px; border-bottom: 1px solid var(--bordure); font-size: 13.5px; }
 .notif.non-lu { background: var(--bleu-clair); }
 .cal-semaine { display: grid; grid-template-columns: 54px repeat(7, 1fr); font-size: 12px; }
-.cal-cellule { border-top: 1px solid #F2F4F7; border-left: 1px solid #F2F4F7; min-height: 44px; position: relative; }
+.cal-cellule { border-top: 1px solid var(--bordure); border-left: 1px solid var(--bordure); min-height: 44px; position: relative; }
 .cal-entete { padding: 8px 4px; text-align: center; font-weight: 700; color: var(--gris); }
 .cal-heure { color: var(--gris); text-align: right; padding: 2px 6px 0 0; }
 .rdv-bloc { position: absolute; left: 3px; right: 3px; border-radius: 7px; padding: 3px 6px; font-size: 11px; font-weight: 600; overflow: hidden; cursor: pointer; }
@@ -350,7 +350,7 @@ body { background: var(--gris-clair); }
 <script src="/app.js"></script>
 <script>
 let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
-const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','#101828'];
+const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
 const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
 
@@ -442,10 +442,10 @@ function dessinerGraphe(parJour){
   vals.forEach((v,i)=>{
     const bh = (v/max)*(h-46);
     const x = marge + i*lw + 3, y = h-26-bh;
-    ctx.fillStyle = i===vals.length-1 ? '#2563EB' : '#C7D7FE';
+    ctx.fillStyle = i===vals.length-1 ? '#2563EB' : 'var(--bordure)';
     ctx.beginPath(); ctx.roundRect(x, y, lw-6, bh || 2, 4); ctx.fill();
     if (i % 3 === 0 || i === vals.length-1){
-      ctx.fillStyle = '#98A2B3'; ctx.font = '10px sans-serif'; ctx.textAlign='center';
+      ctx.fillStyle = 'var(--gris)'; ctx.font = '10px sans-serif'; ctx.textAlign='center';
       ctx.fillText(cles[i].slice(8)+'/'+cles[i].slice(5,7), x+(lw-6)/2, h-8);
     }
   });
@@ -457,7 +457,7 @@ async function chargerRdv(){
   const auj = new Date().toISOString().slice(0,10);
   const recents = tousRdv.filter(r=>r.date>=auj).slice(0,5);
   document.getElementById('rdvRecents').innerHTML = recents.length ? recents.map(r=>`
-    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid #F2F4F7;gap:10px">
+    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid var(--bordure);gap:10px">
       <div class="flex"><span class="avatar">${ech(r.clientNom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
         <div><strong class="petit">${ech(r.clientNom)}</strong><div class="petit muet">${ech(r.service ? r.service.nom : '—')}</div></div></div>
       <div class="centre petit muet">${r.date.slice(8)}/${r.date.slice(5,7)}<br>${r.heure}</div>
@@ -501,7 +501,7 @@ function dessinerCalendrier(){
   document.getElementById('titreSemaine').textContent =
     `${jours[0].getDate()} ${MOIS_FR[jours[0].getMonth()]} – ${jours[6].getDate()} ${MOIS_FR[jours[6].getMonth()]} ${jours[6].getFullYear()}`;
   const heures = [...Array(11)].map((_,i)=>7+i); // 07h → 17h
-  const couleurs = { confirme:'#D1FADF;color:#067647', en_attente:'#FEF0C7;color:#B54708', termine:'#F2F4F7;color:#475467', annule:'#FEE4E2;color:#B42318' };
+  const couleurs = { confirme:'#D1FADF;color:#067647', en_attente:'#FEF0C7;color:#B54708', termine:'var(--bordure);color:var(--texte)', annule:'#FEE4E2;color:#B42318' };
   let html = '<div></div>' + jours.map(d=>`<div class="cal-entete">${JOURS_FR[d.getDay()].slice(0,3)} ${d.getDate()}</div>`).join('');
   heures.forEach(h=>{
     html += `<div class="cal-cellule cal-heure">${String(h).padStart(2,'0')}:00</div>`;
@@ -658,7 +658,7 @@ async function supprimerService(id){ if(confirm('Supprimer ce service ?')){ awai
 async function chargerEmployes(){
   const liste = await api('/api/mon-entreprise/employes');
   document.getElementById('listeEmployes').innerHTML = liste.length ? liste.map(x=>`
-    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid #F2F4F7">
+    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid var(--bordure)">
       <div class="flex"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
         <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)||'—'}</div></div></div>
       <button class="btn btn-danger btn-petit" onclick="supprimerEmploye('${x.id}')">Retirer</button>
@@ -676,7 +676,7 @@ async function supprimerEmploye(id){ if(confirm('Retirer cet employé ?')){ awai
 async function chargerAvis(){
   const liste = await api('/api/mon-entreprise/avis');
   document.getElementById('listeAvis').innerHTML = liste.length ? liste.map(a=>`
-    <div style="padding:12px 0;border-bottom:1px solid #F2F4F7">
+    <div style="padding:12px 0;border-bottom:1px solid var(--bordure)">
       <div class="flex entre"><strong class="petit">${ech(a.clientNom)}</strong><span class="etoiles petit">${etoiles(a.note)}</span></div>
       <p class="petit muet" style="margin-top:4px">${ech(a.commentaire)}</p>
     </div>`).join('') : '<p class="muet petit">Aucun avis pour le moment.</p>';

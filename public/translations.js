@@ -1,6 +1,7 @@
 // 🌐 Traductions Français / Kreyòl Ayisyen
 const translations = {
   fr: {
+    'acc.eyebrow': 'Plateforme haïtienne',
     'acc.visu.rappel': 'Rappel envoyé au client',
     'acc.visu.confirme': 'Réservation confirmée !',
     'acc.visu.etab': 'Votre établissement',
@@ -224,6 +225,7 @@ const translations = {
   },
   
   ht: {
+    'acc.eyebrow': 'Platfòm ayisyen',
     'acc.visu.rappel': 'Ranpèl voye bay kliyan an',
     'acc.visu.confirme': 'Rezèvasyon konfime !',
     'acc.visu.etab': 'Etablisman ou',
