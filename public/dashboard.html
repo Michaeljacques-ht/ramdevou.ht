@@ -45,6 +45,32 @@ body { background: var(--gris-clair); }
   .cartes-stats { grid-template-columns: 1fr 1fr; }
 }
 .ico-partage { width: 16px; height: 16px; object-fit: contain; vertical-align: -3px; display: inline-block; }
+.grille-equip { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; margin-top: 8px; }
+.equip-case { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1.5px solid var(--bordure); border-radius: var(--r-champ); cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--texte); background: #fff; }
+.equip-case:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+.equip-case input { width: auto; margin: 0; accent-color: var(--bleu); }
+.equip-case.on { border-color: var(--bleu); background: var(--bleu-clair); color: var(--marine); }
+.puces-equip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.puce-equip { display: inline-flex; align-items: center; gap: 5px; background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.choix-formule { display: grid; gap: 10px; }
+.opt-formule { display: flex; align-items: flex-start; gap: 11px; padding: 14px; border: 1.5px solid var(--bordure); border-radius: var(--r-champ); cursor: pointer; background: #fff; font-weight: 500; margin: 0; }
+.opt-formule:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+.opt-formule.on { border-color: var(--bleu); background: var(--bleu-clair); }
+.opt-formule input { width: auto; margin: 3px 0 0; accent-color: var(--bleu); flex: none; }
+.badge-resort { background: linear-gradient(90deg, #0B2C6B, #F26B21); color: #fff; }
+.champ-metier { margin-bottom: 4px; }
+#listeChampsMetier { display: grid; gap: 10px; }
+.etapes-dos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.etape-dos { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--bordure); background: #fff; color: var(--gris); font-weight: 800; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+.etape-dos:hover { border-color: var(--bleu); }
+.etape-dos.faite { background: var(--vert-fond); border-color: transparent; color: #07684A; }
+.etape-dos.active { background: var(--degrade); border-color: transparent; color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,.3); }
+.btn-etat { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 12px; border: 2px solid var(--bordure); border-radius: var(--r-champ); background: #fff; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); text-align: center; }
+.btn-etat:hover { border-color: var(--bleu); }
+.btn-etat.on { border-color: var(--bleu); background: var(--bleu-clair); color: var(--marine); box-shadow: 0 4px 12px rgba(37,99,235,.16); }
+.ligne-zone { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; align-items: center; }
+.ligne-zone input { margin: 0; }
+@media (max-width: 560px) { .ligne-zone { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -56,6 +82,14 @@ body { background: var(--gris-clair); }
     <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
     <button class="lien-lat" data-sec="services">🧰 Services</button>
     <button class="lien-lat" data-sec="chambres">🛏️ Chambres &amp; Séjours</button>
+    <button class="lien-lat" data-sec="carte">🍽️ Restaurant &amp; Bar</button>
+    <button class="lien-lat" data-sec="programmes">🎓 Programmes</button>
+    <button class="lien-lat" data-sec="inscriptions">📋 Inscriptions</button>
+    <button class="lien-lat" data-sec="dossiers">📁 Dossiers</button>
+    <button class="lien-lat" data-sec="urgence">🚨 Urgences</button>
+    <button class="lien-lat" data-sec="catalogue">🛒 Catalogue</button>
+    <button class="lien-lat" data-sec="commandes">📦 Commandes</button>
+    <button class="lien-lat" data-sec="vente">🛵 Livraison &amp; retrait</button>
     <button class="lien-lat" data-sec="portefeuille">💰 Portefeuille &amp; Paiements</button>
     <button class="lien-lat" data-sec="employes">👥 Employés</button>
     <button class="lien-lat" data-sec="avis">⭐ Avis &amp; Notes</button>
@@ -171,6 +205,188 @@ body { background: var(--gris-clair); }
         </div></div>
       </section>
 
+      <!-- ===== Restaurant & Bar ===== -->
+      <section id="sec-carte" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Carte du restaurant et du bar</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirArticle()">+ Ajouter un article</button>
+          </div>
+          <p class="petit muet mt">Vos plats, accompagnements, desserts et boissons. Tout ce qui est marqué disponible apparaît sur votre page publique, avec les prix.</p>
+          <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+            <select id="filtreCarte" onchange="chargerCarte()" class="btn-petit" style="max-width:220px">
+              <option value="">Toutes les catégories</option>
+              <option value="entree">Entrées</option><option value="plat">Plats</option>
+              <option value="accompagnement">Accompagnements</option><option value="dessert">Desserts</option>
+              <option value="boisson">Boissons sans alcool</option><option value="cocktail">Cocktails</option>
+              <option value="biere">Bières</option><option value="vin">Vins</option><option value="spiritueux">Spiritueux</option>
+            </select>
+          </div>
+          <div id="listeCarte" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Programmes ===== -->
+      <section id="sec-programmes" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Programmes proposés</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirProgramme()">+ Ajouter un programme</button>
+          </div>
+          <p class="petit muet mt">Niveaux, classes ou filières ouverts aux inscriptions. Les programmes ouverts apparaissent sur votre page publique avec leurs frais et le nombre de places restantes.</p>
+          <div id="listeProgrammes" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Inscriptions ===== -->
+      <section id="sec-inscriptions" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Demandes reçues</h2>
+            <select id="filtreInscriptions" onchange="chargerInscriptions()" style="max-width:200px">
+              <option value="">Toutes</option>
+              <option value="en_attente">En attente</option>
+              <option value="acceptee">Acceptées</option>
+              <option value="inscrit">Inscrits</option>
+              <option value="refusee">Refusées</option>
+            </select>
+          </div>
+          <div id="listeInscriptions" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Dossiers ===== -->
+      <section id="sec-dossiers" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Dossiers en cours</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirDossier()">+ Nouveau dossier</button>
+          </div>
+          <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+            <select id="filtreDossiers" onchange="chargerDossiers()" style="max-width:210px">
+              <option value="">Tous les statuts</option>
+              <option value="ouvert">Ouverts</option><option value="en_cours">En cours</option>
+              <option value="attente">En attente de pièces</option><option value="pret">Prêts</option>
+              <option value="clos">Clos</option><option value="annule">Annulés</option>
+            </select>
+          </div>
+          <div id="listeDossiers" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Urgences ===== -->
+      <section id="sec-urgence" class="section-cache">
+        <div class="carte carte-signature"><div class="carte-corps">
+          <h2 style="font-size:16px">🚨 État de votre service d'urgence</h2>
+          <p class="petit muet" style="margin-top:6px">Cet état est affiché aux personnes qui consultent votre page. Mettez-le à jour dès qu'il change : au-delà de 12 heures, il n'est plus montré au public pour éviter d'orienter quelqu'un sur une information dépassée.</p>
+          <div id="etatsUrgence" class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px"></div>
+          <p class="petit muet" id="etatMajInfo" style="margin-top:10px"></p>
+        </div></div>
+
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Coordonnées d'urgence</h2>
+          <label class="equip-case mt" style="margin:12px 0 0"><input type="checkbox" id="urActif" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Afficher un service d'urgence sur ma page publique</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="urPermanence" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Permanence 24h/24, 7j/7</span></label>
+          <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Téléphone d'urgence *</label><input id="urTel" placeholder="509 …"></div>
+            <div><label>Second numéro</label><input id="urTel2" placeholder="509 …"></div>
+          </div>
+          <label>Horaires si pas de permanence</label><input id="urHoraires" placeholder="Ex : 6h à 22h tous les jours">
+          <label class="equip-case" style="margin:14px 0 0"><input type="checkbox" id="urAmbulance" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Service d'ambulance</span></label>
+          <label>Numéro de l'ambulance</label><input id="urTelAmb" placeholder="509 …">
+          <label>Consigne aux patients</label>
+          <input id="urConsigne" maxlength="300" placeholder="Ex : entrée des urgences par le portail nord">
+          <div id="zoneGarde" style="display:none">
+            <label>Période de garde</label>
+            <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+              <div><input id="urGardeDebut" type="date"></div>
+              <div><input id="urGardeFin" type="date"></div>
+            </div>
+            <p class="aide">Pour les pharmacies de garde. Laissez vide si vous n'êtes pas de garde.</p>
+          </div>
+          <button class="btn btn-primaire mt" onclick="enregistrerUrgence()">Enregistrer</button>
+        </div></div>
+
+        <div class="carte mt" id="carteCapacites"><div class="carte-corps">
+          <h2 style="font-size:16px">Moyens disponibles</h2>
+          <p class="petit muet" style="margin-top:6px">Ce que votre service peut prendre en charge. Ces informations aident les familles et les autres établissements à orienter un patient.</p>
+          <div id="listeCapacites" class="grille-equip mt"></div>
+          <button class="btn btn-primaire mt" onclick="enregistrerUrgence()">Enregistrer</button>
+        </div></div>
+      </section>
+
+      <!-- ===== Catalogue ===== -->
+      <section id="sec-catalogue" class="section-cache">
+        <div class="carte" id="alerteStock" style="display:none"><div class="carte-corps" style="background:var(--orange-fond);border-radius:var(--r-carte)">
+          <strong id="texteAlerteStock"></strong>
+          <p class="petit" style="margin-top:4px;color:#C4520E">Ces produits restent visibles pour vous, mais disparaissent de votre page publique dès que le stock atteint zéro.</p>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Vos produits</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirProduit()">+ Ajouter un produit</button>
+          </div>
+          <p class="petit muet mt" id="noteCatalogue"></p>
+          <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+            <select id="filtreRayon" onchange="chargerCatalogue()" style="max-width:220px"><option value="">Tous les rayons</option></select>
+            <select id="filtreStock" onchange="chargerCatalogue()" style="max-width:200px">
+              <option value="">Tous les produits</option>
+              <option value="bas">Stock bas</option>
+              <option value="zero">Épuisés</option>
+              <option value="promo">En promotion</option>
+            </select>
+          </div>
+          <div id="listeCatalogue" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Commandes ===== -->
+      <section id="sec-commandes" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Commandes reçues</h2>
+            <select id="filtreCommandes" onchange="chargerCommandes()" style="max-width:210px">
+              <option value="">Toutes</option><option value="nouvelle">Nouvelles</option>
+              <option value="confirmee">Confirmées</option><option value="preparation">En préparation</option>
+              <option value="prete">Prêtes</option><option value="en_route">En route</option>
+              <option value="livree">Livrées / retirées</option><option value="annulee">Annulées</option>
+            </select>
+          </div>
+          <p class="petit muet mt">Le stock est décompté à la confirmation, et restitué si vous annulez.</p>
+          <div id="listeCommandes" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Livraison & retrait ===== -->
+      <section id="sec-vente" class="section-cache">
+        <div class="carte carte-signature"><div class="carte-corps">
+          <h2 style="font-size:16px">🛵 Comment vos clients reçoivent leur commande</h2>
+          <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="vtActives" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Accepter les commandes en ligne</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="vtCueillette" onchange="this.closest('.equip-case').classList.toggle('on', this.checked); majZonesVisibles()"><span>🏪 Retrait sur place</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="vtLivraison" onchange="this.closest('.equip-case').classList.toggle('on', this.checked); majZonesVisibles()"><span>🛵 Livraison</span></label>
+
+          <div id="blocCueillette" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--bordure)">
+            <label>Horaires de retrait</label><input id="vtHoraires" placeholder="Ex : 8h à 18h du lundi au samedi">
+          </div>
+
+          <div id="blocLivraison" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--bordure)">
+            <label>Délai de préparation ou de livraison</label><input id="vtDelai" placeholder="Ex : 2 à 4 heures">
+            <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+              <div><label>Frais par défaut (HTG)</label><input id="vtFraisBase" type="number" min="0" value="0"></div>
+              <div><label>Livraison offerte dès (HTG)</label><input id="vtSeuil" type="number" min="0" value="0"><p class="aide">0 = jamais offerte</p></div>
+            </div>
+            <label>Zones de livraison</label>
+            <p class="aide">Chaque zone a son tarif. Une adresse hors zone se voit appliquer les frais par défaut.</p>
+            <div id="listeZones"></div>
+            <button class="btn btn-contour btn-petit mt" onclick="ajouterZone()">+ Ajouter une zone</button>
+          </div>
+
+          <label style="margin-top:16px">Commande minimum (HTG)</label><input id="vtMinimum" type="number" min="0" value="0">
+          <label>Consigne aux clients</label><input id="vtConsigne" maxlength="300" placeholder="Ex : paiement à la livraison, en espèces ou MonCash">
+          <button class="btn btn-primaire mt" onclick="enregistrerVente()">Enregistrer</button>
+        </div></div>
+      </section>
+
       <!-- ===== Portefeuille & Paiements ===== -->
       <section id="sec-portefeuille" class="section-cache">
         <div class="carte"><div class="carte-corps">
@@ -271,7 +487,8 @@ body { background: var(--gris-clair); }
             <h2 style="font-size:16px">Informations de l'entreprise</h2>
             <label>Nom</label><input id="iNom">
             <label>Catégorie</label>
-            <select id="iCat"><option>Beauté</option><option>Santé</option><option>Formation</option><option>Auto</option><option>Maison</option><option>Hôtels &amp; Restaurants</option><option>Juridique</option><option>Autre</option></select>
+            <select id="iCat"></select>
+            <p class="aide">Changer de type d'activité adapte les modules et les informations de votre espace.</p>
             <label>Adresse</label><input id="iAdresse">
             <label>Téléphone</label><input id="iTel">
             <label>Numéro WhatsApp (chiffres uniquement)</label><input id="iWhats" placeholder="Ex : 50937120000">
@@ -279,6 +496,34 @@ body { background: var(--gris-clair); }
             <input id="iCapacite" type="number" min="0" max="50" placeholder="0 = automatique">
             <p style="font-size:12px;color:var(--gris);margin:4px 0 0">Mettez <b>1</b> pour n'accepter qu'un seul rendez-vous à la fois. Laissez <b>0</b> (ou vide) pour le mode automatique : autant de rendez-vous simultanés que d'employés actifs.</p>
             <button class="btn btn-primaire mt" onclick="enregistrerInfos()">Enregistrer les informations</button>
+          </div></div>
+          <div class="carte" id="carteChampsMetier" style="display:none"><div class="carte-corps">
+            <h2 style="font-size:16px" id="titreChampsMetier">Informations complémentaires</h2>
+            <p class="petit muet" style="margin-top:6px">Ces informations apparaissent sur votre page publique et aident les clients à vous choisir.</p>
+            <div id="listeChampsMetier" class="mt"></div>
+            <button class="btn btn-primaire mt" onclick="enregistrerChampsMetier()">Enregistrer</button>
+          </div></div>
+          <div class="carte" id="carteFormule" style="display:none"><div class="carte-corps">
+            <h2 style="font-size:16px">🏝️ Formule d'hébergement</h2>
+            <p class="petit muet" style="margin-top:6px">Indiquez si votre établissement fonctionne à la carte ou en tout inclus. Un badge « Tout inclus » apparaîtra sur votre fiche et dans l'annuaire.</p>
+            <div class="choix-formule mt">
+              <label class="opt-formule">
+                <input type="radio" name="formule" value="standard" onchange="majFormule()">
+                <span><strong>Standard</strong><br><span class="petit muet">Nuitées à la carte. Repas et boissons facturés à part.</span></span>
+              </label>
+              <label class="opt-formule">
+                <input type="radio" name="formule" value="resort" onchange="majFormule()">
+                <span><strong>Resort — tout inclus</strong><br><span class="petit muet">Repas, boissons et activités compris dans le prix de la nuit.</span></span>
+              </label>
+            </div>
+            <div id="zoneInclus" style="display:none">
+              <label>Ce que comprend le séjour</label>
+              <p class="aide">Cochez les prestations comprises dans le prix. Elles s'affichent sur votre page publique.</p>
+              <div id="listeInclus" class="grille-equip"></div>
+              <label>Précision — facultatif</label>
+              <input id="iNoteFormule" maxlength="200" placeholder="Ex : bar ouvert de 10h à 23h, hors excursions">
+            </div>
+            <button class="btn btn-primaire mt" onclick="enregistrerFormule()">Enregistrer la formule</button>
           </div></div>
           <div class="carte"><div class="carte-corps">
             <h2 style="font-size:16px">Horaires d'ouverture</h2>
@@ -319,6 +564,106 @@ body { background: var(--gris-clair); }
 </div></div>
 
 <!-- Modale chambre -->
+<div class="voile" id="voileProduit"><div class="modale" style="max-width:540px">
+  <h3 id="titreModaleProduit">Ajouter un produit</h3>
+  <label>Nom du produit *</label><input id="prNom" placeholder="Ex : Riz Tchako 5 lb">
+  <label>Description</label><input id="prDesc" placeholder="Précisions utiles au client">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Rayon</label><input id="prRayon" list="listeRayons" placeholder="Choisir ou saisir"><datalist id="listeRayons"></datalist></div>
+    <div><label>Marque</label><input id="prMarque"></div>
+  </div>
+  <div class="grille" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div><label>Prix (HTG) *</label><input id="prPrix" type="number" min="1" value="100"></div>
+    <div><label>Prix promo</label><input id="prPromo" type="number" min="0" value="0"></div>
+    <div><label>Unité</label><input id="prUnite" placeholder="sac, litre"></div>
+  </div>
+  <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="prSuiviStock" checked onchange="this.closest('.equip-case').classList.toggle('on', this.checked); document.getElementById('zoneStock').style.display = this.checked ? '' : 'none'"><span>Suivre la quantité en stock</span></label>
+  <div id="zoneStock" class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Quantité en stock</label><input id="prStock" type="number" min="0" value="0"></div>
+    <div><label>Seuil d'alerte</label><input id="prSeuil" type="number" min="0" value="5"></div>
+  </div>
+  <label>Référence interne</label><input id="prRef" placeholder="Code produit — facultatif">
+  <label>Photo</label><input type="file" id="prPhoto" accept="image/*">
+  <div id="prApercu" class="mt"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileProduit')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerProduit()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileDossier"><div class="modale" style="max-width:560px">
+  <h3 id="titreModaleDossier">Nouveau dossier</h3>
+  <label>Objet du dossier *</label><input id="doObjet" placeholder="Ex : Bornage terrain Morne Rouge">
+  <label>Description</label><input id="doDesc" placeholder="Précisions utiles">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Nom du client *</label><input id="doClient"></div>
+    <div><label>Téléphone (WhatsApp)</label><input id="doTel" placeholder="50937120000"></div>
+  </div>
+  <label id="labelLocalisation">Localisation</label><input id="doLieu" placeholder="Ex : Morne Rouge, 3e section">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Honoraires (HTG)</label><input id="doHono" type="number" min="0" value="0"></div>
+    <div><label>Avance reçue (HTG)</label><input id="doAvance" type="number" min="0" value="0"></div>
+  </div>
+  <label>Échéance</label><input id="doEcheance" type="date">
+  <label>Pièces à fournir</label>
+  <div id="doPieces" class="grille-equip"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileDossier')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerDossier()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileProgramme"><div class="modale">
+  <h3 id="titreModaleProg">Ajouter un programme</h3>
+  <label>Nom du programme *</label><input id="pgNom" placeholder="Ex : Fondamental 1re année, Licence en Droit">
+  <label>Description</label><input id="pgDesc" placeholder="Ex : classe de 25 élèves, horaire du matin">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Année scolaire</label><input id="pgAnnee" placeholder="2026-2027"></div>
+    <div><label>Places (0 = illimité)</label><input id="pgPlaces" type="number" min="0" value="0"></div>
+  </div>
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Frais d'inscription (HTG)</label><input id="pgFrais" type="number" min="0" value="0"></div>
+    <div><label>Scolarité (HTG)</label><input id="pgScol" type="number" min="0" value="0"></div>
+  </div>
+  <label>Périodicité de la scolarité</label>
+  <select id="pgPeriode"><option value="mensuel">Par mois</option><option value="trimestriel">Par trimestre</option><option value="annuel">Par an</option></select>
+  <label>Documents à fournir</label>
+  <input id="pgDocs" placeholder="Acte de naissance, Bulletin, 2 photos">
+  <p class="aide">Séparez par des virgules. Ces documents seront indiqués aux parents.</p>
+  <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="pgOuvert" checked onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Ouvert aux inscriptions</span></label>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileProgramme')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerProgramme()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileArticle"><div class="modale">
+  <h3 id="titreModaleArticle">Ajouter un article</h3>
+  <label>Nom *</label><input id="arNom" placeholder="Ex : Griot ak bannann, Prestige, Jus de chadèque">
+  <label>Catégorie *</label>
+  <select id="arCat">
+    <optgroup label="Cuisine">
+      <option value="entree">Entrée</option><option value="plat" selected>Plat</option>
+      <option value="accompagnement">Accompagnement</option><option value="dessert">Dessert</option>
+    </optgroup>
+    <optgroup label="Bar">
+      <option value="boisson">Boisson sans alcool</option><option value="cocktail">Cocktail</option>
+      <option value="biere">Bière</option><option value="vin">Vin</option><option value="spiritueux">Spiritueux</option>
+    </optgroup>
+  </select>
+  <label>Description</label><input id="arDesc" placeholder="Ex : Porc mariné, riz collé, pikliz">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Prix (HTG) *</label><input id="arPrix" type="number" min="1" value="500"></div>
+    <div><label>Format — facultatif</label><input id="arVol" placeholder="Ex : 33 cl, portion"></div>
+  </div>
+  <label>Photo — facultatif</label><input type="file" id="arPhoto" accept="image/*">
+  <div id="arApercu" class="mt"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileArticle')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerArticle()">Enregistrer</button>
+  </div>
+</div></div>
+
 <div class="voile" id="voileChambre"><div class="modale">
   <h3 id="titreModaleChambre">Ajouter une chambre</h3>
   <label>Type de chambre *</label><input id="chNom" placeholder="Ex : Chambre Standard, Suite Vue Mer">
@@ -328,6 +673,9 @@ body { background: var(--gris-clair); }
     <div><label>Capacité (personnes)</label><input id="chCap" type="number" min="1" max="20" value="2"></div>
     <div><label>Nombre de chambres de ce type</label><input id="chQte" type="number" min="1" max="200" value="1"></div>
   </div>
+  <label>Équipements de la chambre</label>
+  <p class="aide">Cochez ce que le client trouvera dans la chambre. Ces éléments s'affichent sur votre page publique.</p>
+  <div id="chEquipements" class="grille-equip"></div>
   <label>Photo de la chambre — facultatif</label><input type="file" id="chPhoto" accept="image/*">
   <div id="chApercu" class="mt"></div>
   <div class="flex mt" style="justify-content:flex-end">
@@ -352,7 +700,7 @@ body { background: var(--gris-clair); }
 let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
 const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
-const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
 
 function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
 async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
@@ -396,18 +744,27 @@ async function demarrer(){
   appliquerModuleHotellerie();
   await Promise.all([chargerStats(), chargerRdv(), chargerNotifs()]);
   chargerServices(); chargerEmployes(); chargerAvis(); remplirPerso(); remplirParam(); chargerPortefeuille();
-  if (estHotellerie()) { chargerChambres(); chargerSejours(); }
+  try { REF_METIERS = await api('/api/metiers'); } catch {}
+  appliquerMetier();
+  remplirFormule();
+  if (estHotellerie()) { chargerChambres(); chargerSejours(); chargerCarte(); }
+  if (aModule('inscriptions')) { chargerProgrammes(); chargerInscriptions(); }
+  if (aModule('dossiers')) chargerDossiers();
+  if (aModule('urgences')) chargerUrgence();
+  if (aModule('catalogue')) { chargerCatalogue(); chargerCommandes(); chargerVente(); }
 }
 
 // ---- Module hôtellerie (chambres & séjours) ----
 function estHotellerie(){
-  return (ent.categorie || '').toLowerCase().includes('hôtel')
-      || (ent.categorie || '').toLowerCase().includes('hotel');
+  // Repose sur le module déclaré par le métier, plus sur le libellé de catégorie
+  return aModule('hotellerie');
 }
 function appliquerModuleHotellerie(){
   const actif = estHotellerie();
-  const bouton = document.querySelector('.lien-lat[data-sec="chambres"]');
-  if (bouton) bouton.style.display = actif ? '' : 'none';
+  ['chambres','carte'].forEach((sec) => {
+    const b = document.querySelector(`.lien-lat[data-sec="${sec}"]`);
+    if (b) b.style.display = actif ? '' : 'none';
+  });
   // Si la section était ouverte et ne l'est plus, revenir au tableau de bord
   if (!actif) {
     const sec = document.getElementById('sec-chambres');
@@ -547,6 +904,30 @@ async function enregistrerService(){
 }
 async function basculerService(id, actif){ await api('/api/mon-entreprise/services/'+id,'PUT',{actif}); chargerServices(); }
 
+
+// ===== Équipements (mêmes clés que le serveur) =====
+const EQUIPEMENTS = {
+  clim:{lib:'Climatiseur',ico:'❄️'}, ventilateur:{lib:'Ventilateur',ico:'🌀'},
+  wifi:{lib:'Internet Wi-Fi',ico:'📶'}, litdouble:{lib:'Lit double',ico:'🛏️'},
+  litsimple:{lib:'Lit simple',ico:'🛌'}, tv:{lib:'Téléviseur',ico:'📺'},
+  netflix:{lib:'Netflix / streaming',ico:'🎬'}, eauchaude:{lib:'Eau chaude',ico:'🚿'},
+  sdb:{lib:'Salle de bain privée',ico:'🛁'}, balcon:{lib:'Balcon',ico:'🌅'},
+  frigo:{lib:'Réfrigérateur',ico:'🧊'}, coffre:{lib:'Coffre-fort',ico:'🔒'},
+  inverter:{lib:'Inverter / courant 24h',ico:'🔋'}, parking:{lib:'Parking',ico:'🅿️'},
+  piscine:{lib:'Accès piscine',ico:'🏊'}, petitdej:{lib:'Petit-déjeuner inclus',ico:'🥐'}
+};
+function dessinerEquipements(choisis){
+  const sel = new Set(choisis || []);
+  document.getElementById('chEquipements').innerHTML = Object.entries(EQUIPEMENTS).map(([k,v]) =>
+    `<label class="equip-case${sel.has(k)?' on':''}">
+       <input type="checkbox" value="${k}"${sel.has(k)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${v.ico} ${v.lib}</span></label>`).join('');
+}
+function equipementsChoisis(){
+  return [...document.querySelectorAll('#chEquipements input:checked')].map(i => i.value);
+}
+
 // ===== Chambres & Séjours =====
 let chambreEnCours = null, photoChambre = '';
 async function chargerChambres(){
@@ -554,7 +935,8 @@ async function chargerChambres(){
   document.getElementById('tableChambres').innerHTML = liste.length ? `
     <tr><th>Chambre</th><th>Prix/nuit</th><th>Cap.</th><th>Qté</th><th>Statut</th><th></th></tr>` +
     liste.map(c => `<tr>
-      <td><strong>${ech(c.nom)}</strong><br><span class="petit muet">${ech(c.description||'')}</span></td>
+      <td><strong>${ech(c.nom)}</strong><br><span class="petit muet">${ech(c.description||'')}</span>
+        ${(c.equipements||[]).length ? `<div class="puces-equip">${c.equipements.map(k => EQUIPEMENTS[k] ? `<span class="puce-equip">${EQUIPEMENTS[k].ico} ${EQUIPEMENTS[k].lib}</span>` : '').join('')}</div>` : ''}</td>
       <td>${(+c.prixNuit).toLocaleString('fr-HT')} HTG</td>
       <td>${c.capacite}</td><td>${c.quantite}</td>
       <td><span class="badge ${c.actif?'badge-vert':'badge-gris'}">${c.actif?'Active':'Masquée'}</span></td>
@@ -571,6 +953,7 @@ function ouvrirChambre(c){
   chNom.value = c ? c.nom : ''; chDesc.value = c ? (c.description||'') : '';
   chPrix.value = c ? c.prixNuit : 5000; chCap.value = c ? c.capacite : 2; chQte.value = c ? c.quantite : 1;
   document.getElementById('chPhoto').value = '';
+  dessinerEquipements(c ? c.equipements : []);
   document.getElementById('chApercu').innerHTML = photoChambre ? `<img src="${photoChambre}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">` : '';
   document.getElementById('voileChambre').classList.add('ouvert');
 }
@@ -581,7 +964,7 @@ document.getElementById('chPhoto')?.addEventListener('change', async (ev) => {
   } catch { toast('Image illisible.'); }
 });
 async function enregistrerChambre(){
-  const corps = { nom: chNom.value.trim(), description: chDesc.value.trim(), prixNuit: +chPrix.value, capacite: +chCap.value, quantite: +chQte.value, photo: photoChambre };
+  const corps = { nom: chNom.value.trim(), description: chDesc.value.trim(), prixNuit: +chPrix.value, capacite: +chCap.value, quantite: +chQte.value, photo: photoChambre, equipements: equipementsChoisis() };
   if (!corps.nom || !(corps.prixNuit > 0)) { toast('Nom et prix par nuit obligatoires.'); return; }
   try {
     if (chambreEnCours) await api('/api/mon-entreprise/chambres/'+chambreEnCours.id,'PUT',corps);
@@ -615,6 +998,680 @@ async function chargerSejours(){
 }
 async function statutSejour(id, statut){
   await api('/api/sejours/'+id,'PUT',{statut}); toast('Séjour mis à jour. Le client est prévenu par email.'); chargerSejours();
+}
+
+
+
+
+// ===== Métier : vocabulaire, modules et champs =====
+let REF_METIERS = null;
+function metierActuel(){
+  return (REF_METIERS && REF_METIERS.METIERS[ent.metier]) || (REF_METIERS && REF_METIERS.METIERS['autre']) || null;
+}
+function aModule(mod){
+  const m = metierActuel();
+  return m ? m.modules.includes(mod) : true;
+}
+function mot(cle, majuscule){
+  const m = metierActuel();
+  const v = m && m.mots[cle] ? m.mots[cle].fr : cle;
+  return majuscule ? v.charAt(0).toUpperCase() + v.slice(1) : v;
+}
+// Modules → entrées de menu et sections concernées
+const MODULE_SECTIONS = {
+  rdv: ['rdv', 'calendrier'], equipe: ['employes'],
+  hotellerie: ['chambres'], carte: ['carte'], catalogue: ['catalogue','commandes','vente'],
+  inscriptions: ['programmes','inscriptions'], dossiers: ['dossiers'], urgences: ['urgence'], catalogue: ['catalogue']
+};
+function appliquerMetier(){
+  const m = metierActuel();
+  if (!m) return;
+  // 1) Masquer les entrées de menu des modules non déclarés
+  Object.entries(MODULE_SECTIONS).forEach(([mod, secs]) => {
+    const actif = m.modules.includes(mod);
+    secs.forEach((s) => {
+      const b = document.querySelector(`.lien-lat[data-sec="${s}"]`);
+      if (b) b.style.display = actif ? '' : 'none';
+    });
+  });
+  // 2) Adapter le vocabulaire des libellés
+  document.querySelectorAll('[data-mot]').forEach((el) => {
+    el.textContent = mot(el.dataset.mot, el.dataset.maj !== undefined);
+  });
+  // 3) Champs propres au métier
+  dessinerChampsMetier();
+}
+function dessinerChampsMetier(){
+  const m = metierActuel(); const carte = document.getElementById('carteChampsMetier');
+  if (!m || !carte) return;
+  const champs = m.champs.filter((c) => REF_METIERS.CHAMPS[c] && REF_METIERS.CHAMPS[c].type !== 'interne');
+  if (!champs.length) { carte.style.display = 'none'; return; }
+  carte.style.display = '';
+  document.getElementById('titreChampsMetier').textContent = `${m.ico} Informations — ${m.nom.fr}`;
+  const v = ent.champs || {};
+  document.getElementById('listeChampsMetier').innerHTML = champs.map((c) => {
+    const d = REF_METIERS.CHAMPS[c];
+    const val = v[c];
+    if (d.type === 'bool')
+      return `<label class="equip-case${val?' on':''}" style="margin:0">
+                <input type="checkbox" data-champ="${c}"${val?' checked':''}
+                       onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+                <span>${d.fr}</span></label>`;
+    const aide = d.aide ? `<p class="aide">${d.aide.fr}</p>` : '';
+    const type = d.type === 'nombre' ? 'number' : (d.type === 'heure' ? 'time' : 'text');
+    const valeur = Array.isArray(val) ? val.join(', ') : (val === undefined ? '' : val);
+    const espace = d.type === 'liste' ? 'placeholder="Séparez par des virgules"' : '';
+    return `<div class="champ-metier"><label>${d.fr}</label>
+              <input type="${type}" data-champ="${c}" value="${String(valeur).replace(/"/g,'&quot;')}" ${espace}>${aide}</div>`;
+  }).join('');
+}
+async function enregistrerChampsMetier(){
+  const champs = {};
+  document.querySelectorAll('#listeChampsMetier [data-champ]').forEach((el) => {
+    champs[el.dataset.champ] = el.type === 'checkbox' ? el.checked : el.value.trim();
+  });
+  try {
+    ent = await api('/api/mon-entreprise','PUT',{ champs });
+    toast('Informations enregistrées.');
+    dessinerChampsMetier();
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Formule d'hébergement (standard / resort) =====
+const INCLUS = {
+  petitdej:{lib:'Petit-déjeuner',ico:'🥐'}, dejeuner:{lib:'Déjeuner',ico:'🍽️'},
+  diner:{lib:'Dîner',ico:'🍛'}, collations:{lib:'Collations à volonté',ico:'🍪'},
+  boissons:{lib:'Boissons sans alcool',ico:'🧃'}, alcool:{lib:'Boissons alcoolisées',ico:'🍹'},
+  barouvert:{lib:'Bar ouvert',ico:'🍸'}, piscine:{lib:'Accès piscine',ico:'🏊'},
+  plage:{lib:'Accès plage privée',ico:'🏖️'}, animations:{lib:'Animations et soirées',ico:'🎶'},
+  sport:{lib:'Activités sportives',ico:'🏐'}, nautique:{lib:'Sports nautiques',ico:'🚤'},
+  spa:{lib:'Accès spa',ico:'💆'}, gym:{lib:'Salle de sport',ico:'🏋️'},
+  kids:{lib:'Club enfants',ico:'🧒'}, navette:{lib:'Navette aéroport',ico:'🚐'},
+  wifi:{lib:'Wi-Fi partout',ico:'📶'}, parking:{lib:'Parking',ico:'🅿️'}
+};
+function dessinerInclus(choisis){
+  const sel = new Set(choisis || []);
+  document.getElementById('listeInclus').innerHTML = Object.entries(INCLUS).map(([k,v]) =>
+    `<label class="equip-case${sel.has(k)?' on':''}">
+       <input type="checkbox" value="${k}"${sel.has(k)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${v.ico} ${v.lib}</span></label>`).join('');
+}
+function majFormule(){
+  const choisie = document.querySelector('input[name="formule"]:checked')?.value || 'standard';
+  document.querySelectorAll('.opt-formule').forEach(o =>
+    o.classList.toggle('on', o.querySelector('input').checked));
+  document.getElementById('zoneInclus').style.display = choisie === 'resort' ? '' : 'none';
+}
+function remplirFormule(){
+  const carte = document.getElementById('carteFormule');
+  if (!carte) return;
+  carte.style.display = aModule('hotellerie') ? '' : 'none';
+  const f = ent.formule || 'standard';
+  const radio = document.querySelector(`input[name="formule"][value="${f}"]`);
+  if (radio) radio.checked = true;
+  dessinerInclus(ent.inclus || []);
+  const note = document.getElementById('iNoteFormule');
+  if (note) note.value = ent.noteFormule || '';
+  majFormule();
+}
+async function enregistrerFormule(){
+  const formule = document.querySelector('input[name="formule"]:checked')?.value || 'standard';
+  const inclus = [...document.querySelectorAll('#listeInclus input:checked')].map(i => i.value);
+  if (formule === 'resort' && !inclus.length) {
+    toast('Cochez au moins une prestation comprise dans le séjour.'); return;
+  }
+  try {
+    ent = await api('/api/mon-entreprise','PUT',{ formule, inclus, noteFormule: document.getElementById('iNoteFormule').value.trim() });
+    toast(formule === 'resort' ? 'Formule tout inclus enregistrée.' : 'Formule standard enregistrée.');
+    remplirFormule(); chargerCarte();
+  } catch(e){ toast(e.message); }
+}
+
+
+
+
+
+
+// ===== Vente : commandes, livraison et retrait =====
+const STATUTS_CMD = {
+  nouvelle:{lib:'Nouvelle',badge:'badge-orange'}, confirmee:{lib:'Confirmée',badge:'badge-bleu'},
+  preparation:{lib:'En préparation',badge:'badge-violet'}, prete:{lib:'Prête',badge:'badge-bleu'},
+  en_route:{lib:'En route',badge:'badge-violet'}, livree:{lib:'Livrée / retirée',badge:'badge-vert'},
+  annulee:{lib:'Annulée',badge:'badge-rouge'}
+};
+const SUITE_CMD = {
+  cueillette: ['nouvelle','confirmee','preparation','prete','livree'],
+  livraison:  ['nouvelle','confirmee','preparation','en_route','livree']
+};
+async function chargerCommandes(){
+  const r = await api('/api/mon-entreprise/commandes');
+  const f = document.getElementById('filtreCommandes').value;
+  const vis = f ? r.commandes.filter(c => c.statut === f) : r.commandes;
+  const z = document.getElementById('listeCommandes');
+  if (!vis.length) { z.innerHTML = '<p class="muet petit">Aucune commande pour le moment.</p>'; return; }
+  z.innerHTML = vis.map(c => {
+    const suite = SUITE_CMD[c.mode] || SUITE_CMD.cueillette;
+    const i = suite.indexOf(c.statut);
+    const suivant = i >= 0 && i < suite.length - 1 ? suite[i+1] : null;
+    return `<div class="panneau">
+      <div class="flex entre" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <strong>${c.reference}</strong>
+          <span class="badge ${STATUTS_CMD[c.statut].badge}" style="margin-left:6px">${STATUTS_CMD[c.statut].lib}</span>
+          <span class="badge badge-gris" style="margin-left:4px">${c.mode==='livraison'?'🛵 Livraison':'🏪 Retrait'}</span>
+          <p class="petit muet" style="margin-top:5px">
+            👤 ${ech(c.clientNom)} · <a href="https://wa.me/${String(c.clientTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(c.clientTel)}</a>
+            ${c.mode==='livraison'?`<br>📍 ${ech(c.adresse)}${c.zone?` <span class="badge badge-bleu">${ech(c.zone)}</span>`:''}`:''}
+            ${c.repere?`<br>🧭 ${ech(c.repere)}`:''}
+            ${c.creneau?`<br>🕐 ${ech(c.creneau)}`:''}
+            ${c.message?`<br>💬 ${ech(c.message)}`:''}
+          </p>
+          <table style="margin-top:8px">
+            ${c.lignes.map(l => `<tr><td class="petit">${ech(l.nom)} ${l.unite?`<span class="muet">(${ech(l.unite)})</span>`:''}</td>
+              <td class="petit num">×${l.quantite}</td>
+              <td class="petit num">${(+l.total).toLocaleString('fr-HT')} HTG</td></tr>`).join('')}
+            ${c.frais?`<tr><td class="petit muet">Livraison${c.zone?` — ${ech(c.zone)}`:''}</td><td></td><td class="petit num">${(+c.frais).toLocaleString('fr-HT')} HTG</td></tr>`:''}
+            <tr><td><strong>Total</strong></td><td></td><td class="num"><strong>${(+c.total).toLocaleString('fr-HT')} HTG</strong></td></tr>
+          </table>
+        </div>
+        <div style="text-align:right">
+          <p class="petit muet">${c.creeLe.slice(0,10)} ${c.creeLe.slice(11,16)}</p>
+        </div>
+      </div>
+      <div class="flex mt" style="gap:6px;flex-wrap:wrap">
+        ${suivant?`<button class="btn btn-primaire btn-petit" onclick="statutCommande('${c.id}','${suivant}')">→ ${STATUTS_CMD[suivant].lib}</button>`:''}
+        ${c.statut!=='annulee'&&c.statut!=='livree'?`<button class="btn btn-danger btn-petit" onclick="statutCommande('${c.id}','annulee')">Annuler</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function statutCommande(id, statut){
+  if (statut === 'annulee' && !confirm('Annuler cette commande ? Le stock sera restitué.')) return;
+  try { await api('/api/mon-entreprise/commandes/'+id,'PUT',{statut});
+    toast('Le client est prévenu par WhatsApp.');
+    chargerCommandes(); if (aModule('catalogue')) chargerCatalogue();
+  } catch(e){ toast(e.message); }
+}
+
+// ---- Réglages de livraison et retrait ----
+let ZONES = [];
+function majZonesVisibles(){
+  document.getElementById('blocCueillette').style.display = vtCueillette.checked ? '' : 'none';
+  document.getElementById('blocLivraison').style.display = vtLivraison.checked ? '' : 'none';
+}
+function dessinerZones(){
+  document.getElementById('listeZones').innerHTML = ZONES.map((z,i) => `
+    <div class="ligne-zone">
+      <input value="${String(z.nom).replace(/"/g,'&quot;')}" placeholder="Nom de la zone" oninput="ZONES[${i}].nom=this.value">
+      <input type="number" min="0" value="${z.frais}" placeholder="Frais" oninput="ZONES[${i}].frais=+this.value">
+      <input value="${String(z.delai||'').replace(/"/g,'&quot;')}" placeholder="Délai" oninput="ZONES[${i}].delai=this.value">
+      <button class="btn btn-fantome btn-petit" onclick="ZONES.splice(${i},1);dessinerZones()">🗑️</button>
+    </div>`).join('') || '<p class="petit muet">Aucune zone. Les frais par défaut s\'appliqueront partout.</p>';
+}
+function ajouterZone(){ ZONES.push({nom:'',frais:0,delai:''}); dessinerZones(); }
+async function chargerVente(){
+  const r = await api('/api/mon-entreprise/vente');
+  const v = r.vente || {};
+  vtActives.checked = !!v.commandesActives; vtCueillette.checked = !!v.cueillette; vtLivraison.checked = !!v.livraison;
+  [vtActives, vtCueillette, vtLivraison].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+  vtHoraires.value = v.horairesCueillette||''; vtDelai.value = v.delaiPreparation||'';
+  vtFraisBase.value = v.fraisBase||0; vtSeuil.value = v.seuilGratuite||0;
+  vtMinimum.value = v.minimumCommande||0; vtConsigne.value = v.consigne||'';
+  ZONES = (v.zones||[]).map(z => ({...z}));
+  dessinerZones(); majZonesVisibles();
+}
+async function enregistrerVente(){
+  if (vtActives.checked && !vtCueillette.checked && !vtLivraison.checked) {
+    toast('Choisissez au moins le retrait sur place ou la livraison.'); return;
+  }
+  const zones = ZONES.filter(z => String(z.nom).trim());
+  try {
+    await api('/api/mon-entreprise/vente','PUT',{
+      commandesActives: vtActives.checked, cueillette: vtCueillette.checked, livraison: vtLivraison.checked,
+      horairesCueillette: vtHoraires.value.trim(), delaiPreparation: vtDelai.value.trim(),
+      fraisBase: +vtFraisBase.value||0, seuilGratuite: +vtSeuil.value||0,
+      minimumCommande: +vtMinimum.value||0, consigne: vtConsigne.value.trim(), zones });
+    toast('Réglages enregistrés.'); chargerVente();
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Module catalogue =====
+let prodEnCours = null, photoProduit = '', RAYONS = [];
+async function chargerCatalogue(){
+  const r = await api('/api/mon-entreprise/produits');
+  RAYONS = r.rayons;
+  // Rayons dans le filtre et la saisie
+  const sel = document.getElementById('filtreRayon');
+  const garde = sel.value;
+  sel.innerHTML = '<option value="">Tous les rayons</option>' + RAYONS.map(x => `<option>${ech(x)}</option>`).join('');
+  sel.value = garde;
+  document.getElementById('listeRayons').innerHTML = RAYONS.map(x => `<option value="${ech(x)}">`).join('');
+  // Note propre à la pharmacie
+  const note = document.getElementById('noteCatalogue');
+  note.textContent = ent.metier === 'pharmacie'
+    ? "Présentez ici vos produits de parapharmacie et de soins. Les médicaments soumis à ordonnance ne devraient pas être proposés à la commande en ligne."
+    : "Les produits disponibles apparaissent sur votre page publique. Un produit épuisé en disparaît automatiquement.";
+  // Alertes
+  const bas = r.produits.filter(p => p.stock !== null && p.stock <= p.seuilAlerte);
+  document.getElementById('alerteStock').style.display = bas.length ? '' : 'none';
+  if (bas.length) document.getElementById('texteAlerteStock').textContent =
+    `⚠ ${bas.length} produit${bas.length>1?'s':''} à réapprovisionner`;
+  // Filtres
+  const fr = sel.value, fs = document.getElementById('filtreStock').value;
+  let vis = r.produits;
+  if (fr) vis = vis.filter(p => p.rayon === fr);
+  if (fs === 'bas') vis = vis.filter(p => p.stock !== null && p.stock <= p.seuilAlerte && p.stock > 0);
+  if (fs === 'zero') vis = vis.filter(p => p.stock === 0);
+  if (fs === 'promo') vis = vis.filter(p => p.prixPromo > 0);
+  const z = document.getElementById('listeCatalogue');
+  if (!vis.length) {
+    z.innerHTML = r.produits.length ? '<p class="muet petit">Aucun produit dans cette sélection.</p>'
+      : '<p class="muet petit">Votre catalogue est vide. Ajoutez vos premiers produits pour les présenter à vos clients.</p>';
+    return;
+  }
+  z.innerHTML = `<div style="overflow:auto"><table>
+    <tr><th>Produit</th><th>Rayon</th><th>Prix</th><th>Stock</th><th>Statut</th><th></th></tr>
+    ${vis.map(p => {
+      const rupture = p.stock === 0, bas2 = p.stock !== null && p.stock > 0 && p.stock <= p.seuilAlerte;
+      return `<tr>
+        <td><div class="flex" style="gap:9px">
+          ${p.photo?`<img src="${p.photo}" style="width:42px;height:42px;object-fit:cover;border-radius:8px;flex:none">`:''}
+          <div><strong>${ech(p.nom)}</strong>${p.marque?` <span class="petit muet">${ech(p.marque)}</span>`:''}
+          ${p.description?`<br><span class="petit muet">${ech(p.description)}</span>`:''}</div></div></td>
+        <td class="petit muet">${ech(p.rayon||'—')}</td>
+        <td>${p.prixPromo ? `<s class="petit muet">${(+p.prix).toLocaleString('fr-HT')}</s> <strong style="color:var(--orange)">${(+p.prixPromo).toLocaleString('fr-HT')}</strong>` : `<strong>${(+p.prix).toLocaleString('fr-HT')}</strong>`} HTG${p.unite?`<br><span class="petit muet">/${ech(p.unite)}</span>`:''}</td>
+        <td>${p.stock === null ? '<span class="petit muet">non suivi</span>' : `
+          <div class="flex" style="gap:4px">
+            <button class="btn btn-fantome btn-petit" onclick="mouvementStock('${p.id}',-1)">−</button>
+            <strong style="min-width:28px;text-align:center;${rupture?'color:var(--rouge)':(bas2?'color:var(--orange)':'')}">${p.stock}</strong>
+            <button class="btn btn-fantome btn-petit" onclick="mouvementStock('${p.id}',1)">+</button>
+          </div>`}</td>
+        <td>${rupture ? '<span class="badge badge-rouge">Épuisé</span>'
+              : bas2 ? '<span class="badge badge-orange">Stock bas</span>'
+              : p.disponible ? '<span class="badge badge-vert">En vente</span>' : '<span class="badge badge-gris">Retiré</span>'}</td>
+        <td class="flex" style="gap:6px">
+          <button class="btn btn-fantome btn-petit" onclick='ouvrirProduit(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+          <button class="btn btn-fantome btn-petit" onclick="basculerProduit('${p.id}',${!p.disponible})" title="${p.disponible?'Retirer de la vente':'Remettre en vente'}">${p.disponible?'🚫':'✅'}</button>
+          <button class="btn btn-fantome btn-petit" onclick="supprimerProduit('${p.id}')">🗑️</button>
+        </td></tr>`;
+    }).join('')}
+  </table></div>`;
+}
+function ouvrirProduit(p){
+  prodEnCours = p || null; photoProduit = p && p.photo || '';
+  document.getElementById('titreModaleProduit').textContent = p ? 'Modifier le produit' : 'Ajouter un produit';
+  prNom.value = p?p.nom:''; prDesc.value = p?(p.description||''):'';
+  prRayon.value = p?(p.rayon||''):''; prMarque.value = p?(p.marque||''):'';
+  prPrix.value = p?p.prix:100; prPromo.value = p?(p.prixPromo||0):0;
+  prUnite.value = p?(p.unite||''):''; prRef.value = p?(p.reference||''):'';
+  const suivi = p ? p.stock !== null : true;
+  prSuiviStock.checked = suivi;
+  prSuiviStock.closest('.equip-case').classList.toggle('on', suivi);
+  document.getElementById('zoneStock').style.display = suivi ? '' : 'none';
+  prStock.value = p && p.stock !== null ? p.stock : 0;
+  prSeuil.value = p?p.seuilAlerte:5;
+  document.getElementById('prPhoto').value = '';
+  document.getElementById('prApercu').innerHTML = photoProduit ? `<img src="${photoProduit}" style="width:110px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  document.getElementById('voileProduit').classList.add('ouvert');
+}
+document.getElementById('prPhoto')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { photoProduit = await compresserImage(f, 900, 0.78);
+    document.getElementById('prApercu').innerHTML = `<img src="${photoProduit}" style="width:110px;height:80px;object-fit:cover;border-radius:10px">`;
+  } catch { toast('Image illisible.'); }
+});
+async function enregistrerProduit(){
+  const corps = { nom:prNom.value.trim(), description:prDesc.value.trim(), rayon:prRayon.value.trim(),
+    marque:prMarque.value.trim(), prix:+prPrix.value||0, prixPromo:+prPromo.value||0,
+    unite:prUnite.value.trim(), reference:prRef.value.trim(), photo:photoProduit,
+    stock: prSuiviStock.checked ? (+prStock.value||0) : null,
+    seuilAlerte: +prSeuil.value||0 };
+  if (!corps.nom || !(corps.prix > 0)) { toast('Nom et prix obligatoires.'); return; }
+  if (corps.prixPromo && corps.prixPromo >= corps.prix) { toast('Le prix promotionnel doit être inférieur au prix normal.'); return; }
+  try {
+    if (prodEnCours) await api('/api/mon-entreprise/produits/'+prodEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/produits','POST',corps);
+    fermer('voileProduit'); toast('Produit enregistré.'); chargerCatalogue();
+  } catch(e){ toast(e.message); }
+}
+async function mouvementStock(id, n){
+  try { await api('/api/mon-entreprise/produits/'+id,'PUT',{mouvement:n}); chargerCatalogue(); }
+  catch(e){ toast(e.message); }
+}
+async function basculerProduit(id, disponible){
+  await api('/api/mon-entreprise/produits/'+id,'PUT',{disponible}); chargerCatalogue();
+}
+async function supprimerProduit(id){
+  if (!confirm('Supprimer ce produit du catalogue ?')) return;
+  await api('/api/mon-entreprise/produits/'+id,'DELETE'); toast('Produit supprimé.'); chargerCatalogue();
+}
+
+// ===== Module urgences =====
+let URG = {}, CAPACITES_REF = {}, ETATS_REF = [];
+async function chargerUrgence(){
+  const r = await api('/api/mon-entreprise/urgence');
+  URG = r.urgence || {}; CAPACITES_REF = r.capacites; ETATS_REF = r.etats;
+  // Boutons d'état
+  document.getElementById('etatsUrgence').innerHTML = ETATS_REF.map(e =>
+    `<button class="btn-etat${URG.etat===e.cle?' on':''}" onclick="definirEtat('${e.cle}')">
+       <span style="font-size:22px">${e.ico}</span>
+       <span>${e.fr}</span></button>`).join('');
+  const info = document.getElementById('etatMajInfo');
+  if (URG.etatMaj) {
+    const h = Math.round((Date.now() - new Date(URG.etatMaj).getTime()) / 3600000);
+    info.innerHTML = h >= 12
+      ? `<span style="color:var(--rouge);font-weight:700">⚠ Déclaré il y a ${h} h — cet état n'est plus affiché au public. Mettez-le à jour.</span>`
+      : `Dernière mise à jour il y a ${h} h.`;
+  } else info.textContent = "Aucun état déclaré pour le moment.";
+  // Formulaire
+  urActif.checked = !!URG.actif; urPermanence.checked = !!URG.permanence;
+  urAmbulance.checked = !!URG.ambulance;
+  [urActif, urPermanence, urAmbulance].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+  urTel.value = URG.telephone || ''; urTel2.value = URG.telephone2 || '';
+  urHoraires.value = URG.horaires || ''; urTelAmb.value = URG.telAmbulance || '';
+  urConsigne.value = URG.consigne || '';
+  urGardeDebut.value = URG.gardeDebut || ''; urGardeFin.value = URG.gardeFin || '';
+  // La garde ne concerne que les pharmacies
+  document.getElementById('zoneGarde').style.display = ent.metier === 'pharmacie' ? '' : 'none';
+  // Les moyens ne concernent pas les pharmacies
+  document.getElementById('carteCapacites').style.display = ent.metier === 'pharmacie' ? 'none' : '';
+  const sel = new Set(URG.capacites || []);
+  document.getElementById('listeCapacites').innerHTML = Object.entries(CAPACITES_REF).map(([k,v]) =>
+    `<label class="equip-case${sel.has(k)?' on':''}">
+       <input type="checkbox" data-cap="${k}"${sel.has(k)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${v.ico} ${v.fr}</span></label>`).join('');
+}
+async function definirEtat(etat){
+  try {
+    await api('/api/mon-entreprise/urgence','PUT',{etat});
+    toast('État mis à jour. Il est visible sur votre page publique.');
+    chargerUrgence();
+  } catch(e){ toast(e.message); }
+}
+async function enregistrerUrgence(){
+  const corps = {
+    actif: urActif.checked, permanence: urPermanence.checked,
+    telephone: urTel.value.trim(), telephone2: urTel2.value.trim(),
+    horaires: urHoraires.value.trim(), ambulance: urAmbulance.checked,
+    telAmbulance: urTelAmb.value.trim(), consigne: urConsigne.value.trim(),
+    gardeDebut: urGardeDebut.value, gardeFin: urGardeFin.value,
+    capacites: [...document.querySelectorAll('#listeCapacites input:checked')].map(i => i.dataset.cap)
+  };
+  if (corps.actif && !corps.telephone) { toast("Indiquez un téléphone d'urgence : c'est le premier moyen de vous joindre."); return; }
+  try { URG = await api('/api/mon-entreprise/urgence','PUT',corps); toast('Enregistré.'); chargerUrgence(); }
+  catch(e){ toast(e.message); }
+}
+
+// ===== Module dossiers =====
+let dosEnCours = null, ETAPES_DOS = [], PIECES_DOS = [];
+const STATUTS_DOS = {
+  ouvert:{lib:'Ouvert',badge:'badge-bleu'}, en_cours:{lib:'En cours',badge:'badge-orange'},
+  attente:{lib:'En attente de pièces',badge:'badge-gris'}, pret:{lib:'Prêt',badge:'badge-violet'},
+  clos:{lib:'Clos',badge:'badge-vert'}, annule:{lib:'Annulé',badge:'badge-rouge'}
+};
+async function chargerDossiers(){
+  const r = await api('/api/mon-entreprise/dossiers');
+  ETAPES_DOS = r.etapes; PIECES_DOS = r.pieces;
+  const f = document.getElementById('filtreDossiers').value;
+  const vis = f ? r.dossiers.filter(d => d.statut === f) : r.dossiers;
+  const z = document.getElementById('listeDossiers');
+  if (!vis.length) { z.innerHTML = '<p class="muet petit">Aucun dossier. Créez-en un pour suivre son avancement et tenir le client informé.</p>'; return; }
+  z.innerHTML = vis.map(d => {
+    const idx = ETAPES_DOS.findIndex(e => e.cle === d.etape);
+    const reste = (d.honoraires || 0) - (d.avance || 0);
+    const manquantes = (d.pieces||[]).filter(p => !p.fournie);
+    return `<div class="panneau">
+      <div class="flex entre" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <strong>${ech(d.objet)}</strong>
+          <span class="badge badge-gris" style="margin-left:6px">${d.reference}</span>
+          <span class="badge ${STATUTS_DOS[d.statut].badge}" style="margin-left:4px">${STATUTS_DOS[d.statut].lib}</span>
+          <p class="petit muet" style="margin-top:4px">
+            👤 ${ech(d.clientNom)}${d.clientTel?` · <a href="https://wa.me/${String(d.clientTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(d.clientTel)}</a>`:''}
+            ${d.localisation?`<br>📍 ${ech(d.localisation)}`:''}
+            ${d.echeance?`<br>📅 échéance : ${ech(d.echeance)}`:''}
+          </p>
+          ${d.honoraires?`<p class="petit muet">💰 ${(+d.honoraires).toLocaleString('fr-HT')} HTG${d.avance?` · avance ${(+d.avance).toLocaleString('fr-HT')} · reste <strong>${reste.toLocaleString('fr-HT')} HTG</strong>`:''}</p>`:''}
+          ${manquantes.length?`<p class="petit" style="color:var(--orange)">📎 ${manquantes.length} pièce(s) manquante(s) : ${manquantes.map(p=>ech(p.nom)).join(', ')}</p>`:''}
+        </div>
+        <div class="flex" style="gap:6px">
+          <button class="btn btn-fantome btn-petit" onclick='ouvrirDossier(${JSON.stringify(d).replace(/'/g,"&#39;")})'>✏️</button>
+          <button class="btn btn-fantome btn-petit" onclick="supprimerDossier('${d.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="etapes-dos">
+        ${ETAPES_DOS.map((e,i) => `<button class="etape-dos${i<idx?' faite':''}${i===idx?' active':''}"
+            onclick="changerEtape('${d.id}','${e.cle}')" title="${ech(e.fr)}">${i+1}</button>`).join('')}
+      </div>
+      <p class="petit muet" style="margin-top:6px">Étape ${idx+1} sur ${ETAPES_DOS.length} — <strong>${ech(ETAPES_DOS[idx]?ETAPES_DOS[idx].fr:'—')}</strong></p>
+      <div class="flex mt" style="gap:6px;flex-wrap:wrap">
+        ${Object.entries(STATUTS_DOS).filter(([c])=>c!==d.statut).map(([c,s])=>
+          `<button class="btn btn-fantome btn-petit" onclick="changerStatutDossier('${d.id}','${c}')">${s.lib}</button>`).join('')}
+      </div>
+      ${(d.journal||[]).length?`<details style="margin-top:10px"><summary class="petit muet" style="cursor:pointer">Historique (${d.journal.length})</summary>
+        <div style="margin-top:6px">${d.journal.slice().reverse().map(j=>`<p class="petit muet">${j.le.slice(0,10)} — ${ech(j.texte)}</p>`).join('')}</div></details>`:''}
+    </div>`;
+  }).join('');
+}
+function ouvrirDossier(d){
+  dosEnCours = d || null;
+  document.getElementById('titreModaleDossier').textContent = d ? 'Modifier le dossier' : 'Nouveau dossier';
+  doObjet.value = d?d.objet:''; doDesc.value = d?(d.description||''):'';
+  doClient.value = d?d.clientNom:''; doTel.value = d?(d.clientTel||''):'';
+  doLieu.value = d?(d.localisation||''):'';
+  doHono.value = d?d.honoraires:0; doAvance.value = d?d.avance:0;
+  doEcheance.value = d?(d.echeance||''):'';
+  // Le champ localisation n'a de sens que pour l'arpentage et le notariat
+  const utile = ['arpenteur','notaire'].includes(ent.metier);
+  document.getElementById('labelLocalisation').style.display = utile?'':'none';
+  doLieu.style.display = utile?'':'none';
+  const dejaCochees = new Set((d?d.pieces:[]).filter(p=>p.fournie).map(p=>p.nom));
+  const toutes = [...new Set([...(PIECES_DOS||[]), ...((d?d.pieces:[])||[]).map(p=>p.nom)])];
+  document.getElementById('doPieces').innerHTML = toutes.map(nom =>
+    `<label class="equip-case${dejaCochees.has(nom)?' on':''}">
+       <input type="checkbox" data-piece="${nom.replace(/"/g,'&quot;')}"${dejaCochees.has(nom)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${ech(nom)}</span></label>`).join('')
+    || '<p class="petit muet">Aucune pièce type pour ce métier.</p>';
+  document.getElementById('voileDossier').classList.add('ouvert');
+}
+async function enregistrerDossier(){
+  const pieces = [...document.querySelectorAll('#doPieces [data-piece]')].map(i => ({ nom: i.dataset.piece, fournie: i.checked }));
+  const corps = { objet:doObjet.value.trim(), description:doDesc.value.trim(), clientNom:doClient.value.trim(),
+    clientTel:doTel.value.trim(), localisation:doLieu.value.trim(), honoraires:+doHono.value||0,
+    avance:+doAvance.value||0, echeance:doEcheance.value, pieces };
+  if (!corps.objet || !corps.clientNom) { toast("L'objet et le nom du client sont obligatoires."); return; }
+  try {
+    if (dosEnCours) await api('/api/mon-entreprise/dossiers/'+dosEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/dossiers','POST',corps);
+    fermer('voileDossier'); toast('Dossier enregistré.'); chargerDossiers();
+  } catch(e){ toast(e.message); }
+}
+async function changerEtape(id, etape){
+  try { await api('/api/mon-entreprise/dossiers/'+id,'PUT',{etape});
+    toast('Étape mise à jour. Le client est prévenu par WhatsApp.'); chargerDossiers();
+  } catch(e){ toast(e.message); }
+}
+async function changerStatutDossier(id, statut){
+  try { await api('/api/mon-entreprise/dossiers/'+id,'PUT',{statut}); chargerDossiers(); }
+  catch(e){ toast(e.message); }
+}
+async function supprimerDossier(id){
+  if (!confirm('Supprimer définitivement ce dossier ?')) return;
+  await api('/api/mon-entreprise/dossiers/'+id,'DELETE'); toast('Dossier supprimé.'); chargerDossiers();
+}
+
+// ===== Module scolaire : programmes et inscriptions =====
+let progEnCours = null;
+const PERIODES = { mensuel:'par mois', trimestriel:'par trimestre', annuel:'par an' };
+const STATUTS_INS = {
+  en_attente:{lib:'En attente',badge:'badge-orange'}, acceptee:{lib:'Acceptée',badge:'badge-bleu'},
+  inscrit:{lib:'Inscrit',badge:'badge-vert'}, refusee:{lib:'Refusée',badge:'badge-rouge'}
+};
+
+async function chargerProgrammes(){
+  const liste = await api('/api/mon-entreprise/programmes');
+  const z = document.getElementById('listeProgrammes');
+  if (!liste.length) { z.innerHTML = '<p class="muet petit">Aucun programme. Créez vos niveaux ou filières pour recevoir des inscriptions.</p>'; return; }
+  z.innerHTML = `<div style="overflow:auto"><table>
+    <tr><th>Programme</th><th>Frais</th><th>Scolarité</th><th>Places</th><th>Demandes</th><th>Statut</th><th></th></tr>
+    ${liste.map(p => `<tr>
+      <td><strong>${ech(p.nom)}</strong>${p.anneeScolaire?`<span class="badge badge-gris" style="margin-left:6px">${ech(p.anneeScolaire)}</span>`:''}
+        ${p.description?`<br><span class="petit muet">${ech(p.description)}</span>`:''}
+        ${(p.documents||[]).length?`<br><span class="petit muet">📎 ${p.documents.map(ech).join(', ')}</span>`:''}</td>
+      <td>${p.fraisInscription ? (+p.fraisInscription).toLocaleString('fr-HT')+' HTG' : '—'}</td>
+      <td>${p.scolarite ? (+p.scolarite).toLocaleString('fr-HT')+' HTG <span class="petit muet">'+PERIODES[p.periodicite]+'</span>' : '—'}</td>
+      <td>${p.places ? `${p.inscrits}/${p.places}` : `${p.inscrits} <span class="petit muet">illimité</span>`}</td>
+      <td>${p.demandes ? `<span class="badge badge-orange">${p.demandes}</span>` : '—'}</td>
+      <td><span class="badge ${p.ouvert?'badge-vert':'badge-gris'}">${p.ouvert?'Ouvert':'Fermé'}</span></td>
+      <td class="flex" style="gap:6px">
+        <button class="btn btn-fantome btn-petit" onclick='ouvrirProgramme(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerProgramme('${p.id}',${!p.ouvert})">${p.ouvert?'🔒':'🔓'}</button>
+        <button class="btn btn-fantome btn-petit" onclick="supprimerProgramme('${p.id}')">🗑️</button>
+      </td></tr>`).join('')}
+  </table></div>`;
+}
+function ouvrirProgramme(p){
+  progEnCours = p || null;
+  document.getElementById('titreModaleProg').textContent = p ? 'Modifier le programme' : 'Ajouter un programme';
+  pgNom.value = p?p.nom:''; pgDesc.value = p?(p.description||''):'';
+  pgAnnee.value = p?(p.anneeScolaire||''):''; pgPlaces.value = p?p.places:0;
+  pgFrais.value = p?p.fraisInscription:0; pgScol.value = p?p.scolarite:0;
+  pgPeriode.value = p?p.periodicite:'mensuel';
+  pgDocs.value = p?(p.documents||[]).join(', '):'';
+  pgOuvert.checked = p ? p.ouvert : true;
+  pgOuvert.closest('.equip-case').classList.toggle('on', pgOuvert.checked);
+  document.getElementById('voileProgramme').classList.add('ouvert');
+}
+async function enregistrerProgramme(){
+  const corps = { nom:pgNom.value.trim(), description:pgDesc.value.trim(), anneeScolaire:pgAnnee.value.trim(),
+    places:+pgPlaces.value||0, fraisInscription:+pgFrais.value||0, scolarite:+pgScol.value||0,
+    periodicite:pgPeriode.value, ouvert:pgOuvert.checked,
+    documents: pgDocs.value.split(',').map(s=>s.trim()).filter(Boolean) };
+  if (!corps.nom) { toast('Le nom du programme est obligatoire.'); return; }
+  try {
+    if (progEnCours) await api('/api/mon-entreprise/programmes/'+progEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/programmes','POST',corps);
+    fermer('voileProgramme'); toast('Programme enregistré.'); chargerProgrammes();
+  } catch(e){ toast(e.message); }
+}
+async function basculerProgramme(id, ouvert){
+  await api('/api/mon-entreprise/programmes/'+id,'PUT',{ouvert});
+  toast(ouvert?'Programme ouvert aux inscriptions.':'Programme fermé.'); chargerProgrammes();
+}
+async function supprimerProgramme(id){
+  if (!confirm('Supprimer ce programme ?')) return;
+  try { await api('/api/mon-entreprise/programmes/'+id,'DELETE'); toast('Programme supprimé.'); chargerProgrammes(); }
+  catch(e){ toast(e.message); }
+}
+
+async function chargerInscriptions(){
+  const liste = await api('/api/mon-entreprise/inscriptions');
+  const f = document.getElementById('filtreInscriptions').value;
+  const vis = f ? liste.filter(i => i.statut === f) : liste;
+  const z = document.getElementById('listeInscriptions');
+  if (!vis.length) { z.innerHTML = '<p class="muet petit">Aucune demande d\'inscription pour le moment.</p>'; return; }
+  z.innerHTML = `<div style="overflow:auto"><table>
+    <tr><th>Élève</th><th>Programme</th><th>Responsable</th><th>Reçue le</th><th>Statut</th><th></th></tr>
+    ${vis.map(i => `<tr>
+      <td><strong>${ech(i.eleveNom)}</strong>
+        ${i.eleveNaissance?`<br><span class="petit muet">né(e) le ${ech(i.eleveNaissance)}</span>`:''}
+        ${i.ecoleProvenance?`<br><span class="petit muet">vient de : ${ech(i.ecoleProvenance)}</span>`:''}</td>
+      <td class="petit">${ech(i.programme?i.programme.nom:'—')}</td>
+      <td class="petit">${ech(i.parentNom)}${i.parentLien?` <span class="muet">(${ech(i.parentLien)})</span>`:''}
+        <br><a href="https://wa.me/${String(i.parentTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(i.parentTel)}</a></td>
+      <td class="petit muet">${i.creeLe.slice(0,10)}</td>
+      <td><span class="badge ${STATUTS_INS[i.statut].badge}">${STATUTS_INS[i.statut].lib}</span></td>
+      <td class="flex" style="gap:6px;flex-wrap:wrap">
+        ${i.statut!=='inscrit'?`<button class="btn btn-succes btn-petit" onclick="statutInscription('${i.id}','inscrit')">Inscrire</button>`:''}
+        ${i.statut==='en_attente'?`<button class="btn btn-contour btn-petit" onclick="statutInscription('${i.id}','acceptee')">Accepter</button>`:''}
+        ${i.statut!=='refusee'?`<button class="btn btn-danger btn-petit" onclick="statutInscription('${i.id}','refusee')">Refuser</button>`:''}
+      </td></tr>`).join('')}
+  </table></div>`;
+}
+async function statutInscription(id, statut){
+  try {
+    await api('/api/mon-entreprise/inscriptions/'+id,'PUT',{statut});
+    toast('Le responsable est prévenu par WhatsApp.');
+    chargerInscriptions(); chargerProgrammes();
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Restaurant & Bar =====
+const CATS_CARTE = {
+  entree:{lib:'Entrées',ico:'🥗',groupe:'Cuisine'}, plat:{lib:'Plats',ico:'🍽️',groupe:'Cuisine'},
+  accompagnement:{lib:'Accompagnements',ico:'🍚',groupe:'Cuisine'}, dessert:{lib:'Desserts',ico:'🍰',groupe:'Cuisine'},
+  boisson:{lib:'Boissons sans alcool',ico:'🧃',groupe:'Bar'}, cocktail:{lib:'Cocktails',ico:'🍹',groupe:'Bar'},
+  biere:{lib:'Bières',ico:'🍺',groupe:'Bar'}, vin:{lib:'Vins',ico:'🍷',groupe:'Bar'},
+  spiritueux:{lib:'Spiritueux',ico:'🥃',groupe:'Bar'}
+};
+const ORDRE_CATS = ['entree','plat','accompagnement','dessert','boisson','cocktail','biere','vin','spiritueux'];
+let articleEnCours = null, photoArticle = '';
+
+async function chargerCarte(){
+  const liste = await api('/api/mon-entreprise/carte');
+  const filtre = document.getElementById('filtreCarte').value;
+  const visibles = filtre ? liste.filter(a => a.categorie === filtre) : liste;
+  const zone = document.getElementById('listeCarte');
+  if (!visibles.length) {
+    zone.innerHTML = liste.length
+      ? '<p class="muet petit">Aucun article dans cette catégorie.</p>'
+      : '<p class="muet petit">Votre carte est vide. Cliquez sur « + Ajouter un article » pour créer votre premier plat ou votre première boisson.</p>';
+    return;
+  }
+  zone.innerHTML = ORDRE_CATS.filter(c => visibles.some(a => a.categorie === c)).map(c => {
+    const arts = visibles.filter(a => a.categorie === c);
+    return `<h3 style="font-size:14px;margin:18px 0 8px">${CATS_CARTE[c].ico} ${CATS_CARTE[c].lib}
+              <span class="petit muet" style="font-weight:500">— ${arts.length}</span></h3>
+      <div style="overflow:auto"><table>
+        <tr><th>Article</th><th>Format</th><th>Prix</th><th>Statut</th><th></th></tr>
+        ${arts.map(a => `<tr>
+          <td><strong>${ech(a.nom)}</strong>${a.description ? `<br><span class="petit muet">${ech(a.description)}</span>` : ''}</td>
+          <td class="petit muet">${ech(a.volume||'—')}</td>
+          <td>${(+a.prix).toLocaleString('fr-HT')} HTG</td>
+          <td><span class="badge ${a.disponible?'badge-vert':'badge-gris'}">${a.disponible?'Disponible':'Épuisé'}</span></td>
+          <td class="flex" style="gap:6px">
+            <button class="btn btn-fantome btn-petit" onclick='ouvrirArticle(${JSON.stringify(a).replace(/'/g,"&#39;")})'>✏️</button>
+            <button class="btn btn-fantome btn-petit" onclick="basculerArticle('${a.id}',${!a.disponible})" title="${a.disponible?'Marquer épuisé':'Remettre disponible'}">${a.disponible?'🚫':'✅'}</button>
+            <button class="btn btn-fantome btn-petit" onclick="supprimerArticle('${a.id}')">🗑️</button>
+          </td></tr>`).join('')}
+      </table></div>`;
+  }).join('');
+}
+function ouvrirArticle(a){
+  articleEnCours = a || null; photoArticle = a && a.photo || '';
+  document.getElementById('titreModaleArticle').textContent = a ? "Modifier l'article" : 'Ajouter un article';
+  arNom.value = a ? a.nom : ''; arDesc.value = a ? (a.description||'') : '';
+  arCat.value = a ? a.categorie : 'plat';
+  arPrix.value = a ? a.prix : 500; arVol.value = a ? (a.volume||'') : '';
+  document.getElementById('arPhoto').value = '';
+  document.getElementById('arApercu').innerHTML = photoArticle ? `<img src="${photoArticle}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  document.getElementById('voileArticle').classList.add('ouvert');
+}
+document.getElementById('arPhoto')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { photoArticle = await compresserImage(f, 900, 0.78);
+    document.getElementById('arApercu').innerHTML = `<img src="${photoArticle}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">`;
+  } catch { toast('Image illisible.'); }
+});
+async function enregistrerArticle(){
+  const corps = { nom: arNom.value.trim(), description: arDesc.value.trim(), categorie: arCat.value,
+                  prix: +arPrix.value, volume: arVol.value.trim(), photo: photoArticle };
+  if (!corps.nom || !(corps.prix > 0)) { toast('Nom et prix obligatoires.'); return; }
+  try {
+    if (articleEnCours) await api('/api/mon-entreprise/carte/'+articleEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/carte','POST',corps);
+    fermer('voileArticle'); toast('Article enregistré.'); chargerCarte();
+  } catch(e){ toast(e.message); }
+}
+async function basculerArticle(id, disponible){
+  await api('/api/mon-entreprise/carte/'+id,'PUT',{disponible}); chargerCarte();
+}
+async function supprimerArticle(id){
+  if (!confirm('Supprimer cet article de la carte ?')) return;
+  await api('/api/mon-entreprise/carte/'+id,'DELETE'); toast('Article supprimé.'); chargerCarte();
 }
 
 // ===== Portefeuille =====
@@ -748,7 +1805,16 @@ async function enregistrerPerso(){
 
 // ---- Paramètres & horaires ----
 function remplirParam(){
-  iNom.value=ent.nom; iCat.value=ent.categorie; iAdresse.value=ent.adresse; iTel.value=ent.telephone; iWhats.value=ent.whatsapp||''; iCapacite.value=ent.capaciteMax||0;
+  if (REF_METIERS && !iCat.options.length) {
+    const parFam = {};
+    for (const [cle, m] of Object.entries(REF_METIERS.METIERS))
+      (parFam[m.famille] = parFam[m.famille] || []).push([cle, m]);
+    iCat.innerHTML = REF_METIERS.FAMILLES.map(f =>
+      `<optgroup label="${f}">` + (parFam[f]||[]).map(([cle,m]) =>
+        `<option value="${cle}">${m.ico} ${m.nom.fr}</option>`).join('') + '</optgroup>').join('');
+  }
+  iCat.value = ent.metier || 'autre';
+  iNom.value=ent.nom; iAdresse.value=ent.adresse; iTel.value=ent.telephone; iWhats.value=ent.whatsapp||''; iCapacite.value=ent.capaciteMax||0;
   iLat.value = ent.latitude ?? ''; iLng.value = ent.longitude ?? '';
   dessinerApercuPosition();
   document.getElementById('grilleHoraires').innerHTML = ['lun','mar','mer','jeu','ven','sam','dim'].map(j=>{
@@ -763,10 +1829,14 @@ function remplirParam(){
   }).join('');
 }
 async function enregistrerInfos(){
-  ent = await api('/api/mon-entreprise','PUT',{ nom:iNom.value.trim(), categorie:iCat.value, adresse:iAdresse.value.trim(), telephone:iTel.value.trim(), whatsapp:iWhats.value.replace(/\D/g,''), capaciteMax:+iCapacite.value||0 });
+  const cleM = iCat.value;
+  ent = await api('/api/mon-entreprise','PUT',{ nom:iNom.value.trim(), metier: cleM,
+    categorie: (REF_METIERS && REF_METIERS.METIERS[cleM] ? REF_METIERS.METIERS[cleM].famille : ent.categorie), adresse:iAdresse.value.trim(), telephone:iTel.value.trim(), whatsapp:iWhats.value.replace(/\D/g,''), capaciteMax:+iCapacite.value||0 });
   document.getElementById('nomEnt').textContent = ent.nom;
   appliquerModuleHotellerie();
-  if (estHotellerie()) { chargerChambres(); chargerSejours(); }
+  appliquerMetier();
+  remplirFormule();
+  if (estHotellerie()) { chargerChambres(); chargerSejours(); chargerCarte(); }
   toast('Informations enregistrées.');
 }
 // ---- Position géographique ----

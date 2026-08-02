@@ -7,6 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const store = require('./lib/db');
+const plopplop = require('./plopplop.js');
+const metiers = require('./lib/metiers.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -42,6 +44,91 @@ function slugifier(s) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
 }
+// ---- Formule d'hébergement et prestations incluses (resort / tout inclus) ----
+const FORMULES = ['standard', 'resort'];
+const INCLUS = {
+  petitdej:   { fr: 'Petit-déjeuner',            ht: 'Ti dejene',            ico: '🥐' },
+  dejeuner:   { fr: 'Déjeuner',                  ht: 'Manje midi',           ico: '🍽️' },
+  diner:      { fr: 'Dîner',                     ht: 'Manje aswè',           ico: '🍛' },
+  collations: { fr: 'Collations à volonté',      ht: 'Ti manje a volonte',   ico: '🍪' },
+  boissons:   { fr: 'Boissons sans alcool',      ht: 'Bwason san alkòl',     ico: '🧃' },
+  alcool:     { fr: 'Boissons alcoolisées',      ht: 'Bwason ak alkòl',      ico: '🍹' },
+  barouvert:  { fr: 'Bar ouvert',                ht: 'Ba louvri',            ico: '🍸' },
+  piscine:    { fr: 'Accès piscine',             ht: 'Aksè pisin',           ico: '🏊' },
+  plage:      { fr: 'Accès plage privée',        ht: 'Aksè plaj prive',      ico: '🏖️' },
+  animations: { fr: 'Animations et soirées',     ht: 'Animasyon ak sware',   ico: '🎶' },
+  sport:      { fr: 'Activités sportives',       ht: 'Aktivite espòtif',     ico: '🏐' },
+  nautique:   { fr: 'Sports nautiques',          ht: 'Espò nan dlo',         ico: '🚤' },
+  spa:        { fr: 'Accès spa',                 ht: 'Aksè espa',            ico: '💆' },
+  gym:        { fr: 'Salle de sport',            ht: 'Sal espò',             ico: '🏋️' },
+  kids:       { fr: 'Club enfants',              ht: 'Klib timoun',          ico: '🧒' },
+  navette:    { fr: 'Navette aéroport',          ht: 'Navèt ayewopò',        ico: '🚐' },
+  wifi:       { fr: 'Wi-Fi partout',             ht: 'Wi-Fi toupatou',       ico: '📶' },
+  parking:    { fr: 'Parking',                   ht: 'Pakin',                ico: '🅿️' }
+};
+const CLES_INCLUS = Object.keys(INCLUS);
+function nettoyerInclus(v) {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((k) => CLES_INCLUS.includes(k)))];
+}
+
+// ---- Équipements de chambre (catalogue fermé, clés stables) ----
+const EQUIPEMENTS = {
+  clim: { fr: 'Climatiseur', ht: 'Èkondisyone', ico: '❄️' },
+  ventilateur: { fr: 'Ventilateur', ht: 'Vantilatè', ico: '🌀' },
+  wifi: { fr: 'Internet Wi-Fi', ht: 'Entènèt Wi-Fi', ico: '📶' },
+  litdouble: { fr: 'Lit double', ht: 'Kabann doub', ico: '🛏️' },
+  litsimple: { fr: 'Lit simple', ht: 'Kabann senp', ico: '🛌' },
+  tv: { fr: 'Téléviseur', ht: 'Televizyon', ico: '📺' },
+  netflix: { fr: 'Netflix / streaming', ht: 'Netflix / striming', ico: '🎬' },
+  eauchaude: { fr: 'Eau chaude', ht: 'Dlo cho', ico: '🚿' },
+  sdb: { fr: 'Salle de bain privée', ht: 'Twalèt prive', ico: '🛁' },
+  balcon: { fr: 'Balcon', ht: 'Balkon', ico: '🌅' },
+  frigo: { fr: 'Réfrigérateur', ht: 'Frijidè', ico: '🧊' },
+  coffre: { fr: 'Coffre-fort', ht: 'Kòf-fò', ico: '🔒' },
+  inverter: { fr: 'Inverter / courant 24h', ht: 'Envètè / kouran 24h', ico: '🔋' },
+  parking: { fr: 'Parking', ht: 'Pakin', ico: '🅿️' },
+  piscine: { fr: 'Accès piscine', ht: 'Aksè pisin', ico: '🏊' },
+  petitdej: { fr: 'Petit-déjeuner inclus', ht: 'Ti dejene enkli', ico: '🥐' }
+};
+const CLES_EQUIPEMENTS = Object.keys(EQUIPEMENTS);
+function nettoyerEquipements(v) {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((k) => CLES_EQUIPEMENTS.includes(k)))];
+}
+
+// ---- Carte restaurant & bar ----
+const CATEGORIES_CARTE = ['entree', 'plat', 'accompagnement', 'dessert', 'boisson', 'cocktail', 'biere', 'vin', 'spiritueux'];
+
+// ---- Vente en ligne : modes de remise et statuts de commande ----
+const MODES_REMISE = [
+  { cle: 'cueillette', fr: 'Retrait sur place',  ht: 'Vin chèche',    ico: '🏪' },
+  { cle: 'livraison',  fr: 'Livraison',          ht: 'Livrezon',      ico: '🛵' }
+];
+const STATUTS_COMMANDE = [
+  { cle: 'nouvelle',    fr: 'Nouvelle',            ht: 'Nouvo',          badge: 'badge-orange' },
+  { cle: 'confirmee',   fr: 'Confirmée',           ht: 'Konfime',        badge: 'badge-bleu' },
+  { cle: 'preparation', fr: 'En préparation',      ht: 'Ap prepare',     badge: 'badge-violet' },
+  { cle: 'prete',       fr: 'Prête',               ht: 'Pare',           badge: 'badge-bleu' },
+  { cle: 'en_route',    fr: 'En route',            ht: 'Sou wout',       badge: 'badge-violet' },
+  { cle: 'livree',      fr: 'Livrée / retirée',    ht: 'Livre / pran',   badge: 'badge-vert' },
+  { cle: 'annulee',     fr: 'Annulée',             ht: 'Anile',          badge: 'badge-rouge' }
+];
+// Étapes visibles par le client selon le mode choisi
+function etapesCommande(mode) {
+  return mode === 'livraison'
+    ? ['nouvelle', 'confirmee', 'preparation', 'en_route', 'livree']
+    : ['nouvelle', 'confirmee', 'preparation', 'prete', 'livree'];
+}
+function nettoyerZones(v) {
+  if (!Array.isArray(v)) return [];
+  return v.map((z) => ({
+    nom: String(z.nom || '').slice(0, 60),
+    frais: Math.max(0, Math.min(+z.frais || 0, 100000)),
+    delai: String(z.delai || '').slice(0, 40)
+  })).filter((z) => z.nom).slice(0, 30);
+}
+
 // Distance en km entre deux points (formule de Haversine)
 function distanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371, rad = (d) => (d * Math.PI) / 180;
@@ -159,9 +246,39 @@ function gabaritEmail(titre, couleur, lignes, pied) {
     <div style="padding:16px 26px;border-top:1px solid #E4E7EC;color:#667085;font-size:12px">${pied || 'Randevou.ht — La plateforme haïtienne de prise de rendez-vous en ligne.'}</div>
   </div></body></html>`;
 }
+// Vue publique du service d'urgence.
+// L'état d'affluence n'est transmis que s'il est récent : une information
+// périmée pourrait orienter quelqu'un vers un service saturé.
+function urgencePublique(e) {
+  const u = e.urgence;
+  if (!u || !u.actif) return null;
+  const heures = u.etatMaj ? (Date.now() - new Date(u.etatMaj).getTime()) / 3600000 : Infinity;
+  const etatRecent = heures <= 12;
+  return {
+    permanence: !!u.permanence,
+    telephone: u.telephone || e.telephone || '',
+    telephone2: u.telephone2 || '',
+    ambulance: !!u.ambulance,
+    telAmbulance: u.telAmbulance || '',
+    capacites: u.capacites || [],
+    consigne: u.consigne || '',
+    horaires: u.horaires || '',
+    etat: etatRecent ? u.etat : null,
+    etatDepuis: etatRecent ? Math.round(heures) : null,
+    garde: (u.gardeDebut && u.gardeFin)
+      ? { debut: u.gardeDebut, fin: u.gardeFin,
+          active: new Date().toISOString().slice(0, 10) >= u.gardeDebut
+               && new Date().toISOString().slice(0, 10) <= u.gardeFin }
+      : null
+  };
+}
+
 function publicEntreprise(e) {
   const { note, total } = noteMoyenne(e.id);
-  return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, logoImage: e.logoImage || '', photoFond: e.photoFond || '', horaires: e.horaires, plan: e.plan, latitude: e.latitude ?? null, longitude: e.longitude ?? null, note, totalAvis: total };
+  return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, logoImage: e.logoImage || '', photoFond: e.photoFond || '', horaires: e.horaires, plan: e.plan, latitude: e.latitude ?? null, longitude: e.longitude ?? null,
+    formule: e.formule || 'standard', inclus: e.inclus || [], noteFormule: e.noteFormule || '',
+    metier: e.metier || 'autre', champs: e.champs || {}, urgence: urgencePublique(e),
+    note, totalAvis: total };
 }
 
 // ---------------- Calcul des créneaux disponibles ----------------
@@ -238,6 +355,8 @@ async function api(req, res, url) {
       id: store.uid(), slug, nom: nomEntreprise, categorie, description: '',
       adresse: adresse || '', telephone: telephone || '', whatsapp: (telephone || '').replace(/\D/g, ''),
       email, statut: 'en_attente', plan: 'gratuit', couleur: '#2563EB', couleur2: '#F59E0B',
+      metier: metiers.CLES_METIERS.includes(corps.metier) ? corps.metier : 'autre',
+      champs: {},
       logoTexte: nomEntreprise.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
       horaires: { lun: { ouvert: true, debut: '08:00', fin: '17:00' }, mar: { ouvert: true, debut: '08:00', fin: '17:00' }, mer: { ouvert: true, debut: '08:00', fin: '17:00' }, jeu: { ouvert: true, debut: '08:00', fin: '17:00' }, ven: { ouvert: true, debut: '08:00', fin: '17:00' }, sam: { ouvert: true, debut: '09:00', fin: '13:00' }, dim: { ouvert: false, debut: '09:00', fin: '13:00' } },
       creeLe: new Date().toISOString()
@@ -272,10 +391,18 @@ async function api(req, res, url) {
   }
 
   // ---- Public : annuaire ----
+  // Référentiel des métiers (vocabulaire, modules, champs)
+  if (p === '/api/metiers' && req.method === 'GET') return json(res, 200, metiers.referentiel());
+
   if (p === '/api/entreprises' && req.method === 'GET') {
     let liste = db.entreprises.filter((e) => e.statut === 'approuvee');
     const cat = q.get('categorie'), recherche = (q.get('q') || '').toLowerCase();
     if (cat && cat !== 'Tout') liste = liste.filter((e) => e.categorie === cat);
+    if (q.get('formule') === 'resort') liste = liste.filter((e) => e.formule === 'resort');
+    if (q.get('urgence') === '1') liste = liste.filter((e) => e.urgence && e.urgence.actif);
+    const met = q.get('metier'), fam = q.get('famille');
+    if (met) liste = liste.filter((e) => e.metier === met);
+    if (fam) liste = liste.filter((e) => metiers.metierDe(e).famille === fam);
     if (recherche) liste = liste.filter((e) => (e.nom + ' ' + e.description + ' ' + e.adresse + ' ' + e.categorie).toLowerCase().includes(recherche));
     // Tri par distance si le client partage sa position (?lat=&lng=)
     const lat0 = Number(q.get('lat')), lng0 = Number(q.get('lng'));
@@ -300,7 +427,33 @@ async function api(req, res, url) {
     return json(res, 200, {
       ...publicEntreprise(e),
       services: db.services.filter((s) => s.entrepriseId === e.id && s.actif),
-      chambres: db.chambres.filter((c) => c.entrepriseId === e.id && c.actif).map((c) => ({ id: c.id, nom: c.nom, description: c.description, prixNuit: c.prixNuit, capacite: c.capacite, quantite: c.quantite, photo: c.photo || '' })),
+      chambres: db.chambres.filter((c) => c.entrepriseId === e.id && c.actif).map((c) => ({ id: c.id, nom: c.nom, description: c.description, prixNuit: c.prixNuit, capacite: c.capacite, quantite: c.quantite, photo: c.photo || '', equipements: c.equipements || [] })),
+      carte: db.carte.filter((a) => a.entrepriseId === e.id && a.disponible).map((a) => ({ id: a.id, nom: a.nom, description: a.description, categorie: a.categorie, prix: a.prix, volume: a.volume || '', photo: a.photo || '' })),
+      equipementsRef: EQUIPEMENTS,
+      inclusRef: INCLUS,
+      produits: metiers.aModule(e, 'catalogue')
+        ? db.produits.filter((x) => x.entrepriseId === e.id && x.disponible && (x.stock === null || x.stock > 0))
+            .map((x) => ({ id: x.id, nom: x.nom, description: x.description, rayon: x.rayon, marque: x.marque,
+                           prix: x.prix, prixPromo: x.prixPromo, unite: x.unite, photo: x.photo || '',
+                           stockFaible: x.stock !== null && x.stock <= Math.max(x.seuilAlerte, 3) }))
+        : [],
+      vente: metiers.aModule(e, 'catalogue') && e.vente && e.vente.commandesActives ? {
+        cueillette: !!e.vente.cueillette, livraison: !!e.vente.livraison,
+        zones: e.vente.zones || [], fraisBase: e.vente.fraisBase || 0,
+        seuilGratuite: e.vente.seuilGratuite || 0, minimumCommande: e.vente.minimumCommande || 0,
+        horairesCueillette: e.vente.horairesCueillette || '', delaiPreparation: e.vente.delaiPreparation || '',
+        consigne: e.vente.consigne || ''
+      } : null,
+      capacitesRef: metiers.CAPACITES_URGENCE,
+      etatsRef: metiers.ETATS_URGENCE,
+      programmes: db.programmes.filter((x) => x.entrepriseId === e.id && x.ouvert).map((x) => ({
+        id: x.id, nom: x.nom, description: x.description, anneeScolaire: x.anneeScolaire,
+        fraisInscription: x.fraisInscription, scolarite: x.scolarite, periodicite: x.periodicite,
+        documents: x.documents || [],
+        placesRestantes: x.places > 0
+          ? Math.max(0, x.places - db.inscriptions.filter((i) => i.programmeId === x.id && i.statut === 'inscrit').length)
+          : null
+      })),
       employes: db.employes.filter((x) => x.entrepriseId === e.id && x.actif).map((x) => ({ nom: x.nom, poste: x.poste })),
       avis: db.avis.filter((a) => a.entrepriseId === e.id).slice(0, 20)
     });
@@ -491,6 +644,149 @@ async function api(req, res, url) {
     return json(res, 200, { ok: true, reference: rdv.id, entreprise: e.nom, service: s.nom, date: rdv.date, heure: rdv.heure, whatsapp: e.whatsapp });
   }
 
+  // ---- Passer une commande (public, sans compte) ----
+  if (p === '/api/commandes' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    if (!e || !metiers.aModule(e, 'catalogue')) return json(res, 400, { erreur: 'Boutique invalide.' });
+    const v = e.vente || {};
+    if (!v.commandesActives) return json(res, 400, { erreur: 'Cette boutique ne prend pas de commande en ligne pour le moment.' });
+    if (!Array.isArray(corps.lignes) || !corps.lignes.length) return json(res, 400, { erreur: 'Votre panier est vide.' });
+    if (!corps.clientNom || !corps.clientTel) return json(res, 400, { erreur: 'Nom et téléphone obligatoires.' });
+
+    const mode = corps.mode === 'livraison' ? 'livraison' : 'cueillette';
+    if (mode === 'livraison' && !v.livraison) return json(res, 400, { erreur: 'La livraison n\'est pas proposée.' });
+    if (mode === 'cueillette' && !v.cueillette) return json(res, 400, { erreur: 'Le retrait sur place n\'est pas proposé.' });
+    if (mode === 'livraison' && !corps.adresse) return json(res, 400, { erreur: 'Indiquez l\'adresse de livraison.' });
+
+    // Les prix et le stock sont revérifiés ici : ceux envoyés par le
+    // navigateur ne sont jamais utilisés pour le calcul.
+    const lignes = [];
+    for (const l of corps.lignes.slice(0, 60)) {
+      const pr = db.produits.find((x) => x.id === l.produitId && x.entrepriseId === e.id && x.disponible);
+      if (!pr) return json(res, 409, { erreur: 'Un produit de votre panier n\'est plus disponible.' });
+      const q = Math.max(1, Math.min(+l.quantite || 1, 999));
+      if (pr.stock !== null && pr.stock < q)
+        return json(res, 409, { erreur: `Stock insuffisant pour ${pr.nom} (${pr.stock} restant${pr.stock > 1 ? 's' : ''}).` });
+      const unitaire = pr.prixPromo > 0 ? pr.prixPromo : pr.prix;
+      lignes.push({ produitId: pr.id, nom: pr.nom, unite: pr.unite || '', quantite: q, prixUnitaire: unitaire, total: unitaire * q });
+    }
+    const sousTotal = lignes.reduce((s, l) => s + l.total, 0);
+    if (v.minimumCommande && sousTotal < v.minimumCommande)
+      return json(res, 400, { erreur: `Commande minimum : ${v.minimumCommande.toLocaleString('fr-HT')} HTG.` });
+
+    // Frais de livraison : zone choisie, sinon frais de base ; gratuit au-delà du seuil
+    let frais = 0, zoneNom = '';
+    if (mode === 'livraison') {
+      const zone = (v.zones || []).find((z) => z.nom === corps.zone);
+      frais = zone ? zone.frais : (v.fraisBase || 0);
+      zoneNom = zone ? zone.nom : '';
+      if (v.seuilGratuite && sousTotal >= v.seuilGratuite) frais = 0;
+    }
+
+    const maintenant = new Date().toISOString();
+    const cmd = {
+      id: store.uid(), entrepriseId: e.id,
+      reference: 'C' + Date.now().toString(36).toUpperCase().slice(-6),
+      lignes, sousTotal, frais, total: sousTotal + frais,
+      mode, zone: zoneNom,
+      adresse: mode === 'livraison' ? String(corps.adresse).slice(0, 200) : '',
+      repere: String(corps.repere || '').slice(0, 140),
+      creneau: String(corps.creneau || '').slice(0, 60),
+      clientNom: String(corps.clientNom).slice(0, 90),
+      clientTel: String(corps.clientTel).slice(0, 20),
+      message: String(corps.message || '').slice(0, 300),
+      statut: 'nouvelle', stockDecompte: false, noteInterne: '',
+      journal: [{ le: maintenant, texte: 'Commande reçue' }],
+      creeLe: maintenant, majLe: maintenant
+    };
+    db.commandes.push(cmd); store.save();
+    notifier(e.id, 'nouvelle_commande', `Commande ${cmd.reference} — ${cmd.total.toLocaleString('fr-HT')} HTG (${mode})`);
+    envoyerWhatsApp(cmd.clientTel, 'commande_recue',
+      [cmd.clientNom, e.nom, cmd.reference, cmd.total.toLocaleString('fr-HT') + ' HTG',
+       mode === 'livraison' ? 'livraison' : 'retrait sur place']);
+    return json(res, 200, {
+      ok: true, reference: cmd.reference, sousTotal, frais, total: cmd.total,
+      mode, boutique: e.nom, whatsapp: e.whatsapp,
+      delai: mode === 'livraison' ? (v.delaiPreparation || '') : (v.horairesCueillette || '')
+    });
+  }
+
+  // ---- Suivi public d'une commande ----
+  if (p === '/api/commandes/suivi' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    if (!e) return json(res, 400, { erreur: 'Boutique invalide.' });
+    const ref = String(corps.reference || '').trim().toUpperCase();
+    const tel = String(corps.telephone || '').replace(/\D/g, '').slice(-8);
+    const c = db.commandes.find((x) => x.entrepriseId === e.id && x.reference === ref
+      && String(x.clientTel).replace(/\D/g, '').slice(-8) === tel);
+    if (!c) return json(res, 404, { erreur: 'Aucune commande ne correspond à ces informations.' });
+    const etapes = etapesCommande(c.mode);
+    const st = STATUTS_COMMANDE.find((s) => s.cle === c.statut);
+    return json(res, 200, {
+      reference: c.reference, statut: c.statut, statutLib: st ? st.fr : c.statut,
+      etapes: etapes.map((k) => { const s = STATUTS_COMMANDE.find((x) => x.cle === k); return { cle: k, fr: s.fr, ht: s.ht }; }),
+      etapeIndex: etapes.indexOf(c.statut),
+      mode: c.mode, lignes: c.lignes, sousTotal: c.sousTotal, frais: c.frais, total: c.total,
+      adresse: c.adresse, creneau: c.creneau, passeeLe: c.creeLe.slice(0, 10), majLe: c.majLe.slice(0, 10)
+    });
+  }
+
+  // ---- Suivi public d'un dossier (référence + téléphone) ----
+  if (p === '/api/dossiers/suivi' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    if (!e || !metiers.aModule(e, 'dossiers')) return json(res, 400, { erreur: 'Établissement invalide.' });
+    const ref = String(corps.reference || '').trim().toUpperCase();
+    const tel = String(corps.telephone || '').replace(/\D/g, '').slice(-8);
+    if (!ref || !tel) return json(res, 400, { erreur: 'Référence et téléphone obligatoires.' });
+    const d = db.dossiers.find((x) => x.entrepriseId === e.id && x.reference === ref
+      && String(x.clientTel).replace(/\D/g, '').slice(-8) === tel);
+    // Message identique en cas d'échec, pour ne pas révéler l'existence d'une référence
+    if (!d) return json(res, 404, { erreur: 'Aucun dossier ne correspond à ces informations.' });
+    const etapes = metiers.etapesDe(e.metier);
+    const idx = etapes.findIndex((x) => x.cle === d.etape);
+    const st = metiers.STATUTS_DOSSIER.find((x) => x.cle === d.statut);
+    // Vue restreinte : ni honoraires, ni notes internes
+    return json(res, 200, {
+      reference: d.reference, objet: d.objet, clientNom: d.clientNom,
+      statut: d.statut, statutLib: st ? st.fr : d.statut,
+      etape: d.etape, etapeIndex: idx, etapes: etapes.map((x) => ({ cle: x.cle, fr: x.fr, ht: x.ht })),
+      pieces: d.pieces, echeance: d.echeance,
+      ouvertLe: d.creeLe.slice(0, 10), majLe: d.majLe.slice(0, 10)
+    });
+  }
+
+  // ---- Demande d'inscription scolaire (public, sans compte) ----
+  if (p === '/api/inscriptions' && req.method === 'POST') {
+    const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
+    if (!e || !metiers.aModule(e, 'inscriptions')) return json(res, 400, { erreur: 'Établissement invalide.' });
+    const pr = db.programmes.find((x) => x.id === corps.programmeId && x.entrepriseId === e.id && x.ouvert);
+    if (!pr) return json(res, 400, { erreur: 'Programme indisponible ou fermé aux inscriptions.' });
+    if (!corps.eleveNom || !corps.parentNom || !corps.parentTel)
+      return json(res, 400, { erreur: "Nom de l'élève, nom et téléphone du responsable sont obligatoires." });
+    if (pr.places > 0) {
+      const pris = db.inscriptions.filter((x) => x.programmeId === pr.id && x.statut === 'inscrit').length;
+      if (pris >= pr.places) return json(res, 409, { erreur: 'Toutes les places de ce programme sont prises.' });
+    }
+    const ins = {
+      id: store.uid(), entrepriseId: e.id, programmeId: pr.id,
+      eleveNom: String(corps.eleveNom).slice(0, 90),
+      eleveNaissance: String(corps.eleveNaissance || '').slice(0, 10),
+      eleveSexe: ['F', 'M'].includes(corps.eleveSexe) ? corps.eleveSexe : '',
+      ecoleProvenance: String(corps.ecoleProvenance || '').slice(0, 90),
+      parentNom: String(corps.parentNom).slice(0, 90),
+      parentLien: String(corps.parentLien || '').slice(0, 40),
+      parentTel: String(corps.parentTel).slice(0, 20),
+      parentEmail: String(corps.parentEmail || '').slice(0, 90),
+      message: String(corps.message || '').slice(0, 400),
+      statut: 'en_attente', note: '', creeLe: new Date().toISOString()
+    };
+    db.inscriptions.push(ins); store.save();
+    notifier(e.id, 'nouvelle_inscription', `Demande d'inscription : ${ins.eleveNom} — ${pr.nom}`);
+    envoyerWhatsApp(ins.parentTel, 'inscription_recue', [ins.parentNom, e.nom, ins.eleveNom, pr.nom]);
+    return json(res, 200, { ok: true, reference: ins.id, etablissement: e.nom, programme: pr.nom,
+                            fraisInscription: pr.fraisInscription, whatsapp: e.whatsapp });
+  }
+
   // ---- Avis client ----
   if (p === '/api/avis' && req.method === 'POST') {
     const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
@@ -512,6 +808,22 @@ async function api(req, res, url) {
       ['nom', 'description', 'adresse', 'telephone', 'whatsapp', 'email', 'categorie', 'couleur', 'couleur2', 'logoTexte', 'horaires'].forEach((k) => {
         if (corps[k] !== undefined) e[k] = corps[k];
       });
+      // Métier et champs propres au métier
+      if (corps.metier !== undefined) {
+        if (!metiers.CLES_METIERS.includes(corps.metier)) return json(res, 400, { erreur: 'Type d\'activité invalide.' });
+        e.metier = corps.metier;
+        e.champs = metiers.nettoyerChamps(e.metier, e.champs);  // ne garder que ce qui reste pertinent
+      }
+      if (corps.champs !== undefined) e.champs = metiers.nettoyerChamps(e.metier || 'autre', corps.champs);
+      // Formule d'hébergement : standard ou resort (tout inclus)
+      if (corps.formule !== undefined) {
+        if (!FORMULES.includes(corps.formule)) return json(res, 400, { erreur: 'Formule invalide.' });
+        if (corps.formule === 'resort' && !metiers.aModule(e, 'hotellerie'))
+          return json(res, 400, { erreur: 'La formule tout inclus concerne les hôtels et resorts.' });
+        e.formule = corps.formule;
+      }
+      if (corps.inclus !== undefined) e.inclus = nettoyerInclus(corps.inclus);
+      if (corps.noteFormule !== undefined) e.noteFormule = String(corps.noteFormule).slice(0, 200);
       // Position géographique (latitude / longitude)
       if (corps.latitude !== undefined || corps.longitude !== undefined) {
         if (corps.latitude === '' || corps.latitude === null) { e.latitude = null; e.longitude = null; }
@@ -553,6 +865,420 @@ async function api(req, res, url) {
     }
 
     // ---- Chambres (module Séjours) ----
+    // Les modules sont contrôlés côté serveur, pas seulement masqués dans l'interface
+    if (p.startsWith('/api/mon-entreprise/carte') && !metiers.aModule(e, 'carte'))
+      return json(res, 403, { erreur: 'Le module Restaurant & Bar n\'est pas disponible pour votre type d\'activité.' });
+    if (p.startsWith('/api/mon-entreprise/chambres') && !metiers.aModule(e, 'hotellerie'))
+      return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
+
+    // ================= Vente : réglages de remise =================
+    if (p.startsWith('/api/mon-entreprise/vente') && !metiers.aModule(e, 'catalogue'))
+      return json(res, 403, { erreur: 'Le module Catalogue n\'est pas disponible pour votre type d\'activité.' });
+
+    if (p === '/api/mon-entreprise/vente' && req.method === 'GET')
+      return json(res, 200, { vente: e.vente || {}, modes: MODES_REMISE });
+
+    if (p === '/api/mon-entreprise/vente' && req.method === 'PUT') {
+      const v = e.vente || {};
+      if (corps.commandesActives !== undefined) v.commandesActives = !!corps.commandesActives;
+      if (corps.cueillette !== undefined) v.cueillette = !!corps.cueillette;
+      if (corps.livraison !== undefined) v.livraison = !!corps.livraison;
+      if (corps.zones !== undefined) v.zones = nettoyerZones(corps.zones);
+      if (corps.fraisBase !== undefined) v.fraisBase = Math.max(0, Math.min(+corps.fraisBase || 0, 100000));
+      // 0 = pas de gratuité au-delà d'un montant
+      if (corps.seuilGratuite !== undefined) v.seuilGratuite = Math.max(0, Math.min(+corps.seuilGratuite || 0, 10000000));
+      if (corps.minimumCommande !== undefined) v.minimumCommande = Math.max(0, Math.min(+corps.minimumCommande || 0, 10000000));
+      if (corps.horairesCueillette !== undefined) v.horairesCueillette = String(corps.horairesCueillette).slice(0, 120);
+      if (corps.delaiPreparation !== undefined) v.delaiPreparation = String(corps.delaiPreparation).slice(0, 60);
+      if (corps.consigne !== undefined) v.consigne = String(corps.consigne).slice(0, 300);
+      if (v.livraison && !(v.zones || []).length && !v.fraisBase) v.fraisBase = v.fraisBase || 0;
+      e.vente = v; store.save();
+      return json(res, 200, v);
+    }
+
+    // ================= Commandes reçues =================
+    if (p.startsWith('/api/mon-entreprise/commandes') && !metiers.aModule(e, 'catalogue'))
+      return json(res, 403, { erreur: 'Le module Catalogue n\'est pas disponible pour votre type d\'activité.' });
+
+    if (p === '/api/mon-entreprise/commandes' && req.method === 'GET') {
+      const liste = db.commandes.filter((c) => c.entrepriseId === e.id)
+        .sort((a, b) => b.creeLe.localeCompare(a.creeLe));
+      return json(res, 200, { commandes: liste, statuts: STATUTS_COMMANDE, modes: MODES_REMISE });
+    }
+
+    const mCmd = p.match(/^\/api\/mon-entreprise\/commandes\/(\w+)$/);
+    if (mCmd && req.method === 'PUT') {
+      const c = db.commandes.find((x) => x.id === mCmd[1] && x.entrepriseId === e.id);
+      if (!c) return json(res, 404, { erreur: 'Commande introuvable' });
+      if (corps.statut !== undefined) {
+        if (!STATUTS_COMMANDE.some((s) => s.cle === corps.statut)) return json(res, 400, { erreur: 'Statut invalide.' });
+        const avant = c.statut;
+        // Le stock est décompté à la confirmation, et remis en cas d'annulation
+        if (corps.statut === 'confirmee' && !c.stockDecompte) {
+          c.lignes.forEach((l) => {
+            const pr = db.produits.find((x) => x.id === l.produitId);
+            if (pr && pr.stock !== null) pr.stock = Math.max(0, pr.stock - l.quantite);
+          });
+          c.stockDecompte = true;
+        }
+        if (corps.statut === 'annulee' && c.stockDecompte) {
+          c.lignes.forEach((l) => {
+            const pr = db.produits.find((x) => x.id === l.produitId);
+            if (pr && pr.stock !== null) pr.stock = pr.stock + l.quantite;
+          });
+          c.stockDecompte = false;
+        }
+        c.statut = corps.statut;
+        c.journal.push({ le: new Date().toISOString(), texte: 'Statut : ' + corps.statut });
+        if (avant !== c.statut) {
+          const st = STATUTS_COMMANDE.find((s) => s.cle === c.statut);
+          envoyerWhatsApp(c.clientTel, 'commande_statut',
+            [c.clientNom, e.nom, c.reference, st ? st.fr : c.statut,
+             c.mode === 'livraison' ? 'livraison' : 'retrait sur place']);
+        }
+      }
+      if (corps.note !== undefined) c.noteInterne = String(corps.note).slice(0, 300);
+      if (corps.creneau !== undefined) c.creneau = String(corps.creneau).slice(0, 60);
+      c.majLe = new Date().toISOString();
+      store.save(); return json(res, 200, c);
+    }
+
+    // ================= Module catalogue =================
+    if (p.startsWith('/api/mon-entreprise/produits') && !metiers.aModule(e, 'catalogue'))
+      return json(res, 403, { erreur: 'Le module Catalogue n\'est pas disponible pour votre type d\'activité.' });
+
+    if (p === '/api/mon-entreprise/produits' && req.method === 'GET') {
+      const liste = db.produits.filter((x) => x.entrepriseId === e.id);
+      const rayons = [...new Set([...metiers.rayonsDe(e.metier), ...liste.map((x) => x.rayon).filter(Boolean)])];
+      return json(res, 200, {
+        produits: liste,
+        rayons,
+        alertes: liste.filter((x) => x.stock !== null && x.stock <= x.seuilAlerte).length
+      });
+    }
+
+    if (p === '/api/mon-entreprise/produits' && req.method === 'POST') {
+      if (!corps.nom || !(+corps.prix > 0)) return json(res, 400, { erreur: 'Nom et prix obligatoires.' });
+      if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
+        return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
+      const pr = {
+        id: store.uid(), entrepriseId: e.id,
+        nom: String(corps.nom).slice(0, 90),
+        description: String(corps.description || '').slice(0, 300),
+        rayon: String(corps.rayon || '').slice(0, 50),
+        reference: String(corps.reference || '').slice(0, 40),
+        marque: String(corps.marque || '').slice(0, 50),
+        prix: Math.max(1, +corps.prix),
+        prixPromo: corps.prixPromo ? Math.max(0, +corps.prixPromo) : 0,
+        unite: String(corps.unite || '').slice(0, 24),
+        // stock null = quantité non suivie
+        stock: corps.stock === null || corps.stock === '' || corps.stock === undefined ? null : Math.max(0, Math.min(+corps.stock || 0, 1000000)),
+        seuilAlerte: Math.max(0, Math.min(+corps.seuilAlerte || 0, 100000)),
+        photo: corps.photo || '',
+        disponible: corps.disponible === undefined ? true : !!corps.disponible,
+        creeLe: new Date().toISOString()
+      };
+      db.produits.push(pr); store.save(); return json(res, 200, pr);
+    }
+
+    const mProd = p.match(/^\/api\/mon-entreprise\/produits\/(\w+)$/);
+    if (mProd) {
+      const pr = db.produits.find((x) => x.id === mProd[1] && x.entrepriseId === e.id);
+      if (!pr) return json(res, 404, { erreur: 'Produit introuvable' });
+      if (req.method === 'PUT') {
+        if (corps.nom) pr.nom = String(corps.nom).slice(0, 90);
+        if (corps.description !== undefined) pr.description = String(corps.description).slice(0, 300);
+        if (corps.rayon !== undefined) pr.rayon = String(corps.rayon).slice(0, 50);
+        if (corps.reference !== undefined) pr.reference = String(corps.reference).slice(0, 40);
+        if (corps.marque !== undefined) pr.marque = String(corps.marque).slice(0, 50);
+        if (corps.prix) pr.prix = Math.max(1, +corps.prix);
+        if (corps.prixPromo !== undefined) pr.prixPromo = corps.prixPromo ? Math.max(0, +corps.prixPromo) : 0;
+        if (corps.unite !== undefined) pr.unite = String(corps.unite).slice(0, 24);
+        if (corps.stock !== undefined)
+          pr.stock = corps.stock === null || corps.stock === '' ? null : Math.max(0, Math.min(+corps.stock || 0, 1000000));
+        if (corps.seuilAlerte !== undefined) pr.seuilAlerte = Math.max(0, Math.min(+corps.seuilAlerte || 0, 100000));
+        if (corps.photo !== undefined) {
+          if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
+            return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
+          pr.photo = corps.photo;
+        }
+        if (corps.disponible !== undefined) pr.disponible = !!corps.disponible;
+        // Mouvement de stock rapide : +N ou -N
+        if (corps.mouvement !== undefined && pr.stock !== null)
+          pr.stock = Math.max(0, Math.min(pr.stock + (+corps.mouvement || 0), 1000000));
+        store.save(); return json(res, 200, pr);
+      }
+      if (req.method === 'DELETE') {
+        db.produits = db.produits.filter((x) => x !== pr);
+        store.save(); return json(res, 200, { ok: true });
+      }
+    }
+
+    // ================= Module urgences =================
+    if (p.startsWith('/api/mon-entreprise/urgence') && !metiers.aModule(e, 'urgences'))
+      return json(res, 403, { erreur: 'Le module Urgences n\'est pas disponible pour votre type d\'activité.' });
+
+    if (p === '/api/mon-entreprise/urgence' && req.method === 'GET')
+      return json(res, 200, {
+        urgence: e.urgence || {},
+        capacites: metiers.CAPACITES_URGENCE,
+        etats: metiers.ETATS_URGENCE
+      });
+
+    if (p === '/api/mon-entreprise/urgence' && req.method === 'PUT') {
+      const u = e.urgence || {};
+      if (corps.actif !== undefined) u.actif = !!corps.actif;
+      if (corps.permanence !== undefined) u.permanence = !!corps.permanence;   // 24h/24
+      if (corps.telephone !== undefined) u.telephone = String(corps.telephone).replace(/[^\d+ ]/g, '').slice(0, 20);
+      if (corps.telephone2 !== undefined) u.telephone2 = String(corps.telephone2).replace(/[^\d+ ]/g, '').slice(0, 20);
+      if (corps.ambulance !== undefined) u.ambulance = !!corps.ambulance;
+      if (corps.telAmbulance !== undefined) u.telAmbulance = String(corps.telAmbulance).replace(/[^\d+ ]/g, '').slice(0, 20);
+      if (corps.capacites !== undefined) u.capacites = metiers.nettoyerCapacites(corps.capacites);
+      if (corps.consigne !== undefined) u.consigne = String(corps.consigne).slice(0, 300);
+      if (corps.horaires !== undefined) u.horaires = String(corps.horaires).slice(0, 120);
+      // Garde (pharmacies) : période déclarée
+      if (corps.gardeDebut !== undefined) u.gardeDebut = String(corps.gardeDebut).slice(0, 10);
+      if (corps.gardeFin !== undefined) u.gardeFin = String(corps.gardeFin).slice(0, 10);
+      // État d'affluence, horodaté pour signaler une information ancienne
+      if (corps.etat !== undefined) {
+        if (!metiers.ETATS_URGENCE.some((x) => x.cle === corps.etat))
+          return json(res, 400, { erreur: 'État invalide.' });
+        u.etat = corps.etat;
+        u.etatMaj = new Date().toISOString();
+      }
+      e.urgence = u; store.save();
+      return json(res, 200, u);
+    }
+
+    // ================= Module dossiers =================
+    if (p.startsWith('/api/mon-entreprise/dossiers') && !metiers.aModule(e, 'dossiers'))
+      return json(res, 403, { erreur: 'Le module Dossiers n\'est pas disponible pour votre type d\'activité.' });
+
+    if (p === '/api/mon-entreprise/dossiers' && req.method === 'GET') {
+      const liste = db.dossiers.filter((d) => d.entrepriseId === e.id)
+        .sort((a, b) => b.majLe.localeCompare(a.majLe));
+      return json(res, 200, { dossiers: liste, etapes: metiers.etapesDe(e.metier),
+                              pieces: metiers.PIECES_DOSSIER[e.metier] || [] });
+    }
+
+    if (p === '/api/mon-entreprise/dossiers' && req.method === 'POST') {
+      if (!corps.clientNom || !corps.objet)
+        return json(res, 400, { erreur: 'Le nom du client et l\'objet du dossier sont obligatoires.' });
+      const etapes = metiers.etapesDe(e.metier);
+      const maintenant = new Date().toISOString();
+      const d = {
+        id: store.uid(), entrepriseId: e.id,
+        reference: 'D' + Date.now().toString(36).toUpperCase().slice(-6),
+        objet: String(corps.objet).slice(0, 120),
+        description: String(corps.description || '').slice(0, 600),
+        clientNom: String(corps.clientNom).slice(0, 90),
+        clientTel: String(corps.clientTel || '').slice(0, 20),
+        clientEmail: String(corps.clientEmail || '').slice(0, 90),
+        localisation: String(corps.localisation || '').slice(0, 140),
+        statut: 'ouvert',
+        etape: etapes[0].cle,
+        pieces: Array.isArray(corps.pieces)
+          ? corps.pieces.map((x) => ({ nom: String(x.nom || x).slice(0, 80), fournie: !!x.fournie })).slice(0, 25)
+          : [],
+        honoraires: Math.max(0, +corps.honoraires || 0),
+        avance: Math.max(0, +corps.avance || 0),
+        echeance: String(corps.echeance || '').slice(0, 10),
+        journal: [{ le: maintenant, texte: 'Dossier ouvert' }],
+        creeLe: maintenant, majLe: maintenant
+      };
+      db.dossiers.push(d); store.save();
+      if (d.clientTel) envoyerWhatsApp(d.clientTel, 'dossier_ouvert', [d.clientNom, e.nom, d.objet, d.reference]);
+      return json(res, 200, d);
+    }
+
+    const mDos = p.match(/^\/api\/mon-entreprise\/dossiers\/(\w+)$/);
+    if (mDos) {
+      const d = db.dossiers.find((x) => x.id === mDos[1] && x.entrepriseId === e.id);
+      if (!d) return json(res, 404, { erreur: 'Dossier introuvable' });
+      if (req.method === 'PUT') {
+        const etapes = metiers.etapesDe(e.metier);
+        const avant = { etape: d.etape, statut: d.statut };
+        if (corps.objet) d.objet = String(corps.objet).slice(0, 120);
+        if (corps.description !== undefined) d.description = String(corps.description).slice(0, 600);
+        if (corps.clientNom) d.clientNom = String(corps.clientNom).slice(0, 90);
+        if (corps.clientTel !== undefined) d.clientTel = String(corps.clientTel).slice(0, 20);
+        if (corps.clientEmail !== undefined) d.clientEmail = String(corps.clientEmail).slice(0, 90);
+        if (corps.localisation !== undefined) d.localisation = String(corps.localisation).slice(0, 140);
+        if (corps.honoraires !== undefined) d.honoraires = Math.max(0, +corps.honoraires || 0);
+        if (corps.avance !== undefined) d.avance = Math.max(0, +corps.avance || 0);
+        if (corps.echeance !== undefined) d.echeance = String(corps.echeance).slice(0, 10);
+        if (corps.pieces !== undefined && Array.isArray(corps.pieces))
+          d.pieces = corps.pieces.map((x) => ({ nom: String(x.nom || x).slice(0, 80), fournie: !!x.fournie })).slice(0, 25);
+        if (corps.etape !== undefined) {
+          if (!etapes.some((x) => x.cle === corps.etape)) return json(res, 400, { erreur: 'Étape invalide.' });
+          d.etape = corps.etape;
+        }
+        if (corps.statut !== undefined) {
+          if (!metiers.STATUTS_DOSSIER.some((s) => s.cle === corps.statut)) return json(res, 400, { erreur: 'Statut invalide.' });
+          d.statut = corps.statut;
+        }
+        if (corps.note) d.journal.push({ le: new Date().toISOString(), texte: String(corps.note).slice(0, 200) });
+        // Journal automatique des changements d'étape et de statut
+        if (avant.etape !== d.etape) {
+          const lib = etapes.find((x) => x.cle === d.etape);
+          d.journal.push({ le: new Date().toISOString(), texte: 'Étape : ' + (lib ? lib.fr : d.etape) });
+          if (d.clientTel && corps.prevenir !== false)
+            envoyerWhatsApp(d.clientTel, 'dossier_etape', [d.clientNom, e.nom, d.objet, lib ? lib.fr : d.etape, d.reference]);
+        }
+        if (avant.statut !== d.statut) {
+          const s = metiers.STATUTS_DOSSIER.find((x) => x.cle === d.statut);
+          d.journal.push({ le: new Date().toISOString(), texte: 'Statut : ' + (s ? s.fr : d.statut) });
+        }
+        d.journal = d.journal.slice(-60);
+        d.majLe = new Date().toISOString();
+        store.save(); return json(res, 200, d);
+      }
+      if (req.method === 'DELETE') {
+        db.dossiers = db.dossiers.filter((x) => x !== d);
+        store.save(); return json(res, 200, { ok: true });
+      }
+    }
+
+    // ================= Module scolaire =================
+    if ((p.startsWith('/api/mon-entreprise/programmes') || p.startsWith('/api/mon-entreprise/inscriptions'))
+        && !metiers.aModule(e, 'inscriptions'))
+      return json(res, 403, { erreur: 'Le module Inscriptions n\'est pas disponible pour votre type d\'activité.' });
+
+    // ---- Programmes (niveaux, filières, formations) ----
+    if (p === '/api/mon-entreprise/programmes' && req.method === 'GET') {
+      const liste = db.programmes.filter((x) => x.entrepriseId === e.id).map((x) => ({
+        ...x, inscrits: db.inscriptions.filter((i) => i.programmeId === x.id && i.statut === 'inscrit').length,
+        demandes: db.inscriptions.filter((i) => i.programmeId === x.id && i.statut === 'en_attente').length
+      }));
+      return json(res, 200, liste);
+    }
+
+    if (p === '/api/mon-entreprise/programmes' && req.method === 'POST') {
+      if (!corps.nom) return json(res, 400, { erreur: 'Le nom du programme est obligatoire.' });
+      const pr = {
+        id: store.uid(), entrepriseId: e.id,
+        nom: String(corps.nom).slice(0, 90),
+        description: String(corps.description || '').slice(0, 400),
+        anneeScolaire: String(corps.anneeScolaire || '').slice(0, 20),
+        places: Math.max(0, Math.min(+corps.places || 0, 5000)),
+        fraisInscription: Math.max(0, +corps.fraisInscription || 0),
+        scolarite: Math.max(0, +corps.scolarite || 0),
+        periodicite: ['mensuel', 'trimestriel', 'annuel'].includes(corps.periodicite) ? corps.periodicite : 'mensuel',
+        documents: Array.isArray(corps.documents) ? corps.documents.map((d) => String(d).slice(0, 80)).slice(0, 15) : [],
+        ouvert: corps.ouvert === undefined ? true : !!corps.ouvert,
+        creeLe: new Date().toISOString()
+      };
+      db.programmes.push(pr); store.save(); return json(res, 200, pr);
+    }
+
+    const mProg = p.match(/^\/api\/mon-entreprise\/programmes\/(\w+)$/);
+    if (mProg) {
+      const pr = db.programmes.find((x) => x.id === mProg[1] && x.entrepriseId === e.id);
+      if (!pr) return json(res, 404, { erreur: 'Programme introuvable' });
+      if (req.method === 'PUT') {
+        if (corps.nom) pr.nom = String(corps.nom).slice(0, 90);
+        if (corps.description !== undefined) pr.description = String(corps.description).slice(0, 400);
+        if (corps.anneeScolaire !== undefined) pr.anneeScolaire = String(corps.anneeScolaire).slice(0, 20);
+        if (corps.places !== undefined) pr.places = Math.max(0, Math.min(+corps.places || 0, 5000));
+        if (corps.fraisInscription !== undefined) pr.fraisInscription = Math.max(0, +corps.fraisInscription || 0);
+        if (corps.scolarite !== undefined) pr.scolarite = Math.max(0, +corps.scolarite || 0);
+        if (corps.periodicite && ['mensuel', 'trimestriel', 'annuel'].includes(corps.periodicite)) pr.periodicite = corps.periodicite;
+        if (corps.documents !== undefined) pr.documents = Array.isArray(corps.documents) ? corps.documents.map((d) => String(d).slice(0, 80)).slice(0, 15) : [];
+        if (corps.ouvert !== undefined) pr.ouvert = !!corps.ouvert;
+        store.save(); return json(res, 200, pr);
+      }
+      if (req.method === 'DELETE') {
+        if (db.inscriptions.some((i) => i.programmeId === pr.id))
+          return json(res, 409, { erreur: 'Ce programme a des inscriptions. Fermez-le plutôt que de le supprimer.' });
+        db.programmes = db.programmes.filter((x) => x !== pr);
+        store.save(); return json(res, 200, { ok: true });
+      }
+    }
+
+    // ---- Demandes d'inscription reçues ----
+    if (p === '/api/mon-entreprise/inscriptions' && req.method === 'GET') {
+      const liste = db.inscriptions.filter((i) => i.entrepriseId === e.id)
+        .sort((a, b) => b.creeLe.localeCompare(a.creeLe))
+        .map((i) => ({ ...i, programme: db.programmes.find((x) => x.id === i.programmeId) || null }));
+      return json(res, 200, liste);
+    }
+
+    const mIns = p.match(/^\/api\/mon-entreprise\/inscriptions\/(\w+)$/);
+    if (mIns && req.method === 'PUT') {
+      const i = db.inscriptions.find((x) => x.id === mIns[1] && x.entrepriseId === e.id);
+      if (!i) return json(res, 404, { erreur: 'Demande introuvable' });
+      const STATUTS = ['en_attente', 'acceptee', 'inscrit', 'refusee'];
+      if (corps.statut !== undefined) {
+        if (!STATUTS.includes(corps.statut)) return json(res, 400, { erreur: 'Statut invalide.' });
+        // Contrôle des places au moment de valider l'inscription
+        if (corps.statut === 'inscrit' && i.statut !== 'inscrit') {
+          const pr = db.programmes.find((x) => x.id === i.programmeId);
+          if (pr && pr.places > 0) {
+            const pris = db.inscriptions.filter((x) => x.programmeId === pr.id && x.statut === 'inscrit').length;
+            if (pris >= pr.places) return json(res, 409, { erreur: 'Toutes les places de ce programme sont prises.' });
+          }
+        }
+        i.statut = corps.statut;
+      }
+      if (corps.note !== undefined) i.note = String(corps.note).slice(0, 300);
+      store.save();
+      const pr = db.programmes.find((x) => x.id === i.programmeId);
+      const libelles = { acceptee: 'acceptée', inscrit: 'confirmée', refusee: 'refusée', en_attente: 'en attente' };
+      if (['acceptee', 'inscrit', 'refusee'].includes(i.statut))
+        envoyerWhatsApp(i.parentTel, 'inscription_statut',
+          [i.parentNom, e.nom, i.eleveNom, pr ? pr.nom : '', libelles[i.statut]]);
+      return json(res, 200, i);
+    }
+
+    // ---- Carte restaurant & bar (gestion) ----
+    if (p === '/api/mon-entreprise/carte' && req.method === 'GET')
+      return json(res, 200, db.carte.filter((a) => a.entrepriseId === e.id));
+
+    if (p === '/api/mon-entreprise/carte' && req.method === 'POST') {
+      if (!corps.nom || !(+corps.prix > 0)) return json(res, 400, { erreur: 'Nom et prix obligatoires.' });
+      if (!CATEGORIES_CARTE.includes(corps.categorie)) return json(res, 400, { erreur: 'Catégorie invalide.' });
+      if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
+        return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
+      const a = {
+        id: store.uid(), entrepriseId: e.id,
+        nom: String(corps.nom).slice(0, 80),
+        description: String(corps.description || '').slice(0, 300),
+        categorie: corps.categorie,
+        prix: Math.max(1, +corps.prix),
+        volume: String(corps.volume || '').slice(0, 40),
+        photo: corps.photo || '',
+        disponible: corps.disponible === undefined ? true : !!corps.disponible
+      };
+      db.carte.push(a); store.save(); return json(res, 200, a);
+    }
+
+    const mCarte = p.match(/^\/api\/mon-entreprise\/carte\/(\w+)$/);
+    if (mCarte) {
+      const a = db.carte.find((x) => x.id === mCarte[1] && x.entrepriseId === e.id);
+      if (!a) return json(res, 404, { erreur: 'Article introuvable' });
+      if (req.method === 'PUT') {
+        if (corps.nom) a.nom = String(corps.nom).slice(0, 80);
+        if (corps.description !== undefined) a.description = String(corps.description).slice(0, 300);
+        if (corps.categorie !== undefined) {
+          if (!CATEGORIES_CARTE.includes(corps.categorie)) return json(res, 400, { erreur: 'Catégorie invalide.' });
+          a.categorie = corps.categorie;
+        }
+        if (corps.prix) a.prix = Math.max(1, +corps.prix);
+        if (corps.volume !== undefined) a.volume = String(corps.volume).slice(0, 40);
+        if (corps.photo !== undefined) {
+          if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
+            return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
+          a.photo = corps.photo;
+        }
+        if (corps.disponible !== undefined) a.disponible = !!corps.disponible;
+        store.save(); return json(res, 200, a);
+      }
+      if (req.method === 'DELETE') {
+        db.carte = db.carte.filter((x) => x !== a);
+        store.save(); return json(res, 200, { ok: true });
+      }
+    }
+
     if (p === '/api/mon-entreprise/chambres' && req.method === 'GET')
       return json(res, 200, db.chambres.filter((c) => c.entrepriseId === e.id));
     if (p === '/api/mon-entreprise/chambres' && req.method === 'POST') {
@@ -563,7 +1289,8 @@ async function api(req, res, url) {
         id: store.uid(), entrepriseId: e.id, nom: String(corps.nom).slice(0, 60),
         description: String(corps.description || '').slice(0, 300),
         prixNuit: Math.max(1, +corps.prixNuit), capacite: Math.max(1, Math.min(+corps.capacite || 2, 20)),
-        quantite: Math.max(1, Math.min(+corps.quantite || 1, 200)), photo: corps.photo || '', actif: true
+        quantite: Math.max(1, Math.min(+corps.quantite || 1, 200)), photo: corps.photo || '',
+        equipements: nettoyerEquipements(corps.equipements), actif: true
       };
       db.chambres.push(c); store.save(); return json(res, 200, c);
     }
@@ -582,6 +1309,7 @@ async function api(req, res, url) {
             return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
           c.photo = corps.photo;
         }
+        if (corps.equipements !== undefined) c.equipements = nettoyerEquipements(corps.equipements);
         if (corps.actif !== undefined) c.actif = !!corps.actif;
         store.save(); return json(res, 200, c);
       }
