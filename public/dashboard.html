@@ -381,6 +381,12 @@ body { background: var(--gris-clair); }
             <button class="btn btn-contour btn-petit mt" onclick="ajouterZone()">+ Ajouter une zone</button>
           </div>
 
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bordure)">
+            <h3 style="font-size:14px">💳 Paiement</h3>
+            <label class="equip-case" style="margin:10px 0 0"><input type="checkbox" id="vtPaieEnLigne" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Paiement en ligne (MonCash, NatCash, Kashpaw)</span></label>
+            <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="vtPaieRemise" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Paiement à la livraison ou au retrait</span></label>
+            <p class="aide">Une commande payée en ligne est confirmée automatiquement et le stock décompté. Votre part est versée sur votre portefeuille, commission déduite.</p>
+          </div>
           <label style="margin-top:16px">Commande minimum (HTG)</label><input id="vtMinimum" type="number" min="0" value="0">
           <label>Consigne aux clients</label><input id="vtConsigne" maxlength="300" placeholder="Ex : paiement à la livraison, en espèces ou MonCash">
           <button class="btn btn-primaire mt" onclick="enregistrerVente()">Enregistrer</button>
@@ -497,6 +503,12 @@ body { background: var(--gris-clair); }
             <p style="font-size:12px;color:var(--gris);margin:4px 0 0">Mettez <b>1</b> pour n'accepter qu'un seul rendez-vous à la fois. Laissez <b>0</b> (ou vide) pour le mode automatique : autant de rendez-vous simultanés que d'employés actifs.</p>
             <button class="btn btn-primaire mt" onclick="enregistrerInfos()">Enregistrer les informations</button>
           </div></div>
+          <div class="carte" id="carteModules"><div class="carte-corps">
+            <h2 style="font-size:16px">🧩 Fonctionnalités de votre espace</h2>
+            <p class="petit muet" style="margin-top:6px">Décochez ce dont vous n'avez pas besoin : les sections correspondantes disparaissent de votre menu. Vous pouvez les réactiver à tout moment.</p>
+            <div id="listeModules" class="grille-equip mt"></div>
+            <button class="btn btn-primaire mt" onclick="enregistrerModules()">Enregistrer</button>
+          </div></div>
           <div class="carte" id="carteChampsMetier" style="display:none"><div class="carte-corps">
             <h2 style="font-size:16px" id="titreChampsMetier">Informations complémentaires</h2>
             <p class="petit muet" style="margin-top:6px">Ces informations apparaissent sur votre page publique et aident les clients à vous choisir.</p>
@@ -564,6 +576,19 @@ body { background: var(--gris-clair); }
 </div></div>
 
 <!-- Modale chambre -->
+<div class="voile" id="voileTaksi"><div class="modale">
+  <h3>🚕 Livraison Taksi Konekte</h3>
+  <p class="petit muet" id="msgTaksi" style="margin-top:6px"></p>
+  <pre id="texteTaksi" style="background:var(--gris-clair);border-radius:var(--r-champ);padding:14px;margin-top:12px;white-space:pre-wrap;font:inherit;font-size:13.5px"></pre>
+  <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+    <button class="btn btn-contour btn-petit" onclick="copierTaksi()">📋 Copier</button>
+    <a class="btn btn-succes btn-petit" id="lienTaksi" target="_blank" rel="noopener">Envoyer sur WhatsApp</a>
+  </div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileTaksi')">Fermer</button>
+  </div>
+</div></div>
+
 <div class="voile" id="voileProduit"><div class="modale" style="max-width:540px">
   <h3 id="titreModaleProduit">Ajouter un produit</h3>
   <label>Nom du produit *</label><input id="prNom" placeholder="Ex : Riz Tchako 5 lb">
@@ -751,7 +776,8 @@ async function demarrer(){
   if (aModule('inscriptions')) { chargerProgrammes(); chargerInscriptions(); }
   if (aModule('dossiers')) chargerDossiers();
   if (aModule('urgences')) chargerUrgence();
-  if (aModule('catalogue')) { chargerCatalogue(); chargerCommandes(); chargerVente(); }
+  if (aModule('catalogue')) chargerCatalogue();
+  if (aModule('commandes')) { chargerCommandes(); chargerVente(); }
 }
 
 // ---- Module hôtellerie (chambres & séjours) ----
@@ -1003,12 +1029,48 @@ async function statutSejour(id, statut){
 
 
 
+
+// ===== Modules choisis par l'entreprise =====
+const LIB_MODULES = {
+  rdv:{lib:'Rendez-vous et calendrier',ico:'🗓'}, equipe:{lib:'Équipe',ico:'👥'},
+  hotellerie:{lib:'Chambres et séjours',ico:'🛏️'}, carte:{lib:'Restaurant et bar',ico:'🍽️'},
+  catalogue:{lib:'Catalogue produits',ico:'🛒'}, commandes:{lib:'Commandes et livraison',ico:'📦'}, inscriptions:{lib:'Programmes et inscriptions',ico:'🎓'},
+  dossiers:{lib:'Suivi de dossiers',ico:'📁'}, urgences:{lib:'Service d\'urgence',ico:'🚨'}
+};
+function dessinerModules(){
+  const dispo = ent.modulesDisponibles || Object.keys(LIB_MODULES);
+  const actifs = new Set(ent.modulesActifs || []);
+  const duMetier = new Set(ent.modulesMetier || []);
+  document.getElementById('listeModules').innerHTML = dispo.map(m => {
+    const l = LIB_MODULES[m] || { lib: m, ico: '•' };
+    return `<label class="equip-case${actifs.has(m)?' on':''}">
+      <input type="checkbox" data-module="${m}"${actifs.has(m)?' checked':''}
+             onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+      <span>${l.ico} ${l.lib}${duMetier.has(m)?'':' <span class="petit muet">(hors métier)</span>'}</span></label>`;
+  }).join('');
+}
+async function enregistrerModules(){
+  const dispo = ent.modulesDisponibles || [];
+  const duMetier = new Set(ent.modulesMetier || []);
+  const coches = new Set([...document.querySelectorAll('#listeModules input:checked')].map(i => i.dataset.module));
+  // On enregistre les écarts par rapport au métier, pas la liste brute
+  const modulesOff = dispo.filter(m => duMetier.has(m) && !coches.has(m));
+  const modulesOn  = dispo.filter(m => !duMetier.has(m) && coches.has(m));
+  try {
+    await api('/api/mon-entreprise','PUT',{ modulesOff, modulesOn });
+    ent = await api('/api/mon-entreprise');
+    appliquerMetier(); dessinerModules();
+    toast('Fonctionnalités mises à jour.');
+  } catch(e){ toast(e.message); }
+}
+
 // ===== Métier : vocabulaire, modules et champs =====
 let REF_METIERS = null;
 function metierActuel(){
   return (REF_METIERS && REF_METIERS.METIERS[ent.metier]) || (REF_METIERS && REF_METIERS.METIERS['autre']) || null;
 }
 function aModule(mod){
+  if (Array.isArray(ent.modulesActifs)) return ent.modulesActifs.includes(mod);
   const m = metierActuel();
   return m ? m.modules.includes(mod) : true;
 }
@@ -1020,15 +1082,15 @@ function mot(cle, majuscule){
 // Modules → entrées de menu et sections concernées
 const MODULE_SECTIONS = {
   rdv: ['rdv', 'calendrier'], equipe: ['employes'],
-  hotellerie: ['chambres'], carte: ['carte'], catalogue: ['catalogue','commandes','vente'],
-  inscriptions: ['programmes','inscriptions'], dossiers: ['dossiers'], urgences: ['urgence'], catalogue: ['catalogue']
+  hotellerie: ['chambres'], carte: ['carte'], catalogue: ['catalogue'], commandes: ['commandes','vente'],
+  inscriptions: ['programmes','inscriptions'], dossiers: ['dossiers'], urgences: ['urgence']
 };
 function appliquerMetier(){
   const m = metierActuel();
   if (!m) return;
   // 1) Masquer les entrées de menu des modules non déclarés
   Object.entries(MODULE_SECTIONS).forEach(([mod, secs]) => {
-    const actif = m.modules.includes(mod);
+    const actif = aModule(mod);
     secs.forEach((s) => {
       const b = document.querySelector(`.lien-lat[data-sec="${s}"]`);
       if (b) b.style.display = actif ? '' : 'none';
@@ -1040,6 +1102,7 @@ function appliquerMetier(){
   });
   // 3) Champs propres au métier
   dessinerChampsMetier();
+  dessinerModules();
 }
 function dessinerChampsMetier(){
   const m = metierActuel(); const carte = document.getElementById('carteChampsMetier');
@@ -1160,6 +1223,8 @@ async function chargerCommandes(){
           <strong>${c.reference}</strong>
           <span class="badge ${STATUTS_CMD[c.statut].badge}" style="margin-left:6px">${STATUTS_CMD[c.statut].lib}</span>
           <span class="badge badge-gris" style="margin-left:4px">${c.mode==='livraison'?'🛵 Livraison':'🏪 Retrait'}</span>
+          <span class="badge ${c.paye?'badge-vert':'badge-orange'}" style="margin-left:4px">${c.paye?'💳 Payée':'À encaisser'}</span>
+          ${c.taksi?`<span class="badge badge-violet" style="margin-left:4px">🚕 Taksi ${c.taksi.mode==='api'?'envoyée':'à transmettre'}</span>`:''}
           <p class="petit muet" style="margin-top:5px">
             👤 ${ech(c.clientNom)} · <a href="https://wa.me/${String(c.clientTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(c.clientTel)}</a>
             ${c.mode==='livraison'?`<br>📍 ${ech(c.adresse)}${c.zone?` <span class="badge badge-bleu">${ech(c.zone)}</span>`:''}`:''}
@@ -1181,6 +1246,7 @@ async function chargerCommandes(){
       </div>
       <div class="flex mt" style="gap:6px;flex-wrap:wrap">
         ${suivant?`<button class="btn btn-primaire btn-petit" onclick="statutCommande('${c.id}','${suivant}')">→ ${STATUTS_CMD[suivant].lib}</button>`:''}
+        ${c.mode==='livraison'&&c.statut!=='annulee'&&c.statut!=='livree'?`<button class="btn btn-contour btn-petit" onclick="envoyerTaksi('${c.id}')">🚕 Livrer avec Taksi Konekte</button>`:''}
         ${c.statut!=='annulee'&&c.statut!=='livree'?`<button class="btn btn-danger btn-petit" onclick="statutCommande('${c.id}','annulee')">Annuler</button>`:''}
       </div>
     </div>`;
@@ -1192,6 +1258,25 @@ async function statutCommande(id, statut){
     toast('Le client est prévenu par WhatsApp.');
     chargerCommandes(); if (aModule('catalogue')) chargerCatalogue();
   } catch(e){ toast(e.message); }
+}
+
+async function envoyerTaksi(id){
+  try {
+    const r = await api('/api/mon-entreprise/commandes/'+id+'/taksi','POST',{});
+    if (r.mode === 'api') { toast('Course envoyée à Taksi Konekte.'); chargerCommandes(); return; }
+    // Repli : on montre le récapitulatif prêt à transmettre
+    const z = document.getElementById('zoneTaksi');
+    document.getElementById('texteTaksi').textContent = r.texte;
+    document.getElementById('lienTaksi').style.display = r.lienWhatsApp ? '' : 'none';
+    if (r.lienWhatsApp) document.getElementById('lienTaksi').href = r.lienWhatsApp;
+    document.getElementById('msgTaksi').textContent = r.message || '';
+    document.getElementById('voileTaksi').classList.add('ouvert');
+    chargerCommandes();
+  } catch(e){ toast(e.message); }
+}
+function copierTaksi(){
+  const txt = document.getElementById('texteTaksi').textContent;
+  navigator.clipboard?.writeText(txt).then(() => toast('Récapitulatif copié.'), () => toast('Copie impossible.'));
 }
 
 // ---- Réglages de livraison et retrait ----
@@ -1218,6 +1303,8 @@ async function chargerVente(){
   vtHoraires.value = v.horairesCueillette||''; vtDelai.value = v.delaiPreparation||'';
   vtFraisBase.value = v.fraisBase||0; vtSeuil.value = v.seuilGratuite||0;
   vtMinimum.value = v.minimumCommande||0; vtConsigne.value = v.consigne||'';
+  vtPaieEnLigne.checked = v.paiementEnLigne !== false; vtPaieRemise.checked = v.paiementRemise !== false;
+  [vtPaieEnLigne, vtPaieRemise].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
   ZONES = (v.zones||[]).map(z => ({...z}));
   dessinerZones(); majZonesVisibles();
 }
@@ -1225,13 +1312,17 @@ async function enregistrerVente(){
   if (vtActives.checked && !vtCueillette.checked && !vtLivraison.checked) {
     toast('Choisissez au moins le retrait sur place ou la livraison.'); return;
   }
+  if (vtActives.checked && !vtPaieEnLigne.checked && !vtPaieRemise.checked) {
+    toast('Choisissez au moins un moyen de paiement.'); return;
+  }
   const zones = ZONES.filter(z => String(z.nom).trim());
   try {
     await api('/api/mon-entreprise/vente','PUT',{
       commandesActives: vtActives.checked, cueillette: vtCueillette.checked, livraison: vtLivraison.checked,
       horairesCueillette: vtHoraires.value.trim(), delaiPreparation: vtDelai.value.trim(),
       fraisBase: +vtFraisBase.value||0, seuilGratuite: +vtSeuil.value||0,
-      minimumCommande: +vtMinimum.value||0, consigne: vtConsigne.value.trim(), zones });
+      minimumCommande: +vtMinimum.value||0, consigne: vtConsigne.value.trim(), zones,
+      paiementEnLigne: vtPaieEnLigne.checked, paiementRemise: vtPaieRemise.checked });
     toast('Réglages enregistrés.'); chargerVente();
   } catch(e){ toast(e.message); }
 }

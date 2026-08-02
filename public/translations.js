@@ -1,6 +1,7 @@
 // 🌐 Traductions Français / Kreyòl Ayisyen
 const translations = {
   fr: {
+    'panier.paiement': 'Paiement',
     'panier.titre': 'Votre commande',
     'panier.mode': 'Comment souhaitez-vous recevoir votre commande ?',
     'panier.zone': 'Zone de livraison',
@@ -262,6 +263,7 @@ const translations = {
   },
   
   ht: {
+    'panier.paiement': 'Peyman',
     'panier.titre': 'Kòmand ou',
     'panier.mode': 'Kijan ou vle resevwa kòmand ou?',
     'panier.zone': 'Zòn livrezon',

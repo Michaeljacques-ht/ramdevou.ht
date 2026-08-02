@@ -9,6 +9,11 @@ const crypto = require('crypto');
 const store = require('./lib/db');
 const plopplop = require('./plopplop.js');
 const metiers = require('./lib/metiers.js');
+const taksi = require('./lib/taksi.js');
+
+// ---- Paramètres commerciaux ----
+const COMMISSION_RANDEVOU = 0.15;   // part Randevou.ht sur chaque encaissement
+const MONTANT_MIN_RETRAIT = 1000;   // retrait minimum du portefeuille, en HTG
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -437,11 +442,12 @@ async function api(req, res, url) {
                            prix: x.prix, prixPromo: x.prixPromo, unite: x.unite, photo: x.photo || '',
                            stockFaible: x.stock !== null && x.stock <= Math.max(x.seuilAlerte, 3) }))
         : [],
-      vente: metiers.aModule(e, 'catalogue') && e.vente && e.vente.commandesActives ? {
+      vente: metiers.aModule(e, 'commandes') && e.vente && e.vente.commandesActives ? {
         cueillette: !!e.vente.cueillette, livraison: !!e.vente.livraison,
         zones: e.vente.zones || [], fraisBase: e.vente.fraisBase || 0,
         seuilGratuite: e.vente.seuilGratuite || 0, minimumCommande: e.vente.minimumCommande || 0,
         horairesCueillette: e.vente.horairesCueillette || '', delaiPreparation: e.vente.delaiPreparation || '',
+        paiementEnLigne: e.vente.paiementEnLigne !== false, paiementRemise: e.vente.paiementRemise !== false,
         consigne: e.vente.consigne || ''
       } : null,
       capacitesRef: metiers.CAPACITES_URGENCE,
@@ -474,8 +480,9 @@ async function api(req, res, url) {
 
   // ---- Paiement d'une réservation ----
   if (p === '/api/paiements/ouvrir' && req.method === 'POST') {
-    const { commandeType, commandeId, slug } = corps;
-    if (!['rdv', 'sejour'].includes(commandeType)) return json(res, 400, { erreur: 'Type de commande invalide' });
+    const { commandeType, slug } = corps;
+    let { commandeId } = corps;
+    if (!['rdv', 'sejour', 'commande'].includes(commandeType)) return json(res, 400, { erreur: 'Type de commande invalide' });
     const e = db.entreprises.find((x) => x.slug === slug && x.statut === 'approuvee');
     if (!e) return json(res, 404, { erreur: 'Entreprise introuvable' });
     
@@ -486,11 +493,20 @@ async function api(req, res, url) {
       const s = db.services.find((x) => x.id === r.serviceId);
       montant = s ? s.prix : 0;
       clientNom = r.clientNom; clientEmail = r.clientEmail;
-    } else {
+    } else if (commandeType === 'sejour') {
       const s = db.sejours.find((x) => x.id === commandeId && x.entrepriseId === e.id);
       if (!s) return json(res, 404, { erreur: 'Séjour introuvable' });
       montant = s.prixTotal;
       clientNom = s.clientNom; clientEmail = s.clientEmail;
+    } else {
+      // Commande boutique : on paie le total, frais de remise compris
+      const c = db.commandes.find((x) => (x.id === commandeId || x.reference === commandeId) && x.entrepriseId === e.id);
+      if (!c) return json(res, 404, { erreur: 'Commande introuvable' });
+      if (c.paye) return json(res, 409, { erreur: 'Cette commande est déjà payée.' });
+      if (c.statut === 'annulee') return json(res, 409, { erreur: 'Cette commande a été annulée.' });
+      montant = c.total;
+      clientNom = c.clientNom; clientEmail = '';
+      commandeId = c.id;
     }
     
     if (montant < plopplop.PLOP.montantMinHTG) return json(res, 400, { erreur: `Montant minimum : ${plopplop.PLOP.montantMinHTG} HTG` });
@@ -500,12 +516,12 @@ async function api(req, res, url) {
       const result = await plopplop.initierPaiement({ reference: paiement.reference, montant, methode: 'all' });
       if (result.ok) {
         paiement.transactionId = result.transactionId;
-        paiement.urlPaiement = result.url;
+        paiement.urlPaiement = result.urlPaiement;
         store.save();
         return json(res, 200, { ok: true, paiementId: paiement.id, urlPaiement: result.urlPaiement, montant, reference: paiement.reference });
       } else {
         db.paiements = db.paiements.filter((x) => x !== paiement);
-        return json(res, 402, { erreur: result.error });
+        return json(res, 402, { erreur: result.error || 'La passerelle a refusé la transaction.' });
       }
     } catch (err) {
       db.paiements = db.paiements.filter((x) => x !== paiement);
@@ -520,12 +536,13 @@ async function api(req, res, url) {
     if (!paiement) return json(res, 404, { erreur: 'Paiement introuvable' });
     
     try {
-      const verification = await plopplop.verifierPaiement({ reference: paiement.reference });
-      if (verification.ok && verification.trans_status === 'ok') {
-        paiement.statut = 'confirme'; 
-        paiement.methode = verification.method;
+      const verification = await plopplop.verifierPaiement(paiement.reference);
+      if (verification.ok && verification.paye) {
+        const infos = verification.infos || {};
+        paiement.statut = 'confirme';
+        paiement.methode = infos.methode || '';
         paiement.dateConfirmation = new Date().toISOString();
-        paiement.idTransaction = verification.id_transaction;
+        paiement.idTransaction = infos.transactionId || paiement.reference;
         
         // Créditer le portefeuille de l'entreprise
         const port = creerOuObtenirPortefeuille(paiement.entrepriseId);
@@ -574,12 +591,37 @@ async function api(req, res, url) {
               s.id
             ]);
           }
+        } else if (paiement.commandeType === 'commande') {
+          const c = db.commandes.find((x) => x.id === paiement.commandeId);
+          if (c) {
+            c.paye = true;
+            c.transactionId = paiement.idTransaction;
+            c.methodePaiement = paiement.methode || '';
+            // Une commande payée passe directement en confirmée, avec décompte du stock
+            if (!c.stockDecompte) {
+              c.lignes.forEach((l) => {
+                const pr = db.produits.find((x) => x.id === l.produitId);
+                if (pr && pr.stock !== null) pr.stock = Math.max(0, pr.stock - l.quantite);
+              });
+              c.stockDecompte = true;
+            }
+            if (c.statut === 'nouvelle') c.statut = 'confirmee';
+            c.journal.push({ le: new Date().toISOString(), texte: 'Paiement reçu — ' + c.total.toLocaleString('fr-HT') + ' HTG' });
+            c.majLe = new Date().toISOString();
+            envoyerWhatsApp(c.clientTel, 'commande_payee', [
+              c.clientNom, e?.nom || '', c.reference,
+              c.total.toLocaleString('fr-HT') + ' HTG',
+              c.mode === 'livraison' ? 'livraison' : 'retrait sur place'
+            ]);
+            notifier(paiement.entrepriseId, 'commande_payee', `Commande ${c.reference} payée — ${c.total.toLocaleString('fr-HT')} HTG`);
+          }
         }
         
         store.save();
         return json(res, 200, { ok: true, statut: 'confirme', montantNet: paiement.montantNet });
       } else {
-        return json(res, 402, { ok: false, statut: verification.statut || 'echec' });
+        return json(res, 402, { ok: false, statut: 'en_attente',
+          erreur: verification.message || verification.error || 'Paiement non encore confirmé.' });
       }
     } catch (err) {
       return json(res, 503, { erreur: 'Vérification impossible. Réessayez ultérieurement.' });
@@ -647,7 +689,7 @@ async function api(req, res, url) {
   // ---- Passer une commande (public, sans compte) ----
   if (p === '/api/commandes' && req.method === 'POST') {
     const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
-    if (!e || !metiers.aModule(e, 'catalogue')) return json(res, 400, { erreur: 'Boutique invalide.' });
+    if (!e || !metiers.aModule(e, 'commandes')) return json(res, 400, { erreur: 'Cette boutique ne prend pas de commande en ligne.' });
     const v = e.vente || {};
     if (!v.commandesActives) return json(res, 400, { erreur: 'Cette boutique ne prend pas de commande en ligne pour le moment.' });
     if (!Array.isArray(corps.lignes) || !corps.lignes.length) return json(res, 400, { erreur: 'Votre panier est vide.' });
@@ -683,6 +725,12 @@ async function api(req, res, url) {
       if (v.seuilGratuite && sousTotal >= v.seuilGratuite) frais = 0;
     }
 
+    const modePaie = corps.paiement === 'enligne' ? 'enligne' : 'remise';
+    if (modePaie === 'enligne' && v.paiementEnLigne === false)
+      return json(res, 400, { erreur: 'Le paiement en ligne n\'est pas proposé par cette boutique.' });
+    if (modePaie === 'remise' && v.paiementRemise === false)
+      return json(res, 400, { erreur: 'Cette boutique demande le paiement en ligne.' });
+
     const maintenant = new Date().toISOString();
     const cmd = {
       id: store.uid(), entrepriseId: e.id,
@@ -695,6 +743,8 @@ async function api(req, res, url) {
       clientNom: String(corps.clientNom).slice(0, 90),
       clientTel: String(corps.clientTel).slice(0, 20),
       message: String(corps.message || '').slice(0, 300),
+      paiement: corps.paiement === 'enligne' ? 'enligne' : 'remise',
+      paye: false, transactionId: null,
       statut: 'nouvelle', stockDecompte: false, noteInterne: '',
       journal: [{ le: maintenant, texte: 'Commande reçue' }],
       creeLe: maintenant, majLe: maintenant
@@ -706,7 +756,7 @@ async function api(req, res, url) {
        mode === 'livraison' ? 'livraison' : 'retrait sur place']);
     return json(res, 200, {
       ok: true, reference: cmd.reference, sousTotal, frais, total: cmd.total,
-      mode, boutique: e.nom, whatsapp: e.whatsapp,
+      mode, paiement: modePaie, commandeId: cmd.id, boutique: e.nom, whatsapp: e.whatsapp,
       delai: mode === 'livraison' ? (v.delaiPreparation || '') : (v.horairesCueillette || '')
     });
   }
@@ -727,7 +777,8 @@ async function api(req, res, url) {
       etapes: etapes.map((k) => { const s = STATUTS_COMMANDE.find((x) => x.cle === k); return { cle: k, fr: s.fr, ht: s.ht }; }),
       etapeIndex: etapes.indexOf(c.statut),
       mode: c.mode, lignes: c.lignes, sousTotal: c.sousTotal, frais: c.frais, total: c.total,
-      adresse: c.adresse, creneau: c.creneau, passeeLe: c.creeLe.slice(0, 10), majLe: c.majLe.slice(0, 10)
+      adresse: c.adresse, creneau: c.creneau, paye: !!c.paye, paiement: c.paiement || 'remise',
+      passeeLe: c.creeLe.slice(0, 10), majLe: c.majLe.slice(0, 10)
     });
   }
 
@@ -803,7 +854,12 @@ async function api(req, res, url) {
     const e = monEntreprise();
     if (!e) return json(res, 404, { erreur: 'Entreprise introuvable' });
 
-    if (p === '/api/mon-entreprise' && req.method === 'GET') return json(res, 200, e);
+    if (p === '/api/mon-entreprise' && req.method === 'GET')
+      return json(res, 200, Object.assign({}, e, {
+        modulesDisponibles: metiers.MODULES,
+        modulesMetier: metiers.metierDe(e).modules,
+        modulesActifs: metiers.modulesActifs(e)
+      }));
     if (p === '/api/mon-entreprise' && req.method === 'PUT') {
       ['nom', 'description', 'adresse', 'telephone', 'whatsapp', 'email', 'categorie', 'couleur', 'couleur2', 'logoTexte', 'horaires'].forEach((k) => {
         if (corps[k] !== undefined) e[k] = corps[k];
@@ -815,6 +871,9 @@ async function api(req, res, url) {
         e.champs = metiers.nettoyerChamps(e.metier, e.champs);  // ne garder que ce qui reste pertinent
       }
       if (corps.champs !== undefined) e.champs = metiers.nettoyerChamps(e.metier || 'autre', corps.champs);
+      // Modules choisis par l'entreprise : elle affine ce que son métier propose
+      if (corps.modulesOff !== undefined) e.modulesOff = metiers.nettoyerModules(corps.modulesOff);
+      if (corps.modulesOn !== undefined) e.modulesOn = metiers.nettoyerModules(corps.modulesOn);
       // Formule d'hébergement : standard ou resort (tout inclus)
       if (corps.formule !== undefined) {
         if (!FORMULES.includes(corps.formule)) return json(res, 400, { erreur: 'Formule invalide.' });
@@ -872,8 +931,8 @@ async function api(req, res, url) {
       return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
 
     // ================= Vente : réglages de remise =================
-    if (p.startsWith('/api/mon-entreprise/vente') && !metiers.aModule(e, 'catalogue'))
-      return json(res, 403, { erreur: 'Le module Catalogue n\'est pas disponible pour votre type d\'activité.' });
+    if (p.startsWith('/api/mon-entreprise/vente') && !metiers.aModule(e, 'commandes'))
+      return json(res, 403, { erreur: 'Le module Commandes & livraison n\'est pas activé.' });
 
     if (p === '/api/mon-entreprise/vente' && req.method === 'GET')
       return json(res, 200, { vente: e.vente || {}, modes: MODES_REMISE });
@@ -891,14 +950,16 @@ async function api(req, res, url) {
       if (corps.horairesCueillette !== undefined) v.horairesCueillette = String(corps.horairesCueillette).slice(0, 120);
       if (corps.delaiPreparation !== undefined) v.delaiPreparation = String(corps.delaiPreparation).slice(0, 60);
       if (corps.consigne !== undefined) v.consigne = String(corps.consigne).slice(0, 300);
+      if (corps.paiementEnLigne !== undefined) v.paiementEnLigne = !!corps.paiementEnLigne;
+      if (corps.paiementRemise !== undefined) v.paiementRemise = !!corps.paiementRemise;
       if (v.livraison && !(v.zones || []).length && !v.fraisBase) v.fraisBase = v.fraisBase || 0;
       e.vente = v; store.save();
       return json(res, 200, v);
     }
 
     // ================= Commandes reçues =================
-    if (p.startsWith('/api/mon-entreprise/commandes') && !metiers.aModule(e, 'catalogue'))
-      return json(res, 403, { erreur: 'Le module Catalogue n\'est pas disponible pour votre type d\'activité.' });
+    if (p.startsWith('/api/mon-entreprise/commandes') && !metiers.aModule(e, 'commandes'))
+      return json(res, 403, { erreur: 'Le module Commandes & livraison n\'est pas activé.' });
 
     if (p === '/api/mon-entreprise/commandes' && req.method === 'GET') {
       const liste = db.commandes.filter((c) => c.entrepriseId === e.id)
@@ -942,6 +1003,32 @@ async function api(req, res, url) {
       c.majLe = new Date().toISOString();
       store.save(); return json(res, 200, c);
     }
+
+    // ---- Livraison par Taksi Konekte ----
+    const mTaksi = p.match(/^\/api\/mon-entreprise\/commandes\/(\w+)\/taksi$/);
+    if (mTaksi && req.method === 'POST') {
+      if (!metiers.aModule(e, 'commandes')) return json(res, 403, { erreur: 'Module Commandes & livraison non activé.' });
+      const c = db.commandes.find((x) => x.id === mTaksi[1] && x.entrepriseId === e.id);
+      if (!c) return json(res, 404, { erreur: 'Commande introuvable' });
+      if (c.mode !== 'livraison') return json(res, 400, { erreur: 'Cette commande est en retrait sur place.' });
+      if (c.statut === 'annulee') return json(res, 409, { erreur: 'Cette commande a été annulée.' });
+      const r = await taksi.demanderCourse(c, e);
+      c.taksi = { mode: r.mode, courseId: r.courseId || null, lienSuivi: r.lienSuivi || '',
+                  demandeeLe: new Date().toISOString() };
+      c.journal.push({ le: new Date().toISOString(),
+                       texte: r.mode === 'api' ? 'Course Taksi Konekte demandée' : 'Course Taksi Konekte à transmettre manuellement' });
+      if (c.statut === 'prete' || c.statut === 'preparation') {
+        c.statut = 'en_route';
+        envoyerWhatsApp(c.clientTel, 'commande_statut',
+          [c.clientNom, e.nom, c.reference, 'En route', 'livraison']);
+      }
+      c.majLe = new Date().toISOString();
+      store.save();
+      return json(res, 200, r);
+    }
+
+    if (p === '/api/mon-entreprise/taksi/etat' && req.method === 'GET')
+      return json(res, 200, { actif: taksi.actif() });
 
     // ================= Module catalogue =================
     if (p.startsWith('/api/mon-entreprise/produits') && !metiers.aModule(e, 'catalogue'))
