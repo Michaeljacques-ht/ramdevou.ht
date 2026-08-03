@@ -636,13 +636,18 @@ async function api(req, res, url) {
     if (errPeriode) return json(res, 400, { erreur: errPeriode });
     if (chambresRestantes(c, corps.arrivee, corps.depart) < 1)
       return json(res, 409, { erreur: 'Cette chambre est complète sur ces dates. Essayez d\'autres dates ou un autre type de chambre.' });
+    // La capacité est refusée, pas rabotée en silence : le client doit savoir
+    // que sa réservation ne couvre pas tout son groupe.
+    const demandes = Math.max(1, +corps.nbPersonnes || 1);
+    if (c.capacite && demandes > c.capacite)
+      return json(res, 400, { erreur: `Cette chambre accueille ${c.capacite} personne${c.capacite > 1 ? 's' : ''} au maximum. Choisissez un autre type de chambre.` });
     const nuits = nbNuits(corps.arrivee, corps.depart);
     const sejour = {
       id: store.uid(), entrepriseId: e.id, chambreId: c.id,
       clientNom: String(corps.clientNom).slice(0, 80), clientTel: String(corps.clientTel).slice(0, 20),
       clientEmail: String(corps.clientEmail || '').slice(0, 120),
       arrivee: corps.arrivee, depart: corps.depart, nuits,
-      nbPersonnes: Math.max(1, Math.min(+corps.nbPersonnes || 1, +c.capacite || 10)),
+      nbPersonnes: demandes,
       prixTotal: nuits * c.prixNuit, statut: 'en_attente', creeLe: new Date().toISOString()
     };
     db.sejours.push(sejour);

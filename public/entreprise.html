@@ -99,8 +99,8 @@
 <main class="corps-page">
   <div id="bandeauUrgence" style="display:none"></div>
   <div style="display:grid;gap:22px">
-    <section class="carte"><div class="carte-corps">
-      <h2 style="font-size:19px">Services</h2>
+    <section class="carte" id="carteServices"><div class="carte-corps">
+      <h2 style="font-size:19px" data-i18n="ent.services">Services</h2>
       <div id="listeServices" class="mt"></div>
     </div></section>
 
@@ -186,6 +186,7 @@
         <select id="sjChambre"></select>
         <label>Nombre de personnes</label>
         <input type="number" id="sjPersonnes" min="1" value="2">
+        <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="verifierSejour()" data-i18n="sejour.verifier">Vérifier la disponibilité</button>
         <div id="sjDispo" class="mt"></div>
         <div id="sjCoordonnees" style="display:none">
           <label>Votre nom complet *</label><input id="sjNom">
@@ -801,15 +802,35 @@ function refEquip(cle){
     const auj = new Date(), dem = new Date(Date.now() + 86400000);
     document.getElementById('sjArrivee').min = auj.toISOString().slice(0,10);
     document.getElementById('sjDepart').min = dem.toISOString().slice(0,10);
-    ['sjArrivee','sjDepart','sjChambre'].forEach(id => document.getElementById(id).addEventListener('change', verifierSejour));
+    ['sjArrivee','sjDepart','sjChambre','sjPersonnes'].forEach((id) => {
+      const el = document.getElementById(id);
+      el.addEventListener('change', verifierSejour);
+      el.addEventListener('input', verifierSejour);
+    });
   }
 
   window.verifierSejour = async () => {
     const a = document.getElementById('sjArrivee').value, d = document.getElementById('sjDepart').value;
     const zone = document.getElementById('sjDispo'), coord = document.getElementById('sjCoordonnees');
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const alerte = (txt) => { zone.innerHTML = `<div style="background:var(--orange-fond);color:#C4520E;border-radius:10px;padding:12px 14px" class="petit">${ech(txt)}</div>`; };
     coord.style.display = 'none';
-    if (!a || !d) { zone.innerHTML = ''; return; }
-    zone.innerHTML = '<p class="petit muet">Vérification…</p>';
+    if (!a || !d) {
+      zone.innerHTML = `<p class="petit muet">${lg==='ht'?'Chwazi dat arive ak dat depa.':"Choisissez la date d'arrivée et la date de départ."}</p>`;
+      return;
+    }
+    if (d <= a) { alerte(lg==='ht' ? 'Dat depa a dwe apre dat arive a.' : 'La date de départ doit être après la date d\'arrivée.'); return; }
+    // La capacité de la chambre est vérifiée avant d'interroger le serveur
+    const idCh = document.getElementById('sjChambre').value;
+    const ch = (ent.chambres || []).find(x => x.id === idCh);
+    const nb = +document.getElementById('sjPersonnes').value || 1;
+    if (ch && nb > ch.capacite) {
+      alerte(lg==='ht'
+        ? `Chanm sa a pran ${ch.capacite} moun maksimòm. Chwazi yon lòt tip chanm.`
+        : `Cette chambre accueille ${ch.capacite} personne${ch.capacite>1?'s':''} au maximum. Choisissez un autre type de chambre.`);
+      return;
+    }
+    zone.innerHTML = `<p class="petit muet">${lg==='ht'?'Ap verifye…':'Vérification…'}</p>`;
     try {
       const r = await api(`/api/disponibilites-sejour?slug=${slug}&chambre=${document.getElementById('sjChambre').value}&arrivee=${a}&depart=${d}`);
       if (r.disponible) {
@@ -879,6 +900,12 @@ function refEquip(cle){
     <div class="flex" style="padding:6px 0"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
     <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)}</div></div></div>`).join('') || '<p class="muet petit">—</p>';
 
+  // Sans service au catalogue, les cartes Services et Réservation n'ont pas lieu d'être
+  // (cas d'un hôtel, d'une boutique ou d'un établissement qui ne prend pas de rendez-vous)
+  if (!(ent.services || []).length) {
+    const cs = document.getElementById('carteServices'); if (cs) cs.style.display = 'none';
+    const cr = document.getElementById('carteResa');     if (cr) cr.style.display = 'none';
+  }
   dessinerBoutique();
   dessinerUrgence();
   dessinerSuivi();
