@@ -71,6 +71,12 @@ body { background: var(--gris-clair); }
 .ligne-zone { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; align-items: center; }
 .ligne-zone input { margin: 0; }
 @media (max-width: 560px) { .ligne-zone { grid-template-columns: 1fr 1fr; } }
+.planning { font-size: 12.5px; }
+.planning th, .planning td { padding: 6px 8px; }
+.case-occ { text-align: center; font-weight: 700; border-radius: 6px; }
+.case-occ.libre { background: var(--vert-fond); color: #07684A; }
+.case-occ.partiel { background: var(--orange-fond); color: #C4520E; }
+.case-occ.complet { background: var(--rouge-fond); color: #B02121; }
 </style>
 </head>
 <body>
@@ -82,6 +88,9 @@ body { background: var(--gris-clair); }
     <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
     <button class="lien-lat" data-sec="services">🧰 Services</button>
     <button class="lien-lat" data-sec="chambres">🛏️ Chambres &amp; Séjours</button>
+    <button class="lien-lat" data-sec="tarifs">💲 Tarifs &amp; saisons</button>
+    <button class="lien-lat" data-sec="planning">📊 Planning</button>
+    <button class="lien-lat" data-sec="hotel">⚙️ Politiques hôtel</button>
     <button class="lien-lat" data-sec="carte">🍽️ Restaurant &amp; Bar</button>
     <button class="lien-lat" data-sec="programmes">🎓 Programmes</button>
     <button class="lien-lat" data-sec="inscriptions">📋 Inscriptions</button>
@@ -393,6 +402,77 @@ body { background: var(--gris-clair); }
         </div></div>
       </section>
 
+      <!-- ===== Tarifs & saisons ===== -->
+      <section id="sec-tarifs" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Plans tarifaires</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirTarif()">+ Ajouter un plan</button>
+          </div>
+          <p class="petit muet mt">Plusieurs façons de vendre la même chambre : tarif standard, non remboursable moins cher, ou avec petit-déjeuner. Le client choisit au moment de réserver.</p>
+          <div id="listeTarifs" class="mt"></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Saisons</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirSaison()">+ Ajouter une saison</button>
+          </div>
+          <p class="petit muet mt">Ajustez vos prix sur une période : haute saison, fêtes, basse saison. L'ajustement s'applique nuit par nuit.</p>
+          <div id="listeSaisons" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Planning ===== -->
+      <section id="sec-planning" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Occupation des chambres</h2>
+            <input type="date" id="planDebut" style="max-width:180px" onchange="chargerPlanning()">
+          </div>
+          <p class="petit muet mt">Nombre de chambres libres par jour et par type. Rouge : complet.</p>
+          <div id="grillePlanning" class="mt" style="overflow:auto"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Politiques hôtel ===== -->
+      <section id="sec-hotel" class="section-cache">
+        <div class="carte carte-signature"><div class="carte-corps">
+          <h2 style="font-size:16px">🏨 Conditions de vente</h2>
+          <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Heure d'arrivée</label><input type="time" id="hoCheckin"></div>
+            <div><label>Heure de départ</label><input type="time" id="hoCheckout"></div>
+          </div>
+          <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Séjour minimum (nuits)</label><input type="number" id="hoMin" min="0" value="0"><p class="aide">0 = pas de minimum</p></div>
+            <div><label>Séjour maximum (nuits)</label><input type="number" id="hoMax" min="0" value="0"><p class="aide">0 = pas de maximum</p></div>
+          </div>
+        </div></div>
+
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Taxes et acompte</h2>
+          <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Taxe sur le séjour (%)</label><input type="number" id="hoTaux" min="0" max="50" value="0"></div>
+            <div><label>Taxe fixe par nuit (HTG)</label><input type="number" id="hoTaxeNuit" min="0" value="0"></div>
+          </div>
+          <label>Acompte demandé à la réservation (%)</label>
+          <input type="number" id="hoAcompte" min="0" max="100" value="0">
+          <p class="aide">0 = paiement intégral sur place. 30 = le client règle 30 % pour garantir sa chambre.</p>
+        </div></div>
+
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Annulation et règlement intérieur</h2>
+          <label>Annulation gratuite jusqu'à (jours avant l'arrivée)</label>
+          <input type="number" id="hoDelai" min="0" max="90" value="0">
+          <label>Politique d'annulation</label>
+          <input id="hoAnnulation" maxlength="400" placeholder="Ex : annulation gratuite jusqu'à 7 jours avant l'arrivée, puis une nuit retenue">
+          <label>Autres conditions</label>
+          <input id="hoConditions" maxlength="600" placeholder="Ex : pièce d'identité obligatoire à l'arrivée">
+          <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="hoAnimaux" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>🐕 Animaux acceptés</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="hoFumeur" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>🚬 Chambres fumeurs</span></label>
+          <button class="btn btn-primaire mt" onclick="enregistrerHotel()">Enregistrer les politiques</button>
+        </div></div>
+      </section>
+
       <!-- ===== Portefeuille & Paiements ===== -->
       <section id="sec-portefeuille" class="section-cache">
         <div class="carte"><div class="carte-corps">
@@ -689,6 +769,39 @@ body { background: var(--gris-clair); }
   </div>
 </div></div>
 
+<div class="voile" id="voileTarif"><div class="modale">
+  <h3 id="titreModaleTarif">Ajouter un plan tarifaire</h3>
+  <label>Nom du plan *</label><input id="tfNom" placeholder="Ex : Tarif standard, Non remboursable">
+  <label>Description</label><input id="tfDesc" placeholder="Ex : -15%, sans annulation possible">
+  <label>Type de chambre</label>
+  <select id="tfChambre"><option value="">Toutes les chambres</option></select>
+  <label>Prix par nuit (HTG)</label><input type="number" id="tfPrix" min="0" value="0">
+  <p class="aide">0 = utiliser le prix de la chambre.</p>
+  <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="tfRembours" checked onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Remboursable</span></label>
+  <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="tfPetitDej" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>🥐 Petit-déjeuner inclus</span></label>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileTarif')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerTarif()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileSaison"><div class="modale">
+  <h3 id="titreModaleSaison">Ajouter une saison</h3>
+  <label>Nom *</label><input id="saNom" placeholder="Ex : Haute saison, Fêtes de fin d'année">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Du *</label><input type="date" id="saDebut"></div>
+    <div><label>Au *</label><input type="date" id="saFin"></div>
+  </div>
+  <label>Type d'ajustement</label>
+  <select id="saType"><option value="pourcentage">Pourcentage (%)</option><option value="montant">Montant fixe (HTG)</option></select>
+  <label>Valeur</label><input type="number" id="saValeur" value="0">
+  <p class="aide">Positif pour augmenter, négatif pour réduire. Ex : 40 = +40 %, -20 = -20 %.</p>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileSaison')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerSaison()">Enregistrer</button>
+  </div>
+</div></div>
+
 <div class="voile" id="voileChambre"><div class="modale">
   <h3 id="titreModaleChambre">Ajouter une chambre</h3>
   <label>Type de chambre *</label><input id="chNom" placeholder="Ex : Chambre Standard, Suite Vue Mer">
@@ -725,7 +838,7 @@ body { background: var(--gris-clair); }
 let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
 const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
-const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
 
 function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
 async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
@@ -1082,7 +1195,7 @@ function mot(cle, majuscule){
 // Modules → entrées de menu et sections concernées
 const MODULE_SECTIONS = {
   rdv: ['rdv', 'calendrier'], equipe: ['employes'],
-  hotellerie: ['chambres'], carte: ['carte'], catalogue: ['catalogue'], commandes: ['commandes','vente'],
+  hotellerie: ['chambres','tarifs','planning','hotel'], carte: ['carte'], catalogue: ['catalogue'], commandes: ['commandes','vente'],
   inscriptions: ['programmes','inscriptions'], dossiers: ['dossiers'], urgences: ['urgence']
 };
 function appliquerMetier(){
@@ -1137,6 +1250,138 @@ async function enregistrerChampsMetier(){
     ent = await api('/api/mon-entreprise','PUT',{ champs });
     toast('Informations enregistrées.');
     dessinerChampsMetier();
+  } catch(e){ toast(e.message); }
+}
+
+
+// ===== Gestion hôtelière : tarifs, saisons, planning, politiques =====
+let tarifEnCours = null, saisonEnCours = null;
+
+async function chargerTarifs(){
+  const [tarifs, chambres] = await Promise.all([
+    api('/api/mon-entreprise/tarifs'), api('/api/mon-entreprise/chambres')]);
+  const sel = document.getElementById('tfChambre');
+  sel.innerHTML = '<option value="">Toutes les chambres</option>' +
+    chambres.map(c => `<option value="${c.id}">${ech(c.nom)}</option>`).join('');
+  const z = document.getElementById('listeTarifs');
+  z.innerHTML = tarifs.length ? `<div style="overflow:auto"><table>
+    <tr><th>Plan</th><th>Chambre</th><th>Prix/nuit</th><th>Conditions</th><th>Statut</th><th></th></tr>
+    ${tarifs.map(x => {
+      const ch = chambres.find(c => c.id === x.chambreId);
+      return `<tr>
+        <td><strong>${ech(x.nom)}</strong>${x.description?`<br><span class="petit muet">${ech(x.description)}</span>`:''}</td>
+        <td class="petit muet">${ch ? ech(ch.nom) : 'Toutes'}</td>
+        <td>${x.prixNuit ? (+x.prixNuit).toLocaleString('fr-HT')+' HTG' : '<span class="petit muet">prix chambre</span>'}</td>
+        <td>${x.remboursable?'<span class="badge badge-vert">Remboursable</span>':'<span class="badge badge-orange">Non remboursable</span>'}
+            ${x.petitDejeuner?'<span class="badge badge-bleu">🥐 Petit-déj</span>':''}</td>
+        <td><span class="badge ${x.actif?'badge-vert':'badge-gris'}">${x.actif?'Actif':'Inactif'}</span></td>
+        <td class="flex" style="gap:6px">
+          <button class="btn btn-fantome btn-petit" onclick='ouvrirTarif(${JSON.stringify(x).replace(/'/g,"&#39;")})'>✏️</button>
+          <button class="btn btn-fantome btn-petit" onclick="basculerTarif('${x.id}',${!x.actif})">${x.actif?'🚫':'✅'}</button>
+          <button class="btn btn-fantome btn-petit" onclick="supprimerTarif('${x.id}')">🗑️</button>
+        </td></tr>`;
+    }).join('')}</table></div>`
+    : '<p class="muet petit">Aucun plan. Sans plan, vos chambres se vendent au prix indiqué dans leur fiche.</p>';
+  chargerSaisons();
+}
+function ouvrirTarif(x){
+  tarifEnCours = x || null;
+  document.getElementById('titreModaleTarif').textContent = x ? 'Modifier le plan' : 'Ajouter un plan tarifaire';
+  tfNom.value = x?x.nom:''; tfDesc.value = x?(x.description||''):'';
+  tfChambre.value = x?(x.chambreId||''):''; tfPrix.value = x?x.prixNuit:0;
+  tfRembours.checked = x ? x.remboursable : true; tfPetitDej.checked = x ? x.petitDejeuner : false;
+  [tfRembours, tfPetitDej].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+  document.getElementById('voileTarif').classList.add('ouvert');
+}
+async function enregistrerTarif(){
+  const corps = { nom:tfNom.value.trim(), description:tfDesc.value.trim(), chambreId:tfChambre.value,
+    prixNuit:+tfPrix.value||0, remboursable:tfRembours.checked, petitDejeuner:tfPetitDej.checked };
+  if (!corps.nom) { toast('Le nom du plan est obligatoire.'); return; }
+  try {
+    if (tarifEnCours) await api('/api/mon-entreprise/tarifs/'+tarifEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/tarifs','POST',corps);
+    fermer('voileTarif'); toast('Plan enregistré.'); chargerTarifs();
+  } catch(e){ toast(e.message); }
+}
+async function basculerTarif(id, actif){ await api('/api/mon-entreprise/tarifs/'+id,'PUT',{actif}); chargerTarifs(); }
+async function supprimerTarif(id){
+  if (!confirm('Supprimer ce plan tarifaire ?')) return;
+  await api('/api/mon-entreprise/tarifs/'+id,'DELETE'); toast('Plan supprimé.'); chargerTarifs();
+}
+
+async function chargerSaisons(){
+  const liste = await api('/api/mon-entreprise/saisons');
+  const z = document.getElementById('listeSaisons');
+  z.innerHTML = liste.length ? `<div style="overflow:auto"><table>
+    <tr><th>Saison</th><th>Période</th><th>Ajustement</th><th>Statut</th><th></th></tr>
+    ${liste.map(s => `<tr>
+      <td><strong>${ech(s.nom)}</strong></td>
+      <td class="petit muet">${s.debut} → ${s.fin}</td>
+      <td><strong style="color:${s.valeur>=0?'var(--orange)':'var(--vert)'}">${s.valeur>0?'+':''}${s.valeur}${s.type==='pourcentage'?' %':' HTG'}</strong></td>
+      <td><span class="badge ${s.actif?'badge-vert':'badge-gris'}">${s.actif?'Active':'Inactive'}</span></td>
+      <td class="flex" style="gap:6px">
+        <button class="btn btn-fantome btn-petit" onclick='ouvrirSaison(${JSON.stringify(s).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerSaison('${s.id}',${!s.actif})">${s.actif?'🚫':'✅'}</button>
+        <button class="btn btn-fantome btn-petit" onclick="supprimerSaison('${s.id}')">🗑️</button>
+      </td></tr>`).join('')}</table></div>`
+    : '<p class="muet petit">Aucune saison. Vos prix restent identiques toute l\'année.</p>';
+}
+function ouvrirSaison(s){
+  saisonEnCours = s || null;
+  document.getElementById('titreModaleSaison').textContent = s ? 'Modifier la saison' : 'Ajouter une saison';
+  saNom.value = s?s.nom:''; saDebut.value = s?s.debut:''; saFin.value = s?s.fin:'';
+  saType.value = s?s.type:'pourcentage'; saValeur.value = s?s.valeur:0;
+  document.getElementById('voileSaison').classList.add('ouvert');
+}
+async function enregistrerSaison(){
+  const corps = { nom:saNom.value.trim(), debut:saDebut.value, fin:saFin.value,
+                  type:saType.value, valeur:+saValeur.value||0 };
+  if (!corps.nom || !corps.debut || !corps.fin) { toast('Nom, début et fin obligatoires.'); return; }
+  try {
+    if (saisonEnCours) await api('/api/mon-entreprise/saisons/'+saisonEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/saisons','POST',corps);
+    fermer('voileSaison'); toast('Saison enregistrée.'); chargerSaisons();
+  } catch(e){ toast(e.message); }
+}
+async function basculerSaison(id, actif){ await api('/api/mon-entreprise/saisons/'+id,'PUT',{actif}); chargerSaisons(); }
+async function supprimerSaison(id){
+  if (!confirm('Supprimer cette saison ?')) return;
+  await api('/api/mon-entreprise/saisons/'+id,'DELETE'); toast('Saison supprimée.'); chargerSaisons();
+}
+
+async function chargerPlanning(){
+  const debut = document.getElementById('planDebut').value || new Date().toISOString().slice(0,10);
+  const r = await api(`/api/mon-entreprise/occupation?debut=${debut}&jours=14`);
+  const z = document.getElementById('grillePlanning');
+  if (!r.chambres.length) { z.innerHTML = '<p class="muet petit">Aucune chambre enregistrée.</p>'; return; }
+  z.innerHTML = `<table class="planning"><tr><th>Chambre</th>${r.dates.map(d =>
+    `<th class="petit" style="text-align:center">${d.slice(8)}/${d.slice(5,7)}</th>`).join('')}</tr>
+    ${r.chambres.map(c => `<tr><td><strong class="petit">${ech(c.nom)}</strong><br><span class="petit muet">${c.quantite} ch.</span></td>
+      ${c.occupation.map(o => `<td class="case-occ ${o.libres===0?'complet':(o.pris?'partiel':'libre')}" title="${o.jour} — ${o.libres} libre(s)">${o.libres}</td>`).join('')}
+    </tr>`).join('')}</table>`;
+}
+
+async function chargerHotel(){
+  const h = await api('/api/mon-entreprise/hotel');
+  hoCheckin.value = h.checkin||''; hoCheckout.value = h.checkout||'';
+  hoMin.value = h.sejourMin||0; hoMax.value = h.sejourMax||0;
+  hoTaux.value = h.tauxTaxe||0; hoTaxeNuit.value = h.taxeSejour||0; hoAcompte.value = h.acompte||0;
+  hoDelai.value = h.delaiAnnulation||0; hoAnnulation.value = h.annulation||''; hoConditions.value = h.conditions||'';
+  hoAnimaux.checked = !!h.animaux; hoFumeur.checked = !!h.fumeur;
+  [hoAnimaux, hoFumeur].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+}
+async function enregistrerHotel(){
+  if (+hoMax.value && +hoMin.value && +hoMax.value < +hoMin.value) {
+    toast('Le séjour maximum doit être supérieur au minimum.'); return;
+  }
+  try {
+    await api('/api/mon-entreprise/hotel','PUT',{
+      checkin:hoCheckin.value, checkout:hoCheckout.value,
+      sejourMin:+hoMin.value||0, sejourMax:+hoMax.value||0,
+      tauxTaxe:+hoTaux.value||0, taxeSejour:+hoTaxeNuit.value||0, acompte:+hoAcompte.value||0,
+      delaiAnnulation:+hoDelai.value||0, annulation:hoAnnulation.value.trim(),
+      conditions:hoConditions.value.trim(), animaux:hoAnimaux.checked, fumeur:hoFumeur.checked });
+    toast('Politiques enregistrées.');
   } catch(e){ toast(e.message); }
 }
 

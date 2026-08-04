@@ -1,6 +1,7 @@
 // 🌐 Traductions Français / Kreyòl Ayisyen
 const translations = {
   fr: {
+    'sejour.plan': 'Formule',
     'ent.services': 'Services',
     'sejour.verifier': 'Vérifier la disponibilité',
     'panier.paiement': 'Paiement',
@@ -265,6 +266,7 @@ const translations = {
   },
   
   ht: {
+    'sejour.plan': 'Fòmil',
     'ent.services': 'Sèvis',
     'sejour.verifier': 'Verifye disponiblite',
     'panier.paiement': 'Peyman',

@@ -176,6 +176,7 @@
     <section class="carte" id="carteChambres" style="display:none"><div class="carte-corps">
       <h2 style="font-size:19px">🛏️ Chambres & Séjours</h2>
       <div id="listeChambres" class="mt"></div>
+      <div id="politiquesHotel" class="petit muet mt"></div>
       <div class="mt" style="border-top:1px solid var(--bordure);padding-top:16px">
         <h3 style="font-size:15px;margin-bottom:10px">Réserver un séjour</h3>
         <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
@@ -186,6 +187,10 @@
         <select id="sjChambre"></select>
         <label>Nombre de personnes</label>
         <input type="number" id="sjPersonnes" min="1" value="2">
+        <div id="blocPlans" style="display:none">
+          <label data-i18n="sejour.plan">Formule</label>
+          <select id="sjPlan"></select>
+        </div>
         <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="verifierSejour()" data-i18n="sejour.verifier">Vérifier la disponibilité</button>
         <div id="sjDispo" class="mt"></div>
         <div id="sjCoordonnees" style="display:none">
@@ -802,11 +807,47 @@ function refEquip(cle){
     const auj = new Date(), dem = new Date(Date.now() + 86400000);
     document.getElementById('sjArrivee').min = auj.toISOString().slice(0,10);
     document.getElementById('sjDepart').min = dem.toISOString().slice(0,10);
-    ['sjArrivee','sjDepart','sjChambre','sjPersonnes'].forEach((id) => {
+    document.getElementById('sjChambre').addEventListener('change', dessinerPlans);
+    dessinerPlans(); dessinerPolitiques();
+    ['sjArrivee','sjDepart','sjChambre','sjPersonnes','sjPlan'].forEach((id) => {
       const el = document.getElementById(id);
       el.addEventListener('change', verifierSejour);
       el.addEventListener('input', verifierSejour);
     });
+  }
+
+
+  // ---- Politiques de l'établissement, visibles avant de réserver ----
+  function dessinerPolitiques(){
+    const h = ent.hotel || {}, lg = (localStorage.getItem('langue') || 'fr');
+    const l = [];
+    if (h.checkin || h.checkout)
+      l.push(`🕐 ${lg==='ht'?'Arive':'Arrivée'} ${h.checkin || '—'} · ${lg==='ht'?'Depa':'Départ'} ${h.checkout || '—'}`);
+    if (h.sejourMin) l.push(`📅 ${lg==='ht'?'Minimòm':'Minimum'} ${h.sejourMin} ${lg==='ht'?'nwit':'nuit(s)'}`);
+    if (h.acompte) l.push(`💳 ${lg==='ht'?'Depo':'Acompte'} ${h.acompte} %`);
+    if (h.delaiAnnulation) l.push(`↩️ ${lg==='ht'?'Anilasyon gratis jiska':'Annulation gratuite jusqu\'à'} ${h.delaiAnnulation} ${lg==='ht'?'jou anvan':'jours avant'}`);
+    if (h.animaux) l.push('🐕 ' + (lg==='ht'?'Bèt aksepte':'Animaux acceptés'));
+    const z = document.getElementById('politiquesHotel');
+    if (!z) return;
+    z.innerHTML = (l.length ? `<div class="puces-equip">${l.map(x => `<span class="puce-equip">${ech(x)}</span>`).join('')}</div>` : '')
+      + (h.annulation ? `<p style="margin-top:8px">${ech(h.annulation)}</p>` : '')
+      + (h.conditions ? `<p style="margin-top:4px">${ech(h.conditions)}</p>` : '');
+  }
+  // Plans tarifaires proposés pour la chambre choisie
+  function dessinerPlans(){
+    const idCh = document.getElementById('sjChambre').value;
+    const plans = (ent.tarifs || []).filter(x => !x.chambreId || x.chambreId === idCh);
+    const bloc = document.getElementById('blocPlans'), sel = document.getElementById('sjPlan');
+    if (!plans.length) { bloc.style.display = 'none'; sel.innerHTML = ''; return; }
+    const lg = (localStorage.getItem('langue') || 'fr');
+    bloc.style.display = '';
+    sel.innerHTML = plans.map(x => {
+      const bits = [];
+      if (x.prixNuit) bits.push((+x.prixNuit).toLocaleString('fr-HT') + ' HTG/' + (lg==='ht'?'nwit':'nuit'));
+      if (x.petitDejeuner) bits.push(lg==='ht'?'ti dejene':'petit-déjeuner');
+      if (!x.remboursable) bits.push(lg==='ht'?'pa ranbousab':'non remboursable');
+      return `<option value="${x.id}">${ech(x.nom)}${bits.length?' — '+ech(bits.join(', ')):''}</option>`;
+    }).join('');
   }
 
   window.verifierSejour = async () => {
@@ -832,9 +873,20 @@ function refEquip(cle){
     }
     zone.innerHTML = `<p class="petit muet">${lg==='ht'?'Ap verifye…':'Vérification…'}</p>`;
     try {
-      const r = await api(`/api/disponibilites-sejour?slug=${slug}&chambre=${document.getElementById('sjChambre').value}&arrivee=${a}&depart=${d}`);
+      const plan = document.getElementById('sjPlan').value;
+      const r = await api(`/api/disponibilites-sejour?slug=${slug}&chambre=${document.getElementById('sjChambre').value}&arrivee=${a}&depart=${d}${plan?'&plan='+plan:''}`);
       if (r.disponible) {
-        zone.innerHTML = `<div style="background:#D1FADF;border-radius:10px;padding:12px 14px" class="petit">✅ <strong>Disponible</strong> — ${r.nuits} nuit${r.nuits>1?'s':''} × ${(+r.prixNuit).toLocaleString('fr-HT')} HTG = <strong>${(+r.prixTotal).toLocaleString('fr-HT')} HTG</strong> <span class="muet">(paiement sur place)</span></div>`;
+        const saisons = [...new Set((r.detail||[]).map(x => x.saison).filter(Boolean))];
+        zone.innerHTML = `<div style="background:#D1FADF;border-radius:10px;padding:14px" class="petit">
+          <strong>✅ ${lg==='ht'?'Disponib':'Disponible'}</strong>${r.plan?` — ${ech(r.plan.nom)}`:''}
+          <div class="recap" style="background:rgba(255,255,255,.6);margin-top:10px">
+            <div><span>${r.nuits} ${lg==='ht'?'nwit':'nuit(s)'}${saisons.length?` (${ech(saisons.join(', '))})`:''}</span><span>${(+r.sousTotal).toLocaleString('fr-HT')} HTG</span></div>
+            ${(r.taxes||[]).map(tx => `<div><span>${ech(tx.nom)}</span><span>${(+tx.montant).toLocaleString('fr-HT')} HTG</span></div>`).join('')}
+            <div class="total"><span>Total</span><span>${(+r.total).toLocaleString('fr-HT')} HTG</span></div>
+            ${r.acompte?`<div style="color:#07684A;font-weight:700"><span>${lg==='ht'?'Depo pou peye':'Acompte à régler'} (${r.pourcentageAcompte} %)</span><span>${(+r.acompte).toLocaleString('fr-HT')} HTG</span></div>`:''}
+          </div>
+          ${r.plan && !r.plan.remboursable ? `<p style="margin-top:8px;color:#C4520E;font-weight:700">⚠ ${lg==='ht'?'Fòmil sa a pa ranbousab.':'Cette formule n\'est pas remboursable.'}</p>` : ''}
+        </div>`;
         coord.style.display = '';
       } else {
         zone.innerHTML = `<div style="background:#FEE4E2;border-radius:10px;padding:12px 14px" class="petit">❌ Complet sur ces dates. Essayez d'autres dates ou un autre type de chambre.</div>`;
@@ -851,6 +903,7 @@ function refEquip(cle){
         slug, chambreId: document.getElementById('sjChambre').value,
         arrivee: document.getElementById('sjArrivee').value, depart: document.getElementById('sjDepart').value,
         nbPersonnes: +document.getElementById('sjPersonnes').value || 1,
+        planId: document.getElementById('sjPlan').value || '',
         clientNom: nom, clientTel: tel, clientEmail: document.getElementById('sjEmail').value.trim()
       });
       document.getElementById('sjCoordonnees').style.display = 'none';

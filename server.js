@@ -290,6 +290,66 @@ function publicEntreprise(e) {
 const JOURS = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
 // ---------------- Séjours (chambres d'hôtel) ----------------
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// ================= Gestion hôtelière : tarification =================
+// Un plan tarifaire est une façon de vendre la même chambre : tarif standard,
+// non remboursable moins cher, ou avec petit-déjeuner. Une saison ajuste ces
+// prix sur une période. Les taxes et l'acompte sont réglés par l'établissement.
+
+/** Saison applicable à une date donnée (la plus récemment créée l'emporte). */
+function saisonPour(entrepriseId, date) {
+  return db.saisons
+    .filter((s) => s.entrepriseId === entrepriseId && s.actif && date >= s.debut && date <= s.fin)
+    .sort((a, b) => b.creeLe.localeCompare(a.creeLe))[0] || null;
+}
+
+/** Liste des dates d'un séjour (la nuit de départ n'est pas facturée). */
+function nuitsDu(arrivee, depart) {
+  const out = [];
+  const d = new Date(arrivee + 'T00:00:00Z'), fin = new Date(depart + 'T00:00:00Z');
+  while (d < fin) { out.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
+  return out;
+}
+
+/**
+ * Devis complet d'un séjour, nuit par nuit.
+ * Le détail est renvoyé pour que le client voie ce qu'il paie.
+ */
+function devisSejour(e, chambre, plan, arrivee, depart) {
+  const nuits = nuitsDu(arrivee, depart);
+  const base = plan && plan.prixNuit > 0 ? plan.prixNuit : chambre.prixNuit;
+  const detail = nuits.map((date) => {
+    const s = saisonPour(e.id, date);
+    let prix = base;
+    if (s) prix = s.type === 'pourcentage' ? Math.round(base * (1 + s.valeur / 100)) : Math.max(0, base + s.valeur);
+    return { date, prix, saison: s ? s.nom : '' };
+  });
+  const sousTotal = detail.reduce((n, x) => n + x.prix, 0);
+  const h = e.hotel || {};
+  const taxes = [];
+  if (h.taxeSejour > 0) taxes.push({ nom: 'Taxe de séjour', montant: Math.round(h.taxeSejour * nuits.length) });
+  if (h.tauxTaxe > 0) taxes.push({ nom: `Taxes (${h.tauxTaxe}%)`, montant: Math.round(sousTotal * h.tauxTaxe / 100) });
+  const totalTaxes = taxes.reduce((n, x) => n + x.montant, 0);
+  const total = sousTotal + totalTaxes;
+  const pctAcompte = Math.max(0, Math.min(+h.acompte || 0, 100));
+  return {
+    nuits: nuits.length, detail, base, sousTotal, taxes, totalTaxes, total,
+    plan: plan ? { id: plan.id, nom: plan.nom, remboursable: plan.remboursable, petitDejeuner: plan.petitDejeuner } : null,
+    acompte: pctAcompte ? Math.round(total * pctAcompte / 100) : 0,
+    pourcentageAcompte: pctAcompte
+  };
+}
+
+/** Contrôle des règles de vente : séjour minimum et délai de réservation. */
+function verifierRegles(e, arrivee, depart) {
+  const h = e.hotel || {};
+  const n = nbNuits(arrivee, depart);
+  if (h.sejourMin && n < h.sejourMin)
+    return `Séjour minimum de ${h.sejourMin} nuit${h.sejourMin > 1 ? 's' : ''}.`;
+  if (h.sejourMax && n > h.sejourMax)
+    return `Séjour maximum de ${h.sejourMax} nuits.`;
+  return null;
+}
+
 function nbNuits(arrivee, depart) {
   return Math.round((new Date(depart + 'T12:00:00Z') - new Date(arrivee + 'T12:00:00Z')) / 86400000);
 }
@@ -432,9 +492,16 @@ async function api(req, res, url) {
     return json(res, 200, {
       ...publicEntreprise(e),
       services: db.services.filter((s) => s.entrepriseId === e.id && s.actif),
-      chambres: db.chambres.filter((c) => c.entrepriseId === e.id && c.actif).map((c) => ({ id: c.id, nom: c.nom, description: c.description, prixNuit: c.prixNuit, capacite: c.capacite, quantite: c.quantite, photo: c.photo || '', equipements: c.equipements || [] })),
+      chambres: db.chambres.filter((c) => c.entrepriseId === e.id && c.actif).map((c) => ({ id: c.id, nom: c.nom, description: c.description, prixNuit: c.prixNuit, capacite: c.capacite, quantite: c.quantite, photo: c.photo || '', equipements: c.equipements || [],
+                       adultes: c.adultes ?? c.capacite, enfants: c.enfants ?? 0 })),
       carte: db.carte.filter((a) => a.entrepriseId === e.id && a.disponible).map((a) => ({ id: a.id, nom: a.nom, description: a.description, categorie: a.categorie, prix: a.prix, volume: a.volume || '', photo: a.photo || '' })),
       equipementsRef: EQUIPEMENTS,
+      hotel: metiers.aModule(e, 'hotellerie') ? (e.hotel || {}) : null,
+      tarifs: metiers.aModule(e, 'hotellerie')
+        ? db.tarifs.filter((x) => x.entrepriseId === e.id && x.actif)
+            .map((x) => ({ id: x.id, nom: x.nom, description: x.description, chambreId: x.chambreId,
+                           prixNuit: x.prixNuit, remboursable: x.remboursable, petitDejeuner: x.petitDejeuner }))
+        : [],
       inclusRef: INCLUS,
       produits: metiers.aModule(e, 'catalogue')
         ? db.produits.filter((x) => x.entrepriseId === e.id && x.disponible && (x.stock === null || x.stock > 0))
@@ -473,9 +540,12 @@ async function api(req, res, url) {
     const arrivee = q.get('arrivee'), depart = q.get('depart');
     const errPeriode = validerPeriode(arrivee, depart);
     if (errPeriode) return json(res, 400, { erreur: errPeriode });
+    const errRegle = verifierRegles(e, arrivee, depart);
+    if (errRegle) return json(res, 400, { erreur: errRegle });
     const restantes = chambresRestantes(c, arrivee, depart);
-    const nuits = nbNuits(arrivee, depart);
-    return json(res, 200, { disponible: restantes > 0, restantes, nuits, prixNuit: c.prixNuit, prixTotal: nuits * c.prixNuit });
+    const plan = q.get('plan') ? db.tarifs.find((x) => x.id === q.get('plan') && x.entrepriseId === e.id && x.actif) : null;
+    const devis = devisSejour(e, c, plan, arrivee, depart);
+    return json(res, 200, Object.assign({ disponible: restantes > 0, restantes, prixNuit: devis.base, prixTotal: devis.total }, devis));
   }
 
   // ---- Paiement d'une réservation ----
@@ -641,14 +711,21 @@ async function api(req, res, url) {
     const demandes = Math.max(1, +corps.nbPersonnes || 1);
     if (c.capacite && demandes > c.capacite)
       return json(res, 400, { erreur: `Cette chambre accueille ${c.capacite} personne${c.capacite > 1 ? 's' : ''} au maximum. Choisissez un autre type de chambre.` });
-    const nuits = nbNuits(corps.arrivee, corps.depart);
+    const errRegle = verifierRegles(e, corps.arrivee, corps.depart);
+    if (errRegle) return json(res, 400, { erreur: errRegle });
+    const plan = corps.planId ? db.tarifs.find((x) => x.id === corps.planId && x.entrepriseId === e.id && x.actif) : null;
+    const devis = devisSejour(e, c, plan, corps.arrivee, corps.depart);
+    const nuits = devis.nuits;
     const sejour = {
       id: store.uid(), entrepriseId: e.id, chambreId: c.id,
       clientNom: String(corps.clientNom).slice(0, 80), clientTel: String(corps.clientTel).slice(0, 20),
       clientEmail: String(corps.clientEmail || '').slice(0, 120),
       arrivee: corps.arrivee, depart: corps.depart, nuits,
       nbPersonnes: demandes,
-      prixTotal: nuits * c.prixNuit, statut: 'en_attente', creeLe: new Date().toISOString()
+      planId: plan ? plan.id : '', planNom: plan ? plan.nom : '',
+      sousTotal: devis.sousTotal, taxes: devis.taxes, totalTaxes: devis.totalTaxes,
+      acompte: devis.acompte, detailNuits: devis.detail,
+      prixTotal: devis.total, statut: 'en_attente', creeLe: new Date().toISOString()
     };
     db.sejours.push(sejour);
     notifier(e.id, 'nouveau_sejour', `Nouveau séjour : ${sejour.clientNom} — ${c.nom}, du ${sejour.arrivee} au ${sejour.depart} (${nuits} nuit${nuits > 1 ? 's' : ''})`);
@@ -934,6 +1011,135 @@ async function api(req, res, url) {
       return json(res, 403, { erreur: 'Le module Restaurant & Bar n\'est pas disponible pour votre type d\'activité.' });
     if (p.startsWith('/api/mon-entreprise/chambres') && !metiers.aModule(e, 'hotellerie'))
       return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
+
+    // ================= Gestion hôtelière =================
+    if ((p.startsWith('/api/mon-entreprise/tarifs') || p.startsWith('/api/mon-entreprise/saisons')
+         || p.startsWith('/api/mon-entreprise/hotel')) && !metiers.aModule(e, 'hotellerie'))
+      return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas activé.' });
+
+    // ---- Politiques de l'établissement ----
+    if (p === '/api/mon-entreprise/hotel' && req.method === 'GET')
+      return json(res, 200, e.hotel || {});
+
+    if (p === '/api/mon-entreprise/hotel' && req.method === 'PUT') {
+      const h = e.hotel || {};
+      if (corps.checkin !== undefined) h.checkin = String(corps.checkin).slice(0, 5);
+      if (corps.checkout !== undefined) h.checkout = String(corps.checkout).slice(0, 5);
+      if (corps.sejourMin !== undefined) h.sejourMin = Math.max(0, Math.min(+corps.sejourMin || 0, 60));
+      if (corps.sejourMax !== undefined) h.sejourMax = Math.max(0, Math.min(+corps.sejourMax || 0, 365));
+      if (corps.tauxTaxe !== undefined) h.tauxTaxe = Math.max(0, Math.min(+corps.tauxTaxe || 0, 50));
+      if (corps.taxeSejour !== undefined) h.taxeSejour = Math.max(0, Math.min(+corps.taxeSejour || 0, 100000));
+      if (corps.acompte !== undefined) h.acompte = Math.max(0, Math.min(+corps.acompte || 0, 100));
+      if (corps.annulation !== undefined) h.annulation = String(corps.annulation).slice(0, 400);
+      if (corps.delaiAnnulation !== undefined) h.delaiAnnulation = Math.max(0, Math.min(+corps.delaiAnnulation || 0, 90));
+      if (corps.conditions !== undefined) h.conditions = String(corps.conditions).slice(0, 600);
+      if (corps.animaux !== undefined) h.animaux = !!corps.animaux;
+      if (corps.fumeur !== undefined) h.fumeur = !!corps.fumeur;
+      e.hotel = h; store.save(); return json(res, 200, h);
+    }
+
+    // ---- Plans tarifaires ----
+    if (p === '/api/mon-entreprise/tarifs' && req.method === 'GET')
+      return json(res, 200, db.tarifs.filter((x) => x.entrepriseId === e.id));
+
+    if (p === '/api/mon-entreprise/tarifs' && req.method === 'POST') {
+      if (!corps.nom) return json(res, 400, { erreur: 'Le nom du plan est obligatoire.' });
+      const tf = {
+        id: store.uid(), entrepriseId: e.id,
+        nom: String(corps.nom).slice(0, 70),
+        description: String(corps.description || '').slice(0, 300),
+        chambreId: String(corps.chambreId || '').slice(0, 40),   // vide = toutes les chambres
+        prixNuit: Math.max(0, +corps.prixNuit || 0),             // 0 = prix de la chambre
+        remboursable: corps.remboursable === undefined ? true : !!corps.remboursable,
+        petitDejeuner: !!corps.petitDejeuner,
+        actif: corps.actif === undefined ? true : !!corps.actif,
+        creeLe: new Date().toISOString()
+      };
+      db.tarifs.push(tf); store.save(); return json(res, 200, tf);
+    }
+
+    const mTar = p.match(/^\/api\/mon-entreprise\/tarifs\/(\w+)$/);
+    if (mTar) {
+      const tf = db.tarifs.find((x) => x.id === mTar[1] && x.entrepriseId === e.id);
+      if (!tf) return json(res, 404, { erreur: 'Plan tarifaire introuvable' });
+      if (req.method === 'PUT') {
+        if (corps.nom) tf.nom = String(corps.nom).slice(0, 70);
+        if (corps.description !== undefined) tf.description = String(corps.description).slice(0, 300);
+        if (corps.chambreId !== undefined) tf.chambreId = String(corps.chambreId).slice(0, 40);
+        if (corps.prixNuit !== undefined) tf.prixNuit = Math.max(0, +corps.prixNuit || 0);
+        if (corps.remboursable !== undefined) tf.remboursable = !!corps.remboursable;
+        if (corps.petitDejeuner !== undefined) tf.petitDejeuner = !!corps.petitDejeuner;
+        if (corps.actif !== undefined) tf.actif = !!corps.actif;
+        store.save(); return json(res, 200, tf);
+      }
+      if (req.method === 'DELETE') {
+        db.tarifs = db.tarifs.filter((x) => x !== tf);
+        store.save(); return json(res, 200, { ok: true });
+      }
+    }
+
+    // ---- Saisons tarifaires ----
+    if (p === '/api/mon-entreprise/saisons' && req.method === 'GET')
+      return json(res, 200, db.saisons.filter((x) => x.entrepriseId === e.id)
+        .sort((a, b) => a.debut.localeCompare(b.debut)));
+
+    if (p === '/api/mon-entreprise/saisons' && req.method === 'POST') {
+      if (!corps.nom || !corps.debut || !corps.fin) return json(res, 400, { erreur: 'Nom, début et fin obligatoires.' });
+      if (corps.fin < corps.debut) return json(res, 400, { erreur: 'La date de fin doit suivre la date de début.' });
+      const s = {
+        id: store.uid(), entrepriseId: e.id,
+        nom: String(corps.nom).slice(0, 60),
+        debut: String(corps.debut).slice(0, 10), fin: String(corps.fin).slice(0, 10),
+        type: corps.type === 'montant' ? 'montant' : 'pourcentage',
+        valeur: Math.max(-100000, Math.min(+corps.valeur || 0, 100000)),
+        actif: corps.actif === undefined ? true : !!corps.actif,
+        creeLe: new Date().toISOString()
+      };
+      db.saisons.push(s); store.save(); return json(res, 200, s);
+    }
+
+    const mSai = p.match(/^\/api\/mon-entreprise\/saisons\/(\w+)$/);
+    if (mSai) {
+      const s = db.saisons.find((x) => x.id === mSai[1] && x.entrepriseId === e.id);
+      if (!s) return json(res, 404, { erreur: 'Saison introuvable' });
+      if (req.method === 'PUT') {
+        if (corps.nom) s.nom = String(corps.nom).slice(0, 60);
+        if (corps.debut) s.debut = String(corps.debut).slice(0, 10);
+        if (corps.fin) s.fin = String(corps.fin).slice(0, 10);
+        if (s.fin < s.debut) return json(res, 400, { erreur: 'La date de fin doit suivre la date de début.' });
+        if (corps.type !== undefined) s.type = corps.type === 'montant' ? 'montant' : 'pourcentage';
+        if (corps.valeur !== undefined) s.valeur = Math.max(-100000, Math.min(+corps.valeur || 0, 100000));
+        if (corps.actif !== undefined) s.actif = !!corps.actif;
+        store.save(); return json(res, 200, s);
+      }
+      if (req.method === 'DELETE') {
+        db.saisons = db.saisons.filter((x) => x !== s);
+        store.save(); return json(res, 200, { ok: true });
+      }
+    }
+
+    // ---- Planning d'occupation ----
+    if (p === '/api/mon-entreprise/occupation' && req.method === 'GET') {
+      if (!metiers.aModule(e, 'hotellerie')) return json(res, 403, { erreur: 'Module non activé.' });
+      const debut = q.get('debut') || new Date().toISOString().slice(0, 10);
+      const jours = Math.max(1, Math.min(+q.get('jours') || 14, 60));
+      const chambres = db.chambres.filter((c) => c.entrepriseId === e.id && c.actif);
+      const dates = [];
+      const d = new Date(debut + 'T00:00:00Z');
+      for (let i = 0; i < jours; i++) { dates.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
+      return json(res, 200, {
+        dates,
+        chambres: chambres.map((c) => ({
+          id: c.id, nom: c.nom, quantite: c.quantite,
+          occupation: dates.map((jour) => {
+            const pris = db.sejours.filter((s) => s.chambreId === c.id
+              && ['en_attente', 'confirme'].includes(s.statut)
+              && s.arrivee <= jour && s.depart > jour).length;
+            return { jour, pris, libres: Math.max(0, c.quantite - pris) };
+          })
+        }))
+      });
+    }
 
     // ================= Vente : réglages de remise =================
     if (p.startsWith('/api/mon-entreprise/vente') && !metiers.aModule(e, 'commandes'))
