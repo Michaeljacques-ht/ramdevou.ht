@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const store = require('./lib/db');
-const plopplop = require('./plopplop.js');
+const plopplop = require('./lib/passerelle.js');
 const metiers = require('./lib/metiers.js');
 const taksi = require('./lib/taksi.js');
 
@@ -766,6 +766,58 @@ async function api(req, res, url) {
     // Notification WhatsApp uniquement (les emails clients ont été retirés)
     envoyerWhatsApp(rdv.clientTel, 'rdv_recu', [rdv.clientNom, e.nom, s.nom, rdv.date, rdv.heure]);
     return json(res, 200, { ok: true, reference: rdv.id, entreprise: e.nom, service: s.nom, date: rdv.date, heure: rdv.heure, whatsapp: e.whatsapp });
+  }
+
+  // ---- Boutique en ligne : catalogue commun à tous les vendeurs ----
+  if (p === '/api/boutique' && req.method === 'GET') {
+    const recherche = (q.get('q') || '').toLowerCase().trim();
+    const rayon = q.get('rayon') || '';
+    const ville = (q.get('ville') || '').toLowerCase().trim();
+    const tri = q.get('tri') || '';
+    const lat0 = Number(q.get('lat')), lng0 = Number(q.get('lng'));
+
+    const vendeurs = db.entreprises.filter((e) => e.statut === 'approuvee' && metiers.aModule(e, 'catalogue'));
+    let articles = [];
+    for (const e of vendeurs) {
+      if (ville && !String(e.adresse || '').toLowerCase().includes(ville)) continue;
+      const v = e.vente || {};
+      const peutCommander = metiers.aModule(e, 'commandes') && !!v.commandesActives;
+      const distance = (Number.isFinite(lat0) && Number.isFinite(lng0) && e.latitude != null && e.longitude != null)
+        ? Math.round(distanceKm(lat0, lng0, e.latitude, e.longitude) * 10) / 10 : null;
+      for (const pr of db.produits) {
+        if (pr.entrepriseId !== e.id || !pr.disponible) continue;
+        if (pr.stock !== null && pr.stock <= 0) continue;   // un produit épuisé n'est pas exposé
+        if (rayon && pr.rayon !== rayon) continue;
+        if (recherche && !(`${pr.nom} ${pr.description} ${pr.marque} ${pr.rayon}`.toLowerCase().includes(recherche))) continue;
+        articles.push({
+          id: pr.id, nom: pr.nom, description: pr.description, rayon: pr.rayon, marque: pr.marque,
+          prix: pr.prix, prixPromo: pr.prixPromo, unite: pr.unite, photo: pr.photo || '',
+          stockFaible: pr.stock !== null && pr.stock <= Math.max(pr.seuilAlerte, 3),
+          vendeur: {
+            slug: e.slug, nom: e.nom, adresse: e.adresse || '', whatsapp: e.whatsapp || '',
+            telephone: e.telephone || '', logoTexte: e.logoTexte || '', couleur: e.couleur || '#2563EB',
+            distanceKm: distance,
+            // Ce que l'acheteur peut faire chez ce vendeur
+            commande: peutCommander,
+            cueillette: peutCommander && !!v.cueillette,
+            livraison: peutCommander && !!v.livraison
+          }
+        });
+      }
+    }
+    const prixDe = (a) => (a.prixPromo > 0 ? a.prixPromo : a.prix);
+    if (tri === 'prix') articles.sort((a, b) => prixDe(a) - prixDe(b));
+    else if (tri === 'prix_desc') articles.sort((a, b) => prixDe(b) - prixDe(a));
+    else if (tri === 'proche') articles.sort((a, b) => (a.vendeur.distanceKm ?? 1e9) - (b.vendeur.distanceKm ?? 1e9));
+    else articles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+
+    const rayons = [...new Set(articles.map((a) => a.rayon).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    return json(res, 200, {
+      articles: articles.slice(0, 300),
+      total: articles.length,
+      rayons,
+      vendeurs: vendeurs.length
+    });
   }
 
   // ---- Passer une commande (public, sans compte) ----

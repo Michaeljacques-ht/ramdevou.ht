@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entreprise — Randevou.ht</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root { --marque: #2563EB; --marque2: #F59E0B; }
+.banniere-ent { height: 210px; background: linear-gradient(130deg, var(--marque), var(--marque2)); position: relative; }
+.entete-ent { max-width: 980px; margin: -64px auto 0; padding: 0 20px; position: relative; }
+.carte-entete { background: #fff; border-radius: 18px; box-shadow: 0 10px 34px rgba(16,24,40,.12); padding: 22px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.logo-ent { width: 84px; height: 84px; border-radius: 18px; background: var(--marque); color: #fff; display: grid; place-items: center; font-size: 30px; font-weight: 800; flex-shrink: 0; }
+.corps-page { max-width: 980px; margin: 26px auto 60px; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 860px) { .corps-page { grid-template-columns: 1fr; } }
+.ligne-service { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--bordure); }
+.ligne-service:last-child { border-bottom: none; }
+.etapes-resa { display: flex; gap: 6px; margin-bottom: 18px; }
+.etapes-resa .pas { flex: 1; height: 5px; border-radius: 99px; background: var(--bordure); }
+.etapes-resa .pas.fait { background: var(--marque); }
+.creneaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin-top: 12px; }
+.creneau { padding: 9px 4px; border: 1px solid var(--bordure); border-radius: 9px; background: #fff; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600; text-align: center; }
+.creneau:hover { border-color: var(--marque); }
+.creneau.choisi { background: var(--marque); color: #fff; border-color: var(--marque); }
+.recap { background: var(--gris-clair); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+.recap div { display: flex; justify-content: space-between; padding: 3px 0; }
+.horaires-liste div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13.5px; }
+.ico-partage { width: 18px; height: 18px; object-fit: contain; vertical-align: middle; display: block; }
+.puces-equip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.puce-equip { display: inline-flex; align-items: center; gap: 5px; background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.onglets-menu { display: flex; gap: 7px; flex-wrap: wrap; }
+.onglet-menu { border: 1.5px solid var(--bordure); background: #fff; border-radius: var(--r-pilule); padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); cursor: pointer; }
+.onglet-menu:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+.onglet-menu.on { background: var(--degrade); border-color: transparent; color: #fff; }
+.ligne-menu { display: flex; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--bordure); align-items: flex-start; }
+.ligne-menu:last-child { border-bottom: none; }
+.prix-menu { font-weight: 800; color: var(--marine); white-space: nowrap; }
+.badge-resort { background: linear-gradient(90deg, #0B2C6B, #F26B21); color: #fff; letter-spacing: .06em; }
+.puce-inclus { display: inline-flex; align-items: center; gap: 5px; background: var(--orange-fond); color: #C4520E; border-radius: 99px; padding: 4px 12px; font-size: 12.5px; font-weight: 700; }
+.mention-inclus { display: inline-block; background: var(--orange-fond); color: #C4520E; border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.ligne-info { display: flex; justify-content: space-between; gap: 14px; padding: 7px 0; border-bottom: 1px solid var(--bordure); }
+.ligne-info:last-child { border-bottom: none; }
+.etapes-suivi { display: grid; gap: 4px; margin-top: 12px; }
+.etape-suivi { display: flex; align-items: center; gap: 10px; padding: 5px 0; opacity: .45; }
+.etape-suivi.faite, .etape-suivi.active { opacity: 1; }
+.etape-suivi .pastille { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--gris-clair); color: var(--gris); flex: none; }
+.etape-suivi.faite .pastille { background: var(--vert-fond); color: #07684A; }
+.etape-suivi.active .pastille { background: var(--marque, var(--bleu)); color: #fff; }
+.etape-suivi.active span:last-child { font-weight: 700; color: var(--encre); }
+.bloc-urgence { background: linear-gradient(135deg, #B3261E 0%, #D93025 60%, #E8523F 100%); color: #fff; border-radius: var(--r-carte); padding: 20px 22px; margin-bottom: 22px; box-shadow: 0 12px 30px rgba(179,38,30,.28); }
+.bloc-urgence .badge { background: rgba(255,255,255,.22); color: #fff; }
+.bloc-urgence .badge-vert { background: rgba(255,255,255,.9); color: #07684A; }
+.actions-urgence { display: flex; gap: 9px; flex-wrap: wrap; }
+.btn-urgence { display: block; background: #fff; color: #B3261E; border-radius: var(--r-champ); padding: 12px 18px; font-weight: 700; font-size: 14px; text-align: center; line-height: 1.35; text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.16); }
+.btn-urgence:hover { text-decoration: none; transform: translateY(-1px); color: #B3261E; }
+.btn-urgence.secondaire { background: rgba(255,255,255,.16); color: #fff; border: 1.5px solid rgba(255,255,255,.5); box-shadow: none; }
+.btn-urgence.secondaire:hover { background: rgba(255,255,255,.26); color: #fff; }
+.puces-urgence { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.puce-urgence { background: rgba(255,255,255,.18); border-radius: 99px; padding: 3px 11px; font-size: 12.5px; font-weight: 600; }
+.avert-urgence { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.28); font-size: 12.5px; opacity: .95; }
+@media (max-width: 620px) { .actions-urgence { width: 100%; } .btn-urgence { flex: 1; min-width: 140px; } }
+.grille-produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(182px, 1fr)); gap: 14px; }
+.carte-produit { border: 1px solid var(--bordure); border-radius: var(--r-champ); overflow: hidden; background: #fff; display: flex; flex-direction: column; transition: box-shadow .15s, transform .15s; }
+.carte-produit:hover { box-shadow: var(--ombre); transform: translateY(-2px); }
+.img-produit { height: 118px; background-size: cover; background-position: center; background-color: var(--gris-clair); }
+.img-produit.sans { display: grid; place-items: center; font-size: 32px; opacity: .35; }
+.corps-produit { padding: 11px 12px 13px; display: flex; flex-direction: column; flex: 1; }
+.prix-produit { margin-top: auto; padding-top: 8px; font-size: 15px; color: var(--marine); }
+.bulle-panier { position: fixed; bottom: 20px; right: 20px; z-index: 90; background: var(--degrade); color: #fff; border: 0; border-radius: 99px; padding: 14px 22px; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 10px 28px rgba(11,44,107,.32); }
+.bulle-panier:hover { transform: translateY(-2px); }
+.ligne-panier { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+.ligne-panier:last-child { border-bottom: none; }
+.qte-panier { display: flex; align-items: center; gap: 6px; }
+.qte-panier button { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--bordure); background: #fff; font-weight: 800; cursor: pointer; font-family: inherit; }
+.qte-panier button:hover { border-color: var(--bleu); }
+.recap { background: var(--gris-clair); border-radius: var(--r-champ); padding: 12px 14px; }
+.recap div { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
+.recap .total { border-top: 1px solid var(--bordure); margin-top: 6px; padding-top: 8px; font-weight: 800; font-size: 16px; color: var(--marine); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Randevou.ht</a>
+    <div class="nav-droite">
+      <a class="btn btn-fantome" href="/">← Retour à l'accueil</a>
+    </div>
+  </div>
+</nav>
+
+<div class="banniere-ent"></div>
+<div class="entete-ent">
+  <div class="carte-entete" id="entete"></div>
+</div>
+
+<main class="corps-page">
+  <div id="bandeauUrgence" style="display:none"></div>
+  <div style="display:grid;gap:22px">
+    <section class="carte" id="carteServices"><div class="carte-corps">
+      <h2 style="font-size:19px" data-i18n="ent.services">Services</h2>
+      <div id="listeServices" class="mt"></div>
+    </div></section>
+
+    <section class="carte carte-signature" id="carteProgrammes" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🎓 <span data-i18n="prog.titre">Inscriptions ouvertes</span></h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="prog.intro">Choisissez un programme pour envoyer une demande d'inscription.</p>
+      <div id="listeProgrammes" class="mt"></div>
+      <div id="formInscription" style="display:none;margin-top:18px;border-top:1px solid var(--bordure);padding-top:16px">
+        <h3 style="font-size:16px" id="titreInscription"></h3>
+        <div id="docsProgramme" class="petit muet mt"></div>
+        <label data-i18n="prog.eleve">Nom complet de l'élève *</label><input id="inEleve">
+        <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label data-i18n="prog.naissance">Date de naissance</label><input id="inNaissance" type="date"></div>
+          <div><label data-i18n="prog.sexe">Sexe</label>
+            <select id="inSexe"><option value="">—</option><option value="F">F</option><option value="M">M</option></select></div>
+        </div>
+        <label data-i18n="prog.provenance">École de provenance</label><input id="inProvenance">
+        <hr style="border:none;border-top:1px solid var(--bordure);margin:16px 0 4px">
+        <label data-i18n="prog.parent">Nom du parent ou tuteur *</label><input id="inParent">
+        <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label data-i18n="prog.lien">Lien avec l'élève</label><input id="inLien" placeholder="Père, mère, tuteur"></div>
+          <div><label data-i18n="prog.tel">Téléphone (WhatsApp) *</label><input id="inTel" placeholder="Ex : 50937120000"></div>
+        </div>
+        <label data-i18n="prog.message">Message — facultatif</label><input id="inMessage">
+        <p class="champ-erreur" id="erreurInscription"></p>
+        <div class="flex" style="gap:8px">
+          <button class="btn btn-primaire" style="flex:1;background:var(--marque)" onclick="envoyerInscription()" data-i18n="prog.envoyer">Envoyer la demande</button>
+          <button class="btn btn-fantome" onclick="fermerInscription()" data-i18n="prog.annuler">Annuler</button>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="carte" id="carteSuivi" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:17px">📁 <span data-i18n="suivi.titre">Suivre mon dossier</span></h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="suivi.intro">Saisissez la référence de votre dossier et votre téléphone.</p>
+      <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div><label data-i18n="suivi.ref">Référence</label><input id="suRef" placeholder="Ex : DB62TAW"></div>
+        <div><label data-i18n="suivi.tel">Téléphone</label><input id="suTel" placeholder="Ex : 50937120000"></div>
+      </div>
+      <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="chercherDossier()" data-i18n="suivi.chercher">Consulter</button>
+      <div id="resultatSuivi" class="mt"></div>
+    </div></section>
+
+    <section class="carte" id="carteBoutique" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🛒 <span data-i18n="boutique.titre">Nos produits</span></h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="boutique.intro">Prix en gourdes. Contactez-nous pour commander ou vérifier la disponibilité.</p>
+      <div id="rayonsBoutique" class="onglets-menu mt"></div>
+      <div id="grilleProduits" class="grille-produits mt"></div>
+    </div></section>
+
+    <section class="carte" id="carteInfosMetier" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:17px" id="titreInfosMetier">Informations pratiques</h2>
+      <div id="listeInfosMetier" class="mt"></div>
+    </div></section>
+
+    <section class="carte carte-signature" id="carteResort" style="display:none"><div class="carte-corps">
+      <div class="flex" style="gap:10px;flex-wrap:wrap">
+        <h2 style="font-size:19px">🏝️ <span data-i18n="resort.titre">Séjour tout inclus</span></h2>
+        <span class="badge badge-resort" data-i18n="resort.badge">TOUT INCLUS</span>
+      </div>
+      <p class="petit muet" style="margin-top:6px" data-i18n="resort.intro">Ces prestations sont comprises dans le prix de la nuit.</p>
+      <div id="listeInclus" class="puces-equip" style="margin-top:12px"></div>
+      <p class="petit muet" id="noteFormule" style="margin-top:10px"></p>
+    </div></section>
+
+    <section class="carte" id="carteMenu" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🍽️ Restaurant &amp; Bar</h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="menu.intro">Notre carte du jour. Les prix sont en gourdes.</p>
+      <div id="ongletsMenu" class="onglets-menu mt"></div>
+      <div id="listeMenu" class="mt"></div>
+    </div></section>
+
+    <section class="carte" id="carteChambres" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🛏️ <span data-i18n="hotel.titre">Chambres, séjours &amp; services</span></h2>
+      <div id="listeChambres" class="mt"></div>
+      <div id="servicesHotel" class="mt"></div>
+      <div id="politiquesHotel" class="petit muet mt"></div>
+      <div class="mt" style="border-top:1px solid var(--bordure);padding-top:16px">
+        <h3 style="font-size:15px;margin-bottom:10px">Réserver un séjour</h3>
+        <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label>Arrivée</label><input type="date" id="sjArrivee"></div>
+          <div><label>Départ</label><input type="date" id="sjDepart"></div>
+        </div>
+        <label>Type de chambre</label>
+        <select id="sjChambre"></select>
+        <label>Nombre de personnes</label>
+        <input type="number" id="sjPersonnes" min="1" value="2">
+        <div id="blocPlans" style="display:none">
+          <label data-i18n="sejour.plan">Formule</label>
+          <select id="sjPlan"></select>
+        </div>
+        <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="verifierSejour()" data-i18n="sejour.verifier">Vérifier la disponibilité</button>
+        <div id="sjDispo" class="mt"></div>
+        <div id="sjCoordonnees" style="display:none">
+          <label>Votre nom complet *</label><input id="sjNom">
+          <label>Téléphone (WhatsApp) *</label><input id="sjTel" placeholder="Ex : 50937120000">
+          <label>Email (recommandé)</label><input id="sjEmail" type="email" placeholder="Pour recevoir votre confirmation">
+          <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="reserverSejour()">Confirmer la demande de séjour</button>
+        </div>
+        <div id="sjPaiement" style="display:none;margin-top:16px">
+          <div style="background:#D1FADF;border-radius:10px;padding:14px;margin-bottom:14px">
+            🎉 <strong>Demande enregistrée !</strong> <span id="montantPaiement"></span>
+            <p class="petit muet" style="margin-top:6px">Procédez au paiement pour confirmer votre séjour.</p>
+          </div>
+          <button class="btn btn-primaire" style="width:100%;background:var(--marque)" onclick="initierPaiement('sejour')">💳 Payer maintenant</button>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="carte"><div class="carte-corps">
+      <div class="flex entre">
+        <h2 style="font-size:19px">Avis clients</h2>
+        <button class="btn btn-contour btn-petit" onclick="document.getElementById('voileAvis').classList.add('ouvert')">Laisser un avis</button>
+      </div>
+      <div id="listeAvis" class="mt"></div>
+    </div></section>
+  </div>
+
+  <aside style="display:grid;gap:22px">
+    <section class="carte" id="carteResa"><div class="carte-corps">
+      <h2 style="font-size:19px">Réserver un rendez-vous</h2>
+      <div class="etapes-resa mt" id="barrePas"><div class="pas fait"></div><div class="pas"></div><div class="pas"></div><div class="pas"></div></div>
+      <div id="zonePas"></div>
+    </div></section>
+
+    <section class="carte"><div class="carte-corps">
+      <h2 style="font-size:16px">Informations</h2>
+      <div id="infos" class="mt petit"></div>
+      <h3 style="font-size:14px;margin-top:16px">Horaires</h3>
+      <div class="horaires-liste mt" id="horaires" style="margin-top:8px"></div>
+    </div></section>
+
+    <section class="carte" id="carteLocalisation" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:16px">📍 Localisation</h2>
+      <div id="mapDistance" style="height:260px;border-radius:12px;margin-top:12px;background:#EEF2F7"></div>
+      <div id="infoDistance" class="petit muet" style="margin-top:10px"></div>
+      <button class="btn btn-contour btn-petit" style="width:100%;margin-top:10px" id="btnMaPosition" onclick="afficherMaPosition()">📡 Voir la distance depuis ma position</button>
+    </div></section>
+
+    <section class="carte"><div class="carte-corps">
+      <h2 style="font-size:16px">Équipe</h2>
+      <div id="equipe" class="mt"></div>
+    </div></section>
+  </aside>
+</main>
+
+<!-- Modale avis -->
+<div class="voile" id="voileAvis">
+  <div class="modale">
+    <h3>Laisser un avis</h3>
+    <label>Votre nom</label><input id="avisNom" placeholder="Ex : Jean Michel">
+    <label>Note</label>
+    <select id="avisNote"><option value="5">★★★★★ — Excellent</option><option value="4">★★★★☆ — Très bien</option><option value="3">★★★☆☆ — Bien</option><option value="2">★★☆☆☆ — Moyen</option><option value="1">★☆☆☆☆ — Décevant</option></select>
+    <label>Commentaire</label><textarea id="avisTexte" rows="3" placeholder="Partagez votre expérience…"></textarea>
+    <div class="flex mt" style="justify-content:flex-end">
+      <button class="btn btn-fantome" onclick="document.getElementById('voileAvis').classList.remove('ouvert')">Annuler</button>
+      <button class="btn btn-primaire" onclick="envoyerAvis()">Publier l'avis</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+const slug = location.pathname.replace(/^\//, '').replace(/\.html$/, '') || new URLSearchParams(location.search).get('slug');
+let ent = null;
+let resa = { pas: 1, service: null, date: '', heure: '' };
+const NOMS_JOURS = { lun: 'Lundi', mar: 'Mardi', mer: 'Mercredi', jeu: 'Jeudi', ven: 'Vendredi', sam: 'Samedi', dim: 'Dimanche' };
+
+async function charger() {
+  try { ent = await api('/api/entreprises/' + slug); }
+  catch { document.body.innerHTML = '<div class="conteneur centre" style="padding:80px 20px"><h1>Entreprise introuvable</h1><p class="muet mt">Cette page n\'existe pas ou n\'est pas encore approuvée.</p><a class="btn btn-primaire mt" href="/" style="margin-top:20px">Retour à l\'accueil</a></div>'; return; }
+
+  document.title = ent.nom + ' — Randevou.ht';
+  document.documentElement.style.setProperty('--marque', ent.couleur);
+  document.documentElement.style.setProperty('--marque2', ent.couleur2);
+
+  // Photo de couverture personnalisée (avec voile aux couleurs de la marque)
+  if (ent.photoFond) {
+    document.querySelector('.banniere-ent').style.background =
+      `linear-gradient(130deg, ${ent.couleur}B3, ${ent.couleur2}66), url('${ent.photoFond}') center/cover`;
+  }
+
+  document.getElementById('entete').innerHTML = `
+    <div class="logo-ent">${ent.logoImage ? `<img src="${ent.logoImage}" alt="Logo ${ech(ent.nom)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">` : ech(ent.logoTexte)}</div>
+    <div style="flex:1;min-width:220px">
+      <div class="flex" style="gap:10px;flex-wrap:wrap">
+        <h1 style="font-size:24px">${ech(ent.nom)}</h1>
+        ${ent.plan === 'premium' ? '<span class="badge badge-bleu">Premium</span>' : ''}
+      </div>
+      <p class="muet petit">${ICONES_CAT[ent.categorie] || '✨'} ${ech(ent.categorie)} • ${ech(ent.adresse)}</p>
+      <p class="petit" style="margin-top:6px"><span class="etoiles">${etoiles(ent.note)}</span> <strong>${ent.note || '—'}</strong> <span class="muet">(${ent.totalAvis} avis)</span></p>
+    </div>
+    <div style="display:grid;gap:8px">
+      <a class="btn btn-primaire" href="#carteResa" style="background:var(--marque)">Réserver maintenant</a>
+      ${ent.whatsapp ? `<a class="btn btn-succes" target="_blank" rel="noopener" href="https://wa.me/${ech(ent.whatsapp)}">💬 WhatsApp</a>` : ''}
+      <div class="flex" style="gap:6px;justify-content:center" aria-label="Partager cette page">
+        <button class="btn btn-fantome btn-petit" onclick="partager('whatsapp')" title="Partager sur WhatsApp"><img src="/logos/whatsapp.png" alt="WhatsApp" class="ico-partage"></button>
+        <button class="btn btn-fantome btn-petit" onclick="partager('facebook')" title="Partager sur Facebook"><img src="/logos/facebook.png" alt="Facebook" class="ico-partage"></button>
+        <button class="btn btn-fantome btn-petit" onclick="partager('x')" title="Partager sur X"><img src="/logos/x.png" alt="X" class="ico-partage"></button>
+        <button class="btn btn-fantome btn-petit" onclick="partager('copier')" title="Copier le lien">🔗</button>
+      </div>
+    </div>`;
+
+  window.partager = async (canal) => {
+    const url = location.href;
+    const texte = `Prenez rendez-vous chez ${ent.nom} sur Randevou.ht : `;
+    if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + url), '_blank');
+    else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
+    else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(url), '_blank');
+    else if (canal === 'copier') {
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Randevou.ht', text: texte, url }); return; } catch {} }
+      try { await navigator.clipboard.writeText(url); toast('Lien copié ! Collez-le où vous voulez.'); }
+      catch { prompt('Copiez ce lien :', url); }
+    }
+  };
+
+  document.getElementById('listeServices').innerHTML = ent.description
+    ? `<p class="muet petit" style="margin-bottom:12px">${ech(ent.description)}</p>` : '';
+
+
+// Libellé d'un équipement, depuis le référentiel fourni par le serveur
+function refEquip(cle){
+  const r = (ent.equipementsRef || {})[cle];
+  if (!r) return '';
+  const langue = (localStorage.getItem('langue') || 'fr');
+  const lib = langue === 'ht' && r.ht ? r.ht : r.fr;
+  return `<span class="puce-equip">${r.ico} ${ech(lib)}</span>`;
+}
+
+
+
+
+
+
+
+
+
+  // ---- Panier et commande ----
+  let panier = [], modeRemise = '', modePaiement = '';
+  const L = () => (localStorage.getItem('langue') || 'fr');
+  function peutCommander(){ return !!(ent.vente && (ent.vente.cueillette || ent.vente.livraison)); }
+  function prixDe(p){ return p.prixPromo > 0 ? p.prixPromo : p.prix; }
+
+  window.ajouterAuPanier = (id) => {
+    const p = (ent.produits || []).find(x => x.id === id);
+    if (!p) return;
+    const l = panier.find(x => x.id === id);
+    if (l) l.q++; else panier.push({ id, nom: p.nom, prix: prixDe(p), unite: p.unite || '', q: 1 });
+    majBullePanier();
+    toast(L()==='ht' ? 'Ajoute nan panye a' : 'Ajouté au panier');
+  };
+  function majBullePanier(){
+    const n = panier.reduce((s,l) => s + l.q, 0);
+    const total = panier.reduce((s,l) => s + l.prix * l.q, 0);
+    const b = document.getElementById('bulPanier');
+    b.style.display = n ? '' : 'none';
+    document.getElementById('nbPanier').textContent = n;
+    document.getElementById('totalPanier').textContent = total.toLocaleString('fr-HT') + ' HTG';
+  }
+  window.ouvrirPanier = () => {
+    dessinerPanier();
+    document.getElementById('voilePanier').classList.add('ouvert');
+  };
+  window.viderPanier = () => { panier = []; majBullePanier(); dessinerPanier(); };
+  window.changerQte = (id, d) => {
+    const l = panier.find(x => x.id === id); if (!l) return;
+    l.q += d; if (l.q <= 0) panier = panier.filter(x => x.id !== id);
+    majBullePanier(); dessinerPanier();
+  };
+  function dessinerPanier(){
+    const lg = L(), v = ent.vente || {};
+    const z = document.getElementById('lignesPanier');
+    if (!panier.length) {
+      z.innerHTML = `<p class="muet petit">${lg==='ht'?'Panye a vid.':'Votre panier est vide.'}</p>`;
+      document.getElementById('etapeRemise').style.display = 'none';
+      return;
+    }
+    z.innerHTML = panier.map(l => `<div class="ligne-panier">
+      <div style="flex:1"><strong class="petit">${ech(l.nom)}</strong>
+        <div class="petit muet">${(+l.prix).toLocaleString('fr-HT')} HTG${l.unite?` / ${ech(l.unite)}`:''}</div></div>
+      <div class="qte-panier">
+        <button onclick="changerQte('${l.id}',-1)">−</button>
+        <strong style="min-width:22px;text-align:center">${l.q}</strong>
+        <button onclick="changerQte('${l.id}',1)">+</button>
+      </div>
+      <strong class="petit" style="min-width:76px;text-align:right">${(l.prix*l.q).toLocaleString('fr-HT')} HTG</strong>
+    </div>`).join('');
+    document.getElementById('etapeRemise').style.display = '';
+    // Modes proposés
+    const modes = [];
+    if (v.cueillette) modes.push({ cle:'cueillette', ico:'🏪', fr:'Retrait sur place', ht:'Vin chèche', info: v.horairesCueillette });
+    if (v.livraison)  modes.push({ cle:'livraison',  ico:'🛵', fr:'Livraison',        ht:'Livrezon',  info: v.delaiPreparation });
+    if (!modeRemise && modes.length) modeRemise = modes[0].cle;
+    document.getElementById('choixMode').innerHTML = modes.map(m => `
+      <label class="opt-formule${modeRemise===m.cle?' on':''}">
+        <input type="radio" name="moderemise" value="${m.cle}"${modeRemise===m.cle?' checked':''} onchange="choisirMode('${m.cle}')">
+        <span><strong>${m.ico} ${ech(lg==='ht'?m.ht:m.fr)}</strong>${m.info?`<br><span class="petit muet">${ech(m.info)}</span>`:''}</span>
+      </label>`).join('');
+    // Zones
+    const sel = document.getElementById('pnZone');
+    const zones = v.zones || [];
+    sel.innerHTML = zones.map(z2 => `<option value="${ech(z2.nom)}">${ech(z2.nom)} — ${(+z2.frais).toLocaleString('fr-HT')} HTG${z2.delai?` (${ech(z2.delai)})`:''}</option>`).join('')
+      + `<option value="">${lg==='ht'?'Lòt kote':'Autre zone'} — ${(+(v.fraisBase||0)).toLocaleString('fr-HT')} HTG</option>`;
+    document.getElementById('infoCueillette').textContent = v.horairesCueillette
+      ? (lg==='ht'?'Lè pou vin chèche : ':'Horaires de retrait : ') + v.horairesCueillette : '';
+    document.getElementById('consigneVente').textContent = v.consigne || '';
+    // Moyens de paiement proposés par la boutique
+    const paies = [];
+    if (v.paiementEnLigne !== false) paies.push({ cle:'enligne', ico:'💳',
+      fr:'Payer maintenant en ligne', ht:'Peye kounye a an liy',
+      info: lg==='ht' ? 'MonCash, NatCash, Kashpaw' : 'MonCash, NatCash, Kashpaw' });
+    if (v.paiementRemise !== false) paies.push({ cle:'remise', ico:'💵',
+      fr: modeRemise==='livraison' ? 'Payer à la livraison' : 'Payer au retrait',
+      ht: modeRemise==='livraison' ? 'Peye lè yo livre' : 'Peye lè w vin chèche', info:'' });
+    if (!modePaiement || !paies.some(x => x.cle === modePaiement)) modePaiement = paies.length ? paies[0].cle : 'remise';
+    document.getElementById('blocPaiement').style.display = paies.length > 1 ? '' : 'none';
+    document.getElementById('choixPaiement').innerHTML = paies.map(m => `
+      <label class="opt-formule${modePaiement===m.cle?' on':''}">
+        <input type="radio" name="modepaie" value="${m.cle}"${modePaiement===m.cle?' checked':''} onchange="choisirPaiement('${m.cle}')">
+        <span><strong>${m.ico} ${ech(lg==='ht'?m.ht:m.fr)}</strong>${m.info?`<br><span class="petit muet">${ech(m.info)}</span>`:''}</span>
+      </label>`).join('');
+    majTotalPanier();
+  }
+  window.choisirPaiement = (m) => {
+    modePaiement = m;
+    document.querySelectorAll('#choixPaiement .opt-formule').forEach(o =>
+      o.classList.toggle('on', o.querySelector('input').checked));
+  };
+  window.choisirMode = (m) => {
+    modeRemise = m;
+    document.querySelectorAll('#choixMode .opt-formule').forEach(o =>
+      o.classList.toggle('on', o.querySelector('input').checked));
+    majTotalPanier();
+  };
+  window.majTotalPanier = () => {
+    const v = ent.vente || {}, lg = L();
+    document.getElementById('blocLivraisonClient').style.display = modeRemise==='livraison' ? '' : 'none';
+    document.getElementById('blocCueilletteClient').style.display = modeRemise==='cueillette' ? '' : 'none';
+    const sousTotal = panier.reduce((s,l) => s + l.prix*l.q, 0);
+    let frais = 0;
+    if (modeRemise === 'livraison') {
+      const nom = document.getElementById('pnZone').value;
+      const zone = (v.zones||[]).find(z => z.nom === nom);
+      frais = zone ? zone.frais : (v.fraisBase || 0);
+      if (v.seuilGratuite && sousTotal >= v.seuilGratuite) frais = 0;
+    }
+    const manque = v.minimumCommande && sousTotal < v.minimumCommande ? v.minimumCommande - sousTotal : 0;
+    document.getElementById('recapPanier').innerHTML = `
+      <div><span>${lg==='ht'?'Sou-total':'Sous-total'}</span><span>${sousTotal.toLocaleString('fr-HT')} HTG</span></div>
+      ${modeRemise==='livraison'?`<div><span>${lg==='ht'?'Livrezon':'Livraison'}</span><span>${frais ? frais.toLocaleString('fr-HT')+' HTG' : (lg==='ht'?'Gratis':'Offerte')}</span></div>`:''}
+      <div class="total"><span>Total</span><span>${(sousTotal+frais).toLocaleString('fr-HT')} HTG</span></div>
+      ${manque?`<div style="color:var(--orange);font-weight:700"><span>${lg==='ht'?'Minimum':'Minimum'}</span><span>+${manque.toLocaleString('fr-HT')} HTG</span></div>`:''}`;
+  };
+  window.validerCommande = async () => {
+    const err = document.getElementById('erreurPanier'), lg = L();
+    const nom = document.getElementById('pnNom').value.trim();
+    const tel = document.getElementById('pnTel').value.trim();
+    if (!nom || !tel) { err.textContent = lg==='ht'?'Non ak telefòn obligatwa.':'Nom et téléphone obligatoires.'; return; }
+    const adresse = document.getElementById('pnAdresse').value.trim();
+    if (modeRemise === 'livraison' && !adresse) { err.textContent = lg==='ht'?'Mete adrès la.':"Indiquez l'adresse de livraison."; return; }
+    err.textContent = '';
+    try {
+      const r = await api('/api/commandes','POST',{
+        slug, mode: modeRemise, zone: document.getElementById('pnZone').value,
+        adresse, repere: document.getElementById('pnRepere').value.trim(),
+        clientNom: nom, clientTel: tel, paiement: modePaiement,
+        message: document.getElementById('pnMessage').value.trim(),
+        lignes: panier.map(l => ({ produitId: l.id, quantite: l.q }))
+      });
+      panier = []; majBullePanier();
+      // Paiement en ligne : on ouvre la passerelle avant l'écran de confirmation
+      if (r.paiement === 'enligne') {
+        document.querySelector('#voilePanier .modale').innerHTML =
+          `<div class="centre" style="padding:20px 0"><p>${lg==='ht'?'Ap prepare peyman an…':'Préparation du paiement…'}</p></div>`;
+        try {
+          const pay = await api('/api/paiements/ouvrir','POST',{ slug, commandeType:'commande', commandeId: r.commandeId });
+          if (pay.ok && pay.urlPaiement) { location.href = pay.urlPaiement; return; }
+          throw new Error(pay.erreur || 'Paiement indisponible');
+        } catch(err) {
+          document.querySelector('#voilePanier .modale').innerHTML = `
+            <div class="centre" style="padding:14px 0">
+              <h3>${lg==='ht'?'Kòmand resevwa':'Commande reçue'}</h3>
+              <p class="petit muet" style="margin-top:8px">${lg==='ht'?'Referans':'Référence'} <strong>${r.reference}</strong></p>
+              <p class="petit" style="color:var(--orange);margin-top:10px">${lg==='ht'?'Peyman an liy pa disponib kounye a. Boutik la ap kontakte w.':"Le paiement en ligne est momentanément indisponible. La boutique vous contactera."}</p>
+              <button class="btn btn-primaire mt" style="width:100%" onclick="location.reload()">${lg==='ht'?'Fèmen':'Fermer'}</button>
+            </div>`;
+          return;
+        }
+      }
+      document.querySelector('#voilePanier .modale').innerHTML = `
+        <div class="centre" style="padding:14px 0">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
+          <h3>${lg==='ht'?'Kòmand resevwa !':'Commande reçue !'}</h3>
+          <p class="petit muet" style="margin-top:8px">${ech(r.boutique)} — ${lg==='ht'?'referans':'référence'} <strong>${r.reference}</strong></p>
+          <div class="recap mt" style="text-align:left">
+            <div><span>${lg==='ht'?'Sou-total':'Sous-total'}</span><span>${(+r.sousTotal).toLocaleString('fr-HT')} HTG</span></div>
+            ${r.frais?`<div><span>${lg==='ht'?'Livrezon':'Livraison'}</span><span>${(+r.frais).toLocaleString('fr-HT')} HTG</span></div>`:''}
+            <div class="total"><span>Total</span><span>${(+r.total).toLocaleString('fr-HT')} HTG</span></div>
+          </div>
+          <p class="petit muet" style="margin-top:10px">${r.mode==='livraison'?(lg==='ht'?'🛵 Livrezon':'🛵 Livraison'):(lg==='ht'?'🏪 Vin chèche':'🏪 Retrait sur place')}${r.delai?` — ${ech(r.delai)}`:''}</p>
+          <p class="petit muet" style="margin-top:6px">${lg==='ht'?'W ap resevwa yon mesaj WhatsApp.':'Vous recevrez un message WhatsApp.'}</p>
+          <button class="btn btn-primaire mt" style="width:100%" onclick="location.reload()">${lg==='ht'?'Fèmen':'Fermer'}</button>
+        </div>`;
+    } catch(e){ err.textContent = e.message; }
+  };
+
+  // ---- Catalogue public ----
+  let rayonActif = '';
+  function dessinerBoutique(){
+    const liste = ent.produits || [];
+    if (!liste.length) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('carteBoutique').style.display = '';
+    const rayons = [...new Set(liste.map(p => p.rayon).filter(Boolean))];
+    document.getElementById('rayonsBoutique').innerHTML = rayons.length > 1
+      ? `<button class="onglet-menu${rayonActif===''?' on':''}" onclick="filtrerRayon('')">${lg==='ht'?'Tout':'Tout'}</button>` +
+        rayons.map(r => `<button class="onglet-menu${rayonActif===r?' on':''}" onclick="filtrerRayon('${r.replace(/'/g,"\\'")}')">${ech(r)}</button>`).join('')
+      : '';
+    const vis = rayonActif ? liste.filter(p => p.rayon === rayonActif) : liste;
+    document.getElementById('grilleProduits').innerHTML = vis.map(p => {
+      const msg = encodeURIComponent(
+        (lg==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ') + p.nom +
+        ' (' + ((p.prixPromo || p.prix)).toLocaleString('fr-HT') + ' HTG)');
+      return `<div class="carte-produit">
+        ${p.photo ? `<div class="img-produit" style="background-image:url('${p.photo}')"></div>`
+                  : `<div class="img-produit sans"><span>🛍️</span></div>`}
+        <div class="corps-produit">
+          <strong>${ech(p.nom)}</strong>
+          ${p.marque?`<p class="petit muet">${ech(p.marque)}</p>`:''}
+          ${p.description?`<p class="petit muet">${ech(p.description)}</p>`:''}
+          <p class="prix-produit">
+            ${p.prixPromo ? `<s class="petit muet">${(+p.prix).toLocaleString('fr-HT')}</s> <strong>${(+p.prixPromo).toLocaleString('fr-HT')} HTG</strong>`
+                          : `<strong>${(+p.prix).toLocaleString('fr-HT')} HTG</strong>`}
+            ${p.unite?`<span class="petit muet">/${ech(p.unite)}</span>`:''}
+          </p>
+          ${p.stockFaible?`<p class="petit" style="color:var(--orange);font-weight:700">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`:''}
+          ${peutCommander()
+            ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="ajouterAuPanier('${p.id}')">${lg==='ht'?'Ajoute':'Ajouter'}</button>`
+            : (ent.whatsapp ? `<a class="btn btn-succes btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
+             href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Kòmande':'Commander'}</a>` : '')}
+        </div></div>`;
+    }).join('');
+  }
+  window.filtrerRayon = (r) => { rayonActif = r; dessinerBoutique(); };
+
+  // ---- Service d'urgence ----
+  // Priorité absolue : mettre le numéro à portée immédiate. Aucun tri,
+  // aucun formulaire : dans une urgence, on appelle ou on se déplace.
+  function dessinerUrgence(){
+    const u = ent.urgence;
+    if (!u) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const etat = u.etat ? (ent.etatsRef || []).find(x => x.cle === u.etat) : null;
+    const tel = (u.telephone || '').replace(/[^\d+]/g, '');
+    const T = {
+      fr: { titre: 'Service d\'urgence', h24: 'Ouvert 24h/24, 7j/7', appeler: 'Appeler maintenant',
+            ambulance: 'Ambulance', moyens: 'Moyens disponibles', garde: 'Pharmacie de garde',
+            avert: "En cas d'urgence vitale, appelez immédiatement ou rendez-vous sur place. N'attendez pas de réponse en ligne.",
+            depuis: 'information déclarée il y a' , h: 'h' },
+      ht: { titre: 'Sèvis ijans', h24: 'Louvri 24è sou 24, 7 jou', appeler: 'Rele kounye a',
+            ambulance: 'Anbilans', moyens: 'Mwayen ki disponib', garde: 'Famasi de gad',
+            avert: "Si se yon ijans grav, rele oswa ale sou plas touswit. Pa tann yon repons sou entènèt.",
+            depuis: 'enfòmasyon deklare gen', h: 'è' }
+    }[lg];
+    const z = document.getElementById('bandeauUrgence');
+    z.style.display = '';
+    z.innerHTML = `<div class="bloc-urgence">
+      <div class="flex entre" style="gap:12px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:200px">
+          <div class="flex" style="gap:8px;flex-wrap:wrap">
+            <strong style="font-size:18px">🚨 ${T.titre}</strong>
+            ${u.permanence ? `<span class="badge badge-vert">${T.h24}</span>` : ''}
+            ${etat ? `<span class="badge ${etat.badge}">${etat.ico} ${ech(lg==='ht'?etat.ht:etat.fr)}</span>` : ''}
+          </div>
+          ${!u.permanence && u.horaires ? `<p class="petit" style="margin-top:6px">🕐 ${ech(u.horaires)}</p>` : ''}
+          ${u.consigne ? `<p class="petit" style="margin-top:6px">ℹ️ ${ech(u.consigne)}</p>` : ''}
+          ${u.garde && u.garde.active ? `<p class="petit" style="margin-top:6px">💊 ${T.garde} : ${ech(u.garde.debut)} → ${ech(u.garde.fin)}</p>` : ''}
+          ${etat && u.etatDepuis !== null ? `<p class="petit" style="opacity:.75;margin-top:6px">${T.depuis} ${u.etatDepuis} ${T.h}</p>` : ''}
+        </div>
+        <div class="actions-urgence">
+          ${tel ? `<a class="btn-urgence" href="tel:${tel}">📞 ${T.appeler}<br><strong>${ech(u.telephone)}</strong></a>` : ''}
+          ${u.telephone2 ? `<a class="btn-urgence secondaire" href="tel:${u.telephone2.replace(/[^\d+]/g,'')}">📞 ${ech(u.telephone2)}</a>` : ''}
+          ${u.ambulance && u.telAmbulance ? `<a class="btn-urgence secondaire" href="tel:${u.telAmbulance.replace(/[^\d+]/g,'')}">🚑 ${T.ambulance}<br><strong>${ech(u.telAmbulance)}</strong></a>` : ''}
+        </div>
+      </div>
+      ${(u.capacites||[]).length ? `<div style="margin-top:12px">
+        <p class="petit" style="opacity:.85">${T.moyens} :</p>
+        <div class="puces-urgence">${u.capacites.map(k => {
+          const c = (ent.capacitesRef||{})[k];
+          return c ? `<span class="puce-urgence">${c.ico} ${ech(lg==='ht'?c.ht:c.fr)}</span>` : '';
+        }).join('')}</div></div>` : ''}
+      <p class="avert-urgence">⚠️ ${T.avert}</p>
+    </div>`;
+  }
+
+  // ---- Suivi public d'un dossier ----
+  const METIERS_DOSSIERS = ['notaire', 'arpenteur', 'avocat', 'comptable'];
+  function dessinerSuivi(){
+    if (METIERS_DOSSIERS.includes(ent.metier))
+      document.getElementById('carteSuivi').style.display = '';
+  }
+  window.chercherDossier = async () => {
+    const z = document.getElementById('resultatSuivi');
+    const ref = document.getElementById('suRef').value.trim();
+    const tel = document.getElementById('suTel').value.trim();
+    const lg = (localStorage.getItem('langue') || 'fr');
+    if (!ref || !tel) { z.innerHTML = `<p class="petit" style="color:var(--rouge)">${lg==='ht'?'Ranpli tou de jaden yo.':'Renseignez les deux champs.'}</p>`; return; }
+    z.innerHTML = `<p class="petit muet">${lg==='ht'?'Ap chèche…':'Recherche…'}</p>`;
+    try {
+      const d = await api('/api/dossiers/suivi','POST',{ slug, reference: ref, telephone: tel });
+      z.innerHTML = `<div class="panneau">
+        <div class="flex entre" style="gap:8px;flex-wrap:wrap">
+          <strong>${ech(d.objet)}</strong><span class="badge badge-bleu">${ech(d.statutLib)}</span>
+        </div>
+        <p class="petit muet" style="margin-top:4px">${lg==='ht'?'Referans':'Référence'} : ${ech(d.reference)} · ${lg==='ht'?'Louvri':'Ouvert'} ${ech(d.ouvertLe)}</p>
+        <div class="etapes-suivi">
+          ${d.etapes.map((e,i) => `<div class="etape-suivi${i < d.etapeIndex ? ' faite' : ''}${i === d.etapeIndex ? ' active' : ''}">
+             <span class="pastille">${i < d.etapeIndex ? '✓' : i+1}</span>
+             <span class="petit">${ech(lg==='ht' && e.ht ? e.ht : e.fr)}</span></div>`).join('')}
+        </div>
+        ${(d.pieces||[]).length ? `<p class="petit muet" style="margin-top:12px">${lg==='ht'?'Papye yo':'Pièces'} :</p>
+          <div class="puces-equip">${d.pieces.map(p => `<span class="puce-equip" style="${p.fournie?'':'background:var(--orange-fond);color:#C4520E'}">${p.fournie?'✓':'⏳'} ${ech(p.nom)}</span>`).join('')}</div>` : ''}
+        ${d.echeance ? `<p class="petit muet" style="margin-top:10px">📅 ${lg==='ht'?'Echeyans':'Échéance'} : <strong>${ech(d.echeance)}</strong></p>` : ''}
+        <p class="petit muet" style="margin-top:6px">${lg==='ht'?'Dènye mizajou':'Dernière mise à jour'} : ${ech(d.majLe)}</p>
+      </div>`;
+    } catch(e){ z.innerHTML = `<p class="petit" style="color:var(--rouge)">${ech(e.message)}</p>`; }
+  };
+
+  // ---- Inscriptions scolaires ----
+  let progChoisi = null;
+  const PERIODES_PUB = { mensuel:{fr:'par mois',ht:'pa mwa'}, trimestriel:{fr:'par trimestre',ht:'pa trimès'}, annuel:{fr:'par an',ht:'pa ane'} };
+  function dessinerProgrammes(){
+    const liste = ent.programmes || [];
+    if (!liste.length) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('carteProgrammes').style.display = '';
+    document.getElementById('listeProgrammes').innerHTML = liste.map(p => {
+      const complet = p.placesRestantes === 0;
+      return `<div class="panneau">
+        <div class="flex entre" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <strong>${ech(p.nom)}</strong>
+            ${p.anneeScolaire?`<span class="badge badge-gris" style="margin-left:6px">${ech(p.anneeScolaire)}</span>`:''}
+            ${p.description?`<p class="petit muet" style="margin-top:4px">${ech(p.description)}</p>`:''}
+            <p class="petit muet" style="margin-top:6px">
+              ${p.fraisInscription?`${lg==='ht'?'Enskripsyon':'Inscription'} : <strong>${(+p.fraisInscription).toLocaleString('fr-HT')} HTG</strong>`:''}
+              ${p.scolarite?` • ${lg==='ht'?'Eskolarite':'Scolarité'} : <strong>${(+p.scolarite).toLocaleString('fr-HT')} HTG</strong> ${PERIODES_PUB[p.periodicite][lg]||''}`:''}
+            </p>
+            ${p.placesRestantes !== null ? `<p class="petit ${complet?'':'muet'}" style="${complet?'color:var(--rouge);font-weight:700':''}">${complet ? (lg==='ht'?'Konplè':'Complet') : `${p.placesRestantes} ${lg==='ht'?'plas ki rete':'places restantes'}`}</p>` : ''}
+          </div>
+          ${complet ? '' : `<button class="btn btn-primaire btn-petit" style="background:var(--marque)" onclick="choisirProgramme('${p.id}')">${lg==='ht'?'Enskri':'S\'inscrire'}</button>`}
+        </div></div>`;
+    }).join('');
+  }
+  window.choisirProgramme = (id) => {
+    progChoisi = (ent.programmes || []).find(p => p.id === id);
+    if (!progChoisi) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('titreInscription').textContent =
+      (lg==='ht'?'Demann enskripsyon — ':'Demande d\'inscription — ') + progChoisi.nom;
+    document.getElementById('docsProgramme').innerHTML = (progChoisi.documents||[]).length
+      ? `📎 ${lg==='ht'?'Dokiman pou pote':'Documents à fournir'} : ${progChoisi.documents.map(ech).join(', ')}` : '';
+    document.getElementById('formInscription').style.display = '';
+    document.getElementById('formInscription').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  };
+  window.fermerInscription = () => { document.getElementById('formInscription').style.display = 'none'; progChoisi = null; };
+  window.envoyerInscription = async () => {
+    const err = document.getElementById('erreurInscription');
+    const eleve = document.getElementById('inEleve').value.trim();
+    const parent = document.getElementById('inParent').value.trim();
+    const tel = document.getElementById('inTel').value.trim();
+    if (!eleve || !parent || !tel) { err.textContent = "Le nom de l'élève, celui du responsable et le téléphone sont obligatoires."; return; }
+    try {
+      const r = await api('/api/inscriptions','POST',{
+        slug, programmeId: progChoisi.id, eleveNom: eleve,
+        eleveNaissance: document.getElementById('inNaissance').value,
+        eleveSexe: document.getElementById('inSexe').value,
+        ecoleProvenance: document.getElementById('inProvenance').value.trim(),
+        parentNom: parent, parentLien: document.getElementById('inLien').value.trim(),
+        parentTel: tel, message: document.getElementById('inMessage').value.trim()
+      });
+      document.getElementById('formInscription').innerHTML = `
+        <div class="centre" style="padding:10px 0">
+          <div style="width:52px;height:52px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:24px;margin:0 auto 12px">✓</div>
+          <h3>Demande envoyée !</h3>
+          <p class="petit muet" style="margin-top:8px">${ech(r.etablissement)} a bien reçu votre demande pour <strong>${ech(r.programme)}</strong>.
+          Vous serez prévenu par WhatsApp dès qu'elle sera étudiée.</p>
+          <p class="petit muet" style="margin-top:6px">Référence : <strong>${r.reference}</strong></p>
+          ${r.fraisInscription ? `<p class="petit" style="margin-top:8px">Frais d'inscription à prévoir : <strong>${(+r.fraisInscription).toLocaleString('fr-HT')} HTG</strong></p>` : ''}
+        </div>`;
+    } catch(e){ err.textContent = e.message; }
+  };
+
+  // ---- Informations propres au métier ----
+  async function dessinerInfosMetier(){
+    const champs = ent.champs || {};
+    if (!Object.keys(champs).length) return;
+    let ref;
+    try { ref = await api('/api/metiers'); } catch { return; }
+    const m = ref.METIERS[ent.metier];
+    if (!m) return;
+    const langue = (localStorage.getItem('langue') || 'fr');
+    const lignes = m.champs.map((c) => {
+      const d = ref.CHAMPS[c], v = champs[c];
+      if (!d || v === undefined || v === '' || v === false || (Array.isArray(v) && !v.length)) return '';
+      const lib = langue === 'ht' && d.ht ? d.ht : d.fr;
+      if (d.type === 'bool') return `<span class="puce-equip">✓ ${ech(lib)}</span>`;
+      const val = Array.isArray(v) ? v.join(', ') : v;
+      return `<div class="ligne-info"><span class="muet petit">${ech(lib)}</span><strong>${ech(String(val))}</strong></div>`;
+    }).filter(Boolean);
+    if (!lignes.length) return;
+    document.getElementById('carteInfosMetier').style.display = '';
+    document.getElementById('titreInfosMetier').textContent = `${m.ico} ${langue === 'ht' ? m.nom.ht : m.nom.fr}`;
+    const puces = lignes.filter(l => l.startsWith('<span'));
+    const infos = lignes.filter(l => !l.startsWith('<span'));
+    document.getElementById('listeInfosMetier').innerHTML =
+      (infos.join('') || '') + (puces.length ? `<div class="puces-equip" style="margin-top:10px">${puces.join('')}</div>` : '');
+  }
+
+  // ---- Formule tout inclus ----
+  function estResort(){ return ent.formule === 'resort'; }
+  function dessinerResort(){
+    if (!estResort() || !(ent.inclus || []).length) return;
+    const langue = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('carteResort').style.display = '';
+    document.getElementById('listeInclus').innerHTML = ent.inclus.map(k => {
+      const r = (ent.inclusRef || {})[k];
+      if (!r) return '';
+      const lib = langue === 'ht' && r.ht ? r.ht : r.fr;
+      return `<span class="puce-inclus">${r.ico} ${ech(lib)}</span>`;
+    }).join('');
+    document.getElementById('noteFormule').textContent = ent.noteFormule || '';
+  }
+
+  // ---- Carte du restaurant et du bar ----
+  const CATS_MENU = {
+    entree:{fr:'Entrées',ht:'Antre',ico:'🥗'}, plat:{fr:'Plats',ht:'Manje',ico:'🍽️'},
+    accompagnement:{fr:'Accompagnements',ht:'Akonpayman',ico:'🍚'}, dessert:{fr:'Desserts',ht:'Desè',ico:'🍰'},
+    boisson:{fr:'Boissons',ht:'Bwason',ico:'🧃'}, cocktail:{fr:'Cocktails',ht:'Koktèl',ico:'🍹'},
+    biere:{fr:'Bières',ht:'Byè',ico:'🍺'}, vin:{fr:'Vins',ht:'Diven',ico:'🍷'},
+    spiritueux:{fr:'Spiritueux',ht:'Alkòl fò',ico:'🥃'}
+  };
+  const ORDRE_MENU = ['entree','plat','accompagnement','dessert','boisson','cocktail','biere','vin','spiritueux'];
+  let filtreMenu = '';
+
+  function libCat(c){
+    const langue = (localStorage.getItem('langue') || 'fr');
+    return langue === 'ht' ? CATS_MENU[c].ht : CATS_MENU[c].fr;
+  }
+  function dessinerMenu(){
+    const carte = ent.carte || [];
+    if (!carte.length) return;
+    document.getElementById('carteMenu').style.display = '';
+    if (estResort()) {
+      const langue = (localStorage.getItem('langue') || 'fr');
+      const intro = document.querySelector('#carteMenu p[data-i18n="menu.intro"]');
+      if (intro) {
+        intro.removeAttribute('data-i18n');
+        intro.textContent = langue === 'ht'
+          ? 'Tout sa ki nan kat la enkli nan sejou ou.'
+          : 'Tout ce qui figure sur cette carte est compris dans votre séjour.';
+      }
+    }
+    const presentes = ORDRE_MENU.filter(c => carte.some(a => a.categorie === c));
+    const langue = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('ongletsMenu').innerHTML =
+      `<button class="onglet-menu${filtreMenu===''?' on':''}" onclick="filtrerMenu('')">${langue==='ht'?'Tout':'Tout'}</button>` +
+      presentes.map(c => `<button class="onglet-menu${filtreMenu===c?' on':''}" onclick="filtrerMenu('${c}')">${CATS_MENU[c].ico} ${ech(libCat(c))}</button>`).join('');
+    const cats = filtreMenu ? [filtreMenu] : presentes;
+    document.getElementById('listeMenu').innerHTML = cats.map(c => {
+      const arts = carte.filter(a => a.categorie === c);
+      if (!arts.length) return '';
+      return `<h3 style="font-size:15px;margin:18px 0 4px">${CATS_MENU[c].ico} ${ech(libCat(c))}</h3>` +
+        arts.map(a => `<div class="ligne-menu">
+          ${a.photo ? `<img src="${a.photo}" alt="${ech(a.nom)}" style="width:74px;height:56px;object-fit:cover;border-radius:10px;flex-shrink:0">` : ''}
+          <div style="flex:1">
+            <div class="flex entre" style="align-items:flex-start;gap:10px">
+              <strong>${ech(a.nom)}</strong>
+              ${estResort()
+                ? `<span class="mention-inclus">${(localStorage.getItem('langue')||'fr')==='ht' ? 'Enkli' : 'Inclus'}</span>`
+                : `<span class="prix-menu">${(+a.prix).toLocaleString('fr-HT')} HTG</span>`}
+            </div>
+            ${a.description ? `<p class="petit muet">${ech(a.description)}</p>` : ''}
+            ${a.volume ? `<p class="petit muet">${ech(a.volume)}</p>` : ''}
+          </div></div>`).join('');
+    }).join('');
+  }
+  window.filtrerMenu = (c) => { filtreMenu = c; dessinerMenu(); };
+
+  // ---- Module Chambres & Séjours ----
+  if (ent.chambres && ent.chambres.length) {
+    document.getElementById('carteChambres').style.display = '';
+    document.getElementById('listeChambres').innerHTML = ent.chambres.map(c => `
+      <div class="flex" style="gap:12px;padding:10px 0;border-bottom:1px solid var(--bordure);align-items:flex-start">
+        ${c.photo ? `<img src="${c.photo}" alt="${ech(c.nom)}" style="width:86px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0">` : `<div style="width:86px;height:64px;border-radius:10px;background:linear-gradient(135deg,var(--marque),var(--marque2));display:grid;place-items:center;font-size:26px;flex-shrink:0">🛏️</div>`}
+        <div style="flex:1">
+          <div class="flex entre"><strong>${ech(c.nom)}</strong><strong style="color:var(--marque)">${(+c.prixNuit).toLocaleString('fr-HT')} HTG<span class="muet petit">/nuit</span></strong></div>
+          <p class="petit muet">${ech(c.description || '')}</p>
+          <p class="petit muet">👥 ${c.capacite} pers. max • ${c.quantite} chambre${c.quantite > 1 ? 's' : ''} de ce type</p>
+          ${(c.equipements || []).length ? `<div class="puces-equip">${c.equipements.map(k => refEquip(k)).filter(Boolean).join('')}</div>` : ''}
+        </div>
+      </div>`).join('');
+    const sel = document.getElementById('sjChambre');
+    sel.innerHTML = ent.chambres.map(c => `<option value="${c.id}">${ech(c.nom)} — ${(+c.prixNuit).toLocaleString('fr-HT')} HTG/nuit</option>`).join('');
+    const auj = new Date(), dem = new Date(Date.now() + 86400000);
+    document.getElementById('sjArrivee').min = auj.toISOString().slice(0,10);
+    document.getElementById('sjDepart').min = dem.toISOString().slice(0,10);
+    document.getElementById('sjChambre').addEventListener('change', dessinerPlans);
+    dessinerPlans(); dessinerPolitiques(); dessinerServicesHotel();
+    // L'appel est différé : verifierSejour est assignée plus bas dans cette
+    // fonction, la référencer directement ici lèverait une ReferenceError
+    // qui interromprait tout le rendu de la page.
+    ['sjArrivee','sjDepart','sjChambre','sjPersonnes','sjPlan'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const relancer = () => { if (typeof window.verifierSejour === 'function') window.verifierSejour(); };
+      el.addEventListener('change', relancer);
+      el.addEventListener('input', relancer);
+    });
+  }
+
+
+
+  // ---- Services de l'hôtel, présentés avec les chambres ----
+  function dessinerServicesHotel(){
+    const z = document.getElementById('servicesHotel');
+    const services = ent.services || [];
+    if (!z || !services.length) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    z.innerHTML = `<h3 style="font-size:15px;margin:18px 0 6px">✨ ${lg==='ht'?'Sèvis otèl la':'Services de l\'établissement'}</h3>
+      ${services.map(s => `<div class="ligne-menu">
+        <div style="flex:1">
+          <strong>${ech(s.nom)}</strong>
+          ${s.duree ? `<p class="petit muet">${s.duree} min</p>` : ''}
+        </div>
+        <div style="text-align:right">
+          <span class="prix-menu">${(+s.prix).toLocaleString('fr-HT')} HTG</span>
+          ${s.duree ? `<br><button class="btn btn-contour btn-petit" style="margin-top:6px" onclick="choisirService('${s.id}')">${lg==='ht'?'Rezève':'Réserver'}</button>` : ''}
+        </div>
+      </div>`).join('')}`;
+  }
+
+  // ---- Politiques de l'établissement, visibles avant de réserver ----
+  function dessinerPolitiques(){
+    const h = ent.hotel || {}, lg = (localStorage.getItem('langue') || 'fr');
+    const l = [];
+    if (h.checkin || h.checkout)
+      l.push(`🕐 ${lg==='ht'?'Arive':'Arrivée'} ${h.checkin || '—'} · ${lg==='ht'?'Depa':'Départ'} ${h.checkout || '—'}`);
+    if (h.sejourMin) l.push(`📅 ${lg==='ht'?'Minimòm':'Minimum'} ${h.sejourMin} ${lg==='ht'?'nwit':'nuit(s)'}`);
+    if (h.acompte) l.push(`💳 ${lg==='ht'?'Depo':'Acompte'} ${h.acompte} %`);
+    if (h.delaiAnnulation) l.push(`↩️ ${lg==='ht'?'Anilasyon gratis jiska':'Annulation gratuite jusqu\'à'} ${h.delaiAnnulation} ${lg==='ht'?'jou anvan':'jours avant'}`);
+    if (h.animaux) l.push('🐕 ' + (lg==='ht'?'Bèt aksepte':'Animaux acceptés'));
+    const z = document.getElementById('politiquesHotel');
+    if (!z) return;
+    z.innerHTML = (l.length ? `<div class="puces-equip">${l.map(x => `<span class="puce-equip">${ech(x)}</span>`).join('')}</div>` : '')
+      + (h.annulation ? `<p style="margin-top:8px">${ech(h.annulation)}</p>` : '')
+      + (h.conditions ? `<p style="margin-top:4px">${ech(h.conditions)}</p>` : '');
+  }
+  // Plans tarifaires proposés pour la chambre choisie
+  function dessinerPlans(){
+    const idCh = document.getElementById('sjChambre').value;
+    const plans = (ent.tarifs || []).filter(x => !x.chambreId || x.chambreId === idCh);
+    const bloc = document.getElementById('blocPlans'), sel = document.getElementById('sjPlan');
+    if (!plans.length) { bloc.style.display = 'none'; sel.innerHTML = ''; return; }
+    const lg = (localStorage.getItem('langue') || 'fr');
+    bloc.style.display = '';
+    sel.innerHTML = plans.map(x => {
+      const bits = [];
+      if (x.prixNuit) bits.push((+x.prixNuit).toLocaleString('fr-HT') + ' HTG/' + (lg==='ht'?'nwit':'nuit'));
+      if (x.petitDejeuner) bits.push(lg==='ht'?'ti dejene':'petit-déjeuner');
+      if (!x.remboursable) bits.push(lg==='ht'?'pa ranbousab':'non remboursable');
+      return `<option value="${x.id}">${ech(x.nom)}${bits.length?' — '+ech(bits.join(', ')):''}</option>`;
+    }).join('');
+  }
+
+  window.verifierSejour = async () => {
+    const a = document.getElementById('sjArrivee').value, d = document.getElementById('sjDepart').value;
+    const zone = document.getElementById('sjDispo'), coord = document.getElementById('sjCoordonnees');
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const alerte = (txt) => { zone.innerHTML = `<div style="background:var(--orange-fond);color:#C4520E;border-radius:10px;padding:12px 14px" class="petit">${ech(txt)}</div>`; };
+    coord.style.display = 'none';
+    if (!a || !d) {
+      zone.innerHTML = `<p class="petit muet">${lg==='ht'?'Chwazi dat arive ak dat depa.':"Choisissez la date d'arrivée et la date de départ."}</p>`;
+      return;
+    }
+    if (d <= a) { alerte(lg==='ht' ? 'Dat depa a dwe apre dat arive a.' : 'La date de départ doit être après la date d\'arrivée.'); return; }
+    // La capacité de la chambre est vérifiée avant d'interroger le serveur
+    const idCh = document.getElementById('sjChambre').value;
+    const ch = (ent.chambres || []).find(x => x.id === idCh);
+    const nb = +document.getElementById('sjPersonnes').value || 1;
+    if (ch && nb > ch.capacite) {
+      alerte(lg==='ht'
+        ? `Chanm sa a pran ${ch.capacite} moun maksimòm. Chwazi yon lòt tip chanm.`
+        : `Cette chambre accueille ${ch.capacite} personne${ch.capacite>1?'s':''} au maximum. Choisissez un autre type de chambre.`);
+      return;
+    }
+    zone.innerHTML = `<p class="petit muet">${lg==='ht'?'Ap verifye…':'Vérification…'}</p>`;
+    try {
+      const plan = document.getElementById('sjPlan').value;
+      const r = await api(`/api/disponibilites-sejour?slug=${slug}&chambre=${document.getElementById('sjChambre').value}&arrivee=${a}&depart=${d}${plan?'&plan='+plan:''}`);
+      if (r.disponible) {
+        const saisons = [...new Set((r.detail||[]).map(x => x.saison).filter(Boolean))];
+        zone.innerHTML = `<div style="background:#D1FADF;border-radius:10px;padding:14px" class="petit">
+          <strong>✅ ${lg==='ht'?'Disponib':'Disponible'}</strong>${r.plan?` — ${ech(r.plan.nom)}`:''}
+          <div class="recap" style="background:rgba(255,255,255,.6);margin-top:10px">
+            <div><span>${r.nuits} ${lg==='ht'?'nwit':'nuit(s)'}${saisons.length?` (${ech(saisons.join(', '))})`:''}</span><span>${(+r.sousTotal).toLocaleString('fr-HT')} HTG</span></div>
+            ${(r.taxes||[]).map(tx => `<div><span>${ech(tx.nom)}</span><span>${(+tx.montant).toLocaleString('fr-HT')} HTG</span></div>`).join('')}
+            <div class="total"><span>Total</span><span>${(+r.total).toLocaleString('fr-HT')} HTG</span></div>
+            ${r.acompte?`<div style="color:#07684A;font-weight:700"><span>${lg==='ht'?'Depo pou peye':'Acompte à régler'} (${r.pourcentageAcompte} %)</span><span>${(+r.acompte).toLocaleString('fr-HT')} HTG</span></div>`:''}
+          </div>
+          ${r.plan && !r.plan.remboursable ? `<p style="margin-top:8px;color:#C4520E;font-weight:700">⚠ ${lg==='ht'?'Fòmil sa a pa ranbousab.':'Cette formule n\'est pas remboursable.'}</p>` : ''}
+        </div>`;
+        coord.style.display = '';
+      } else {
+        zone.innerHTML = `<div style="background:#FEE4E2;border-radius:10px;padding:12px 14px" class="petit">❌ Complet sur ces dates. Essayez d'autres dates ou un autre type de chambre.</div>`;
+      }
+    } catch (err) { zone.innerHTML = `<div style="background:#FEE4E2;border-radius:10px;padding:12px 14px" class="petit">${ech(err.message)}</div>`; }
+  };
+
+  window.reserverSejour = async () => {
+    const nom = document.getElementById('sjNom').value.trim();
+    const tel = document.getElementById('sjTel').value.trim();
+    if (!nom || !tel) { toast('Nom et téléphone obligatoires.'); return; }
+    try {
+      const r = await api('/api/sejours', 'POST', {
+        slug, chambreId: document.getElementById('sjChambre').value,
+        arrivee: document.getElementById('sjArrivee').value, depart: document.getElementById('sjDepart').value,
+        nbPersonnes: +document.getElementById('sjPersonnes').value || 1,
+        planId: document.getElementById('sjPlan').value || '',
+        clientNom: nom, clientTel: tel, clientEmail: document.getElementById('sjEmail').value.trim()
+      });
+      document.getElementById('sjCoordonnees').style.display = 'none';
+      document.getElementById('sjPaiement').style.display = '';
+      document.getElementById('montantPaiement').textContent = `Montant à payer : ${(+r.prixTotal).toLocaleString('fr-HT')} HTG`;
+      window.sjourId = r.reference;  // Stocker la référence pour le paiement
+      toast('Demande de séjour envoyée ! Procédez au paiement pour confirmer.');
+    } catch (err) { toast(err.message); }
+  };
+
+  window.initierPaiement = async (type) => {
+    const montant = document.getElementById('sjDispo').innerText.match(/([0-9,]+) HTG/)?.[1]?.replace(/,/g, '') || 0;
+    if (!montant || montant < 20) { toast('Montant invalide.'); return; }
+    try {
+      const result = await api('/api/paiements/ouvrir', 'POST', {
+        commandeType: 'sejour', commandeId: window.sjourId || '', slug
+      });
+      if (result.ok && result.urlPaiement) {
+        // Rediriger vers la passerelle
+        toast('Redirection vers le paiement...');
+        setTimeout(() => { window.location.href = result.urlPaiement; }, 500);
+      } else toast(result.erreur || 'Erreur paiement');
+    } catch (err) { toast(err.message); }
+  };
+  document.getElementById('listeServices').innerHTML += ent.services.map(s => `
+    <div class="ligne-service">
+      <div><strong>${ech(s.nom)}</strong><div class="petit muet">⏱ ${s.duree} min</div></div>
+      <div class="flex"><strong>${htg(s.prix)}</strong>
+      <button class="btn btn-contour btn-petit" onclick="choisirService('${s.id}')">Choisir</button></div>
+    </div>`).join('') || '<p class="muet">Aucun service publié pour le moment.</p>';
+
+  document.getElementById('listeAvis').innerHTML = ent.avis.length ? ent.avis.map(a => `
+    <div style="padding:12px 0;border-bottom:1px solid var(--bordure)">
+      <div class="flex entre"><strong class="petit">${ech(a.clientNom)}</strong><span class="etoiles petit">${etoiles(a.note)}</span></div>
+      <p class="petit muet" style="margin-top:4px">${ech(a.commentaire)}</p>
+    </div>`).join('') : '<p class="muet petit">Aucun avis pour le moment. Soyez le premier à partager votre expérience !</p>';
+
+  document.getElementById('infos').innerHTML = `
+    <p>📍 ${ech(ent.adresse) || '—'}</p>
+    <p style="margin-top:6px">📞 ${ech(ent.telephone) || '—'}</p>
+    ${(ent.latitude != null && ent.longitude != null) ? `<a class="btn btn-contour btn-petit mt" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${ent.latitude},${ent.longitude}">🧭 Itinéraire</a>` : ''}`;
+  document.getElementById('horaires').innerHTML = ['lun','mar','mer','jeu','ven','sam','dim'].map(j => {
+    const h = ent.horaires[j];
+    return `<div><span>${NOMS_JOURS[j]}</span><span class="${h.ouvert ? '' : 'muet'}">${h.ouvert ? h.debut + ' – ' + h.fin : 'Fermé'}</span></div>`;
+  }).join('');
+  document.getElementById('equipe').innerHTML = ent.employes.map(x => `
+    <div class="flex" style="padding:6px 0"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+    <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)}</div></div></div>`).join('') || '<p class="muet petit">—</p>';
+
+  // Sans service au catalogue, les cartes Services et Réservation n'ont pas lieu d'être
+  // (cas d'un hôtel, d'une boutique ou d'un établissement qui ne prend pas de rendez-vous)
+  // La carte Services disparaît si l'établissement n'en a aucun, ou s'il s'agit
+  // d'un hôtel : ses prestations sont alors présentées avec les chambres.
+  const estHotel = (ent.chambres || []).length > 0;
+  if (!(ent.services || []).length || estHotel) {
+    const cs = document.getElementById('carteServices'); if (cs) cs.style.display = 'none';
+  }
+  if (!(ent.services || []).length) {
+    const cr = document.getElementById('carteResa'); if (cr) cr.style.display = 'none';
+  }
+  dessinerBoutique();
+  dessinerUrgence();
+  dessinerSuivi();
+  dessinerProgrammes();
+  dessinerInfosMetier();
+  dessinerResort();
+  dessinerMenu();
+  dessinerPas();
+  initCarte();
+}
+
+// ===== Carte de localisation et distance =====
+let carteLeaflet = null, marqueurClient = null, ligneDistance = null;
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, rad = d => d * Math.PI / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function initCarte(essai = 0) {
+  if (ent.latitude == null || ent.longitude == null) return;  // pas de position enregistrée
+  const section = document.getElementById('carteLocalisation');
+  section.style.display = '';
+  if (typeof L === 'undefined') {
+    // Leaflet est chargé en différé : on réessaie brièvement avant d'abandonner
+    if (essai < 20) return setTimeout(() => initCarte(essai + 1), 250);
+    document.getElementById('mapDistance').innerHTML =
+      '<p class="petit muet" style="padding:16px">Carte indisponible (connexion requise).</p>';
+    document.getElementById('btnMaPosition').style.display = 'none';
+    return;
+  }
+  if (carteLeaflet) return;  // déjà initialisée
+  carteLeaflet = L.map('mapDistance').setView([ent.latitude, ent.longitude], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(carteLeaflet);
+  L.marker([ent.latitude, ent.longitude]).addTo(carteLeaflet)
+    .bindPopup(`<strong>${ech(ent.nom)}</strong><br>${ech(ent.adresse || '')}`).openPopup();
+  document.getElementById('infoDistance').textContent = 'Position de l\'établissement.';
+}
+
+function afficherMaPosition() {
+  if (!carteLeaflet) return;
+  const btn = document.getElementById('btnMaPosition');
+  const info = document.getElementById('infoDistance');
+  if (!navigator.geolocation) { info.textContent = 'Votre navigateur ne permet pas la géolocalisation.'; return; }
+  btn.disabled = true; info.textContent = 'Recherche de votre position…';
+  navigator.geolocation.getCurrentPosition(pos => {
+    btn.disabled = false;
+    const cLat = pos.coords.latitude, cLng = pos.coords.longitude;
+    const eLat = ent.latitude, eLng = ent.longitude;
+    if (marqueurClient) carteLeaflet.removeLayer(marqueurClient);
+    if (ligneDistance) carteLeaflet.removeLayer(ligneDistance);
+    marqueurClient = L.circleMarker([cLat, cLng], { radius: 8, color: '#16A34A', fillColor: '#16A34A', fillOpacity: .9 })
+      .addTo(carteLeaflet).bindPopup('Vous êtes ici');
+    ligneDistance = L.polyline([[cLat, cLng], [eLat, eLng]], { color: ent.couleur || '#2563EB', weight: 3, dashArray: '8 6' })
+      .addTo(carteLeaflet);
+    carteLeaflet.fitBounds(ligneDistance.getBounds(), { padding: [30, 30] });
+    const d = distanceKm(cLat, cLng, eLat, eLng);
+    info.innerHTML = `Distance à vol d'oiseau : <strong>${d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km'}</strong>`;
+  }, err => {
+    btn.disabled = false;
+    info.textContent = err.code === 1
+      ? 'Autorisation refusée. Activez la localisation pour voir la distance.'
+      : 'Position introuvable. Réessayez.';
+  }, { enableHighAccuracy: true, timeout: 12000 });
+}
+
+function choisirService(id) {
+  resa.service = ent.services.find(s => s.id === id);
+  resa.pas = 2; resa.date = ''; resa.heure = '';
+  dessinerPas();
+  document.getElementById('carteResa').scrollIntoView({ behavior: 'smooth' });
+}
+
+function dessinerPas() {
+  document.querySelectorAll('#barrePas .pas').forEach((el, i) => el.classList.toggle('fait', i < resa.pas));
+  const z = document.getElementById('zonePas');
+  const min = new Date().toISOString().slice(0, 10);
+
+  if (resa.pas === 1) {
+    z.innerHTML = `<p class="petit muet">Étape 1 sur 4 — Choisissez un service</p>
+      <div style="display:grid;gap:8px;margin-top:12px">
+      ${ent.services.map(s => `<button class="creneau" style="text-align:left;padding:11px 14px" onclick="choisirService('${s.id}')">${ech(s.nom)} <span class="muet" style="font-weight:400">• ${s.duree} min • ${htg(s.prix)}</span></button>`).join('')}
+      </div>`;
+  }
+  if (resa.pas === 2) {
+    z.innerHTML = `<p class="petit muet">Étape 2 sur 4 — <strong>${ech(resa.service.nom)}</strong> : choisissez une date</p>
+      <label>Date du rendez-vous</label>
+      <input type="date" id="champDate" min="${min}" value="${resa.date || min}">
+      <div class="flex mt" style="justify-content:space-between">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=1;dessinerPas()">← Retour</button>
+        <button class="btn btn-primaire" style="background:var(--marque)" onclick="validerDate()">Voir les créneaux</button>
+      </div>`;
+  }
+  if (resa.pas === 3) chargerCreneaux();
+  if (resa.pas === 4) {
+    z.innerHTML = `<p class="petit muet">Étape 4 sur 4 — Vos coordonnées</p>
+      <div class="recap mt">
+        <div><span>Service</span><strong>${ech(resa.service.nom)}</strong></div>
+        <div><span>Date</span><strong>${dateFR(resa.date)}</strong></div>
+        <div><span>Heure</span><strong>${resa.heure}</strong></div>
+        <div><span>Prix</span><strong>${htg(resa.service.prix)}</strong></div>
+      </div>
+      <label>Nom complet *</label><input id="cNom" placeholder="Ex : Jean Michel">
+      <label>Téléphone (WhatsApp) *</label><input id="cTel" placeholder="Ex : +509 3712 0000">
+      <label>Email (recommandé)</label><input id="cEmail" type="email" placeholder="exemple@gmail.com — pour recevoir votre confirmation">
+      <div class="champ-erreur" id="erreurResa"></div>
+      <div class="flex" style="justify-content:space-between">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=3;dessinerPas()">← Retour</button>
+        <button class="btn btn-primaire" style="background:var(--marque)" onclick="confirmerResa()">Confirmer le rendez-vous</button>
+      </div>`;
+  }
+}
+
+function validerDate() {
+  resa.date = document.getElementById('champDate').value;
+  if (!resa.date) return toast('Choisissez une date.');
+  resa.pas = 3; dessinerPas();
+}
+
+async function chargerCreneaux() {
+  const z = document.getElementById('zonePas');
+  z.innerHTML = '<p class="petit muet">Chargement des disponibilités…</p>';
+  let creneaux;
+  try {
+    ({ creneaux } = await api(`/api/disponibilites?slug=${slug}&service=${resa.service.id}&date=${resa.date}`));
+  } catch (e) {
+    z.innerHTML = `<p class="petit" style="color:var(--rouge,#DC2626)">Impossible de charger les disponibilités : ${ech(e.message || 'erreur réseau')}</p>
+      <div class="flex mt" style="gap:8px">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=2;dessinerPas()">← Changer la date</button>
+        <button class="btn btn-contour btn-petit" onclick="chargerCreneaux()">Réessayer</button>
+      </div>`;
+    return;
+  }
+  z.innerHTML = `<p class="petit muet">Étape 3 sur 4 — Créneaux du <strong>${dateFR(resa.date)}</strong></p>
+    ${creneaux.length ? `<div class="creneaux">${creneaux.map(h => `<button class="creneau" onclick="choisirHeure('${h}', this)">${h}</button>`).join('')}</div>`
+      : '<p class="muet petit mt">Aucun créneau disponible ce jour-là. Choisissez une autre date.</p>'}
+    <div class="flex mt" style="justify-content:space-between">
+      <button class="btn btn-fantome btn-petit" onclick="resa.pas=2;dessinerPas()">← Changer la date</button>
+      <button class="btn btn-primaire" style="background:var(--marque)" id="btnSuite" disabled onclick="resa.pas=4;dessinerPas()">Continuer</button>
+    </div>`;
+}
+
+function choisirHeure(h, el) {
+  resa.heure = h;
+  document.querySelectorAll('.creneau').forEach(c => c.classList.remove('choisi'));
+  el.classList.add('choisi');
+  document.getElementById('btnSuite').disabled = false;
+}
+
+async function confirmerResa() {
+  const nom = document.getElementById('cNom').value.trim();
+  const tel = document.getElementById('cTel').value.trim();
+  const email = document.getElementById('cEmail').value.trim();
+  const err = document.getElementById('erreurResa');
+  if (!nom || !tel) { err.textContent = 'Le nom et le téléphone sont obligatoires.'; return; }
+  try {
+    const r = await api('/api/reservations', 'POST', { slug, serviceId: resa.service.id, date: resa.date, heure: resa.heure, clientNom: nom, clientTel: tel, clientEmail: email });
+    document.getElementById('zonePas').innerHTML = `
+      <div class="centre" style="padding:14px 0">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
+        <h3>Rendez-vous enregistré !</h3>
+        <p class="petit muet" style="margin-top:8px">Votre rendez-vous chez <strong>${ech(r.entreprise)}</strong> pour <strong>${ech(r.service)}</strong> le <strong>${dateFR(r.date)}</strong> à <strong>${r.heure}</strong> a été enregistré.</p>
+        <p class="petit muet" style="margin-top:8px">Référence : <strong>${r.reference}</strong></p>
+        <div style="background:#D1FADF;border-radius:10px;padding:14px;margin-top:16px">
+          <strong>✅ Paiement requis</strong>
+          <p class="petit muet" style="margin-top:6px">Procédez au paiement pour valider définitivement votre réservation.</p>
+          <p style="font-weight:600;font-size:18px;margin-top:8px;color:#16A34A">Montant : ${htg(resa.service.prix)}</p>
+          <button class="btn btn-primaire" style="width:100%;margin-top:12px;background:var(--marque)" onclick="initierPaiementRdv('${r.reference}')">💳 Payer maintenant</button>
+        </div>
+        ${r.whatsapp ? `<a class="btn btn-succes mt" style="margin-top:14px" target="_blank" rel="noopener" href="https://wa.me/${r.whatsapp}?text=${encodeURIComponent("Bonjour, j'ai réservé « " + r.service + " » le " + r.date + " à " + r.heure + " (réf. " + r.reference + ").")}">Contacter sur WhatsApp</a>` : ''}
+      </div>`;
+    document.querySelectorAll('#barrePas .pas').forEach(el => el.classList.add('fait'));
+    window.rdvReference = r.reference;  // Stocker pour le paiement
+  } catch (e) { err.textContent = e.message; }
+}
+
+async function initierPaiementRdv(reference) {
+  try {
+    const result = await api('/api/paiements/ouvrir', 'POST', {
+      commandeType: 'rdv', commandeId: reference, slug
+    });
+    if (result.ok && result.urlPaiement) {
+      toast('Redirection vers le paiement...');
+      setTimeout(() => { window.location.href = result.urlPaiement; }, 500);
+    } else toast(result.erreur || 'Erreur paiement');
+  } catch (err) { toast(err.message); }
+}
+
+async function envoyerAvis() {
+  const nom = document.getElementById('avisNom').value.trim();
+  if (!nom) return toast('Indiquez votre nom.');
+  await api('/api/avis', 'POST', { slug, clientNom: nom, note: document.getElementById('avisNote').value, commentaire: document.getElementById('avisTexte').value });
+  document.getElementById('voileAvis').classList.remove('ouvert');
+  toast('Merci pour votre avis !');
+  charger();
+}
+
+charger();
+</script>
+<button id="bulPanier" class="bulle-panier" style="display:none" onclick="ouvrirPanier()">
+  🛒 <span id="nbPanier">0</span> · <span id="totalPanier">0 HTG</span>
+</button>
+
+<div class="voile" id="voilePanier"><div class="modale" style="max-width:540px">
+  <h3 data-i18n="panier.titre">Votre commande</h3>
+  <div id="lignesPanier" class="mt"></div>
+  <div id="etapeRemise" style="display:none">
+    <hr style="border:none;border-top:1px solid var(--bordure);margin:16px 0 4px">
+    <label data-i18n="panier.mode">Comment souhaitez-vous recevoir votre commande ?</label>
+    <div id="choixMode" class="choix-formule mt"></div>
+    <div id="blocLivraisonClient" style="display:none">
+      <label data-i18n="panier.zone">Zone de livraison</label>
+      <select id="pnZone" onchange="majTotalPanier()"></select>
+      <label data-i18n="panier.adresse">Adresse de livraison *</label><input id="pnAdresse">
+      <label data-i18n="panier.repere">Point de repère</label><input id="pnRepere" placeholder="Ex : en face de l'école">
+    </div>
+    <div id="blocCueilletteClient" style="display:none">
+      <p class="petit muet" id="infoCueillette"></p>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--bordure);margin:16px 0 4px">
+    <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+      <div><label data-i18n="panier.nom">Votre nom *</label><input id="pnNom"></div>
+      <div><label data-i18n="panier.tel">Téléphone (WhatsApp) *</label><input id="pnTel"></div>
+    </div>
+    <label data-i18n="panier.message">Message — facultatif</label><input id="pnMessage">
+    <div id="blocPaiement" style="display:none">
+      <label data-i18n="panier.paiement">Paiement</label>
+      <div id="choixPaiement" class="choix-formule"></div>
+    </div>
+    <div class="recap mt" id="recapPanier"></div>
+    <p class="petit muet" id="consigneVente"></p>
+    <p class="champ-erreur" id="erreurPanier"></p>
+    <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="validerCommande()" data-i18n="panier.valider">Valider la commande</button>
+  </div>
+  <div class="flex mt" style="justify-content:space-between">
+    <button class="btn btn-fantome" onclick="fermer('voilePanier')" data-i18n="panier.continuer">Continuer mes achats</button>
+    <button class="btn btn-fantome" onclick="viderPanier()" data-i18n="panier.vider">Vider</button>
+  </div>
+</div></div>
+
+</body>
+</html>
