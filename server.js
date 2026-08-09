@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const store = require('./lib/db');
-const plopplop = require('./lib/passerelle.js');
+const plopplop = require('./plopplop.js');
 const metiers = require('./lib/metiers.js');
 const taksi = require('./lib/taksi.js');
 

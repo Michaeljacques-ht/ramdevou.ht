@@ -1,197 +1,41 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Boutique en ligne — Randevou.ht</title>
+<title>Connexion — Randevou.ht</title>
 <link rel="stylesheet" href="/style.css">
 <style>
-.hero-bq { background: #fff; border: 1px solid var(--bordure); border-radius: 24px; padding: 34px 30px; box-shadow: var(--ombre); position: relative; overflow: hidden; margin: 26px 0 22px; }
-.hero-bq::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: var(--degrade-accent); }
-.hero-bq h1 { font-size: clamp(26px, 3.6vw, 36px); letter-spacing: -.03em; }
-.hero-bq .accent { background: linear-gradient(90deg, #1E5FE0, #6D4AC4); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.barre-bq { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
-.barre-bq input, .barre-bq select { flex: 1; min-width: 150px; }
-.rayons-bq { display: flex; gap: 7px; flex-wrap: wrap; margin: 18px 0 6px; }
-.pastille-r { border: 1.5px solid var(--bordure); background: #fff; border-radius: var(--r-pilule); padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); cursor: pointer; }
-.pastille-r:hover { border-color: var(--bleu); background: var(--bleu-clair); }
-.pastille-r.on { background: var(--degrade); border-color: transparent; color: #fff; }
-.grille-bq { display: grid; grid-template-columns: repeat(auto-fill, minmax(206px, 1fr)); gap: 16px; margin-top: 16px; }
-.art { border: 1px solid var(--bordure); border-radius: var(--r-carte); overflow: hidden; background: #fff; display: flex; flex-direction: column; transition: box-shadow .16s, transform .16s; }
-.art:hover { box-shadow: var(--ombre-f); transform: translateY(-3px); }
-.art-img { height: 140px; background-size: cover; background-position: center; background-color: var(--gris-clair); position: relative; }
-.art-img.sans { display: grid; place-items: center; font-size: 34px; opacity: .3; }
-.art-promo { position: absolute; top: 9px; left: 9px; background: var(--orange); color: #fff; border-radius: 99px; padding: 3px 10px; font-size: 11.5px; font-weight: 800; }
-.art-corps { padding: 12px 13px 14px; display: flex; flex-direction: column; flex: 1; }
-.art-prix { margin-top: auto; padding-top: 9px; font-size: 16px; color: var(--marine); font-weight: 800; }
-.art-vendeur { display: flex; align-items: center; gap: 7px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--bordure); }
-.pastille-v { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; flex: none; }
-.modes-v { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 7px; }
-.mode-v { background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 2px 9px; font-size: 11px; font-weight: 700; }
-.vide-bq { text-align: center; padding: 50px 20px; color: var(--gris); }
+body { background: var(--gris-clair); min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.boite { width: 100%; max-width: 420px; }
+.demo { background: var(--bleu-clair); border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-top: 16px; }
 </style>
-<script src="/app.js"></script>
-<script src="/translations.js"></script>
 </head>
 <body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Randevou.ht" style="height:110px;width:auto"></a></div>
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+    <h1 style="font-size:21px">Se connecter</h1>
+    <p class="muet petit" style="margin-top:4px">Accédez à votre tableau de bord.</p>
+    <form id="f">
+      <label>Email</label><input id="email" type="email" required placeholder="vous@entreprise.ht">
+      <label>Mot de passe</label><input id="mdp" type="password" required placeholder="••••••••">
+      <div class="champ-erreur" id="err"></div>
+      <button class="btn btn-primaire btn-large" style="width:100%">Se connecter</button>
+    </form>
+    <p class="petit centre mt">Pas encore de compte ? <a href="/inscription.html">Inscrire mon entreprise</a></p>
 
-<nav class="nav">
-  <div class="conteneur nav-int">
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Randevou.ht</a>
-    <div class="nav-liens">
-      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
-      <a href="/boutique.html" class="actif" data-i18n="bq.nav">Boutique</a>
-    </div>
-    <div class="nav-droite">
-      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
-      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
-      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
-    </div>
-  </div>
-</nav>
-
-<main class="conteneur">
-  <section class="hero-bq">
-    <span class="eyebrow" data-i18n="bq.eyebrow">Boutique en ligne</span>
-    <h1><span data-i18n="bq.titre1">Achetez auprès des </span><span class="accent" data-i18n="bq.titre2">commerçants haïtiens</span></h1>
-    <p class="muet" style="margin-top:10px;max-width:52ch" data-i18n="bq.intro">Parcourez les produits de tous les vendeurs de la plateforme, commandez en ligne et choisissez la livraison ou le retrait sur place.</p>
-    <div class="barre-bq">
-      <input id="qBq" data-i18n-placeholder="bq.recherche" placeholder="Que cherchez-vous ?">
-      <input id="villeBq" data-i18n-placeholder="bq.ville" placeholder="Ville ou quartier">
-      <select id="triBq">
-        <option value="" data-i18n="bq.tri.nom">Trier : nom</option>
-        <option value="prix" data-i18n="bq.tri.prix">Prix croissant</option>
-        <option value="prix_desc" data-i18n="bq.tri.prix2">Prix décroissant</option>
-        <option value="proche" data-i18n="bq.tri.proche">Les plus proches</option>
-      </select>
-      <button class="btn btn-primaire" onclick="chargerBoutique()" data-i18n="bq.chercher">Rechercher</button>
-    </div>
-    <p class="petit muet" id="resumeBq" style="margin-top:12px"></p>
-  </section>
-
-  <div class="rayons-bq" id="rayonsBq"></div>
-  <div class="grille-bq" id="grilleBq"></div>
-  <div id="videBq"></div>
-</main>
-
-<footer class="pied-riche" style="margin-top:56px">
-  <div class="conteneur">
-    <div class="pied-bas">
-      <p class="petit">© 2026 <strong>RANDEVOU.HT</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
-      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
-    </div>
-  </div>
-</footer>
-
-<div id="toast"></div>
-
+  </div></div>
+</div>
+<script src="/app.js"></script>
 <script>
-let rayonBq = '', maPosition = null;
-
-function lg(){ return localStorage.getItem('langue') || 'fr'; }
-
-async function chargerBoutique(){
-  const p = new URLSearchParams();
-  const q = document.getElementById('qBq').value.trim();
-  const ville = document.getElementById('villeBq').value.trim();
-  const tri = document.getElementById('triBq').value;
-  if (q) p.set('q', q);
-  if (ville) p.set('ville', ville);
-  if (rayonBq) p.set('rayon', rayonBq);
-  if (tri) p.set('tri', tri);
-  if (maPosition) { p.set('lat', maPosition.lat); p.set('lng', maPosition.lng); }
-
-  const grille = document.getElementById('grilleBq');
-  grille.innerHTML = `<p class="muet petit">${lg()==='ht'?'Ap chaje…':'Chargement…'}</p>`;
-  document.getElementById('videBq').innerHTML = '';
+document.getElementById('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
   try {
-    const r = await api('/api/boutique?' + p.toString());
-    dessinerRayons(r.rayons);
-    document.getElementById('resumeBq').textContent = lg()==='ht'
-      ? `${r.total} pwodwi nan ${r.vendeurs} boutik`
-      : `${r.total} produit${r.total>1?'s':''} chez ${r.vendeurs} vendeur${r.vendeurs>1?'s':''}`;
-    if (!r.articles.length) {
-      grille.innerHTML = '';
-      document.getElementById('videBq').innerHTML = `<div class="vide-bq">
-        <div style="font-size:42px">🛒</div>
-        <p style="margin-top:10px">${lg()==='ht'?'Anyen pa jwenn. Eseye yon lòt mo.':'Aucun produit trouvé. Essayez un autre mot.'}</p></div>`;
-      return;
-    }
-    grille.innerHTML = r.articles.map(a => carteArticle(a)).join('');
-  } catch(e){
-    grille.innerHTML = `<p class="petit" style="color:var(--rouge)">${ech(e.message)}</p>`;
-  }
-}
-
-function carteArticle(a){
-  const v = a.vendeur;
-  const prix = a.prixPromo > 0 ? a.prixPromo : a.prix;
-  const msg = encodeURIComponent(
-    (lg()==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ')
-    + a.nom + ' (' + prix.toLocaleString('fr-HT') + ' HTG)');
-  const modes = [];
-  if (v.livraison)  modes.push('🛵 ' + (lg()==='ht'?'Livrezon':'Livraison'));
-  if (v.cueillette) modes.push('🏪 ' + (lg()==='ht'?'Vin chèche':'Retrait'));
-  return `<div class="art">
-    ${a.photo ? `<div class="art-img" style="background-image:url('${a.photo}')">${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}</div>`
-              : `<div class="art-img sans"><span>🛍️</span>${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}</div>`}
-    <div class="art-corps">
-      <strong>${ech(a.nom)}</strong>
-      ${a.marque?`<p class="petit muet">${ech(a.marque)}</p>`:''}
-      ${a.description?`<p class="petit muet">${ech(a.description)}</p>`:''}
-      ${a.stockFaible?`<p class="petit" style="color:var(--orange);font-weight:700">${lg()==='ht'?'Dènye inite yo':'Dernières unités'}</p>`:''}
-      <p class="art-prix">
-        ${a.prixPromo ? `<s class="petit muet" style="font-weight:400">${(+a.prix).toLocaleString('fr-HT')}</s> ${(+a.prixPromo).toLocaleString('fr-HT')} HTG`
-                      : `${(+a.prix).toLocaleString('fr-HT')} HTG`}
-        ${a.unite?`<span class="petit muet" style="font-weight:400">/${ech(a.unite)}</span>`:''}
-      </p>
-      <div class="art-vendeur">
-        <span class="pastille-v" style="background:${ech(v.couleur)}">${ech(v.logoTexte || v.nom.slice(0,2).toUpperCase())}</span>
-        <div style="flex:1;min-width:0">
-          <a class="petit" href="/${ech(v.slug)}" style="font-weight:700">${ech(v.nom)}</a>
-          <div class="petit muet" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            ${ech(v.adresse)}${v.distanceKm!==null?` · ${v.distanceKm} km`:''}
-          </div>
-        </div>
-      </div>
-      ${modes.length?`<div class="modes-v">${modes.map(m=>`<span class="mode-v">${m}</span>`).join('')}</div>`:''}
-      <div class="flex" style="gap:6px;margin-top:10px">
-        ${v.commande
-          ? `<a class="btn btn-primaire btn-petit" style="flex:1" href="/${ech(v.slug)}">${lg()==='ht'?'Kòmande':'Commander'}</a>`
-          : ''}
-        ${v.whatsapp
-          ? `<a class="btn btn-succes btn-petit" style="${v.commande?'':'flex:1'}" target="_blank" rel="noopener"
-               href="https://wa.me/${ech(v.whatsapp)}?text=${msg}">${lg()==='ht'?'Kontakte':'Contacter'}</a>`
-          : `<a class="btn btn-contour btn-petit" style="flex:1" href="/${ech(v.slug)}">${lg()==='ht'?'Wè boutik la':'Voir la boutique'}</a>`}
-      </div>
-    </div>
-  </div>`;
-}
-
-function dessinerRayons(rayons){
-  document.getElementById('rayonsBq').innerHTML =
-    `<button class="pastille-r${rayonBq===''?' on':''}" onclick="filtrerRayonBq('')">${lg()==='ht'?'Tout':'Tout'}</button>` +
-    rayons.map(r => `<button class="pastille-r${rayonBq===r?' on':''}" onclick="filtrerRayonBq('${r.replace(/'/g,"\\'")}')">${ech(r)}</button>`).join('');
-}
-function filtrerRayonBq(r){ rayonBq = r; chargerBoutique(); }
-
-// La recherche se relance à la validation du champ
-['qBq','villeBq'].forEach(id => document.getElementById(id).addEventListener('keydown', (ev) => {
-  if (ev.key === 'Enter') chargerBoutique();
-}));
-document.getElementById('triBq').addEventListener('change', () => {
-  // Le tri par distance a besoin de la position, demandée seulement à ce moment-là
-  if (document.getElementById('triBq').value === 'proche' && !maPosition && navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { maPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude }; chargerBoutique(); },
-      () => { toast(lg()==='ht' ? 'Pozisyon pa disponib.' : 'Position indisponible.'); chargerBoutique(); },
-      { timeout: 10000 });
-    return;
-  }
-  chargerBoutique();
+    const r = await api('/api/connexion', 'POST', { email: email.value.trim(), motdepasse: mdp.value });
+    location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
+  } catch (e) { document.getElementById('err').textContent = e.message; }
 });
-
-chargerBoutique();
 </script>
 </body>
 </html>

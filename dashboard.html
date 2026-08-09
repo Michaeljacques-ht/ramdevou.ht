@@ -3,39 +3,2257 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Connexion — Randevou.ht</title>
+<title>Tableau de bord — Randevou.ht</title>
 <link rel="stylesheet" href="/style.css">
 <style>
-body { background: var(--gris-clair); min-height: 100vh; display: grid; place-items: center; padding: 20px; }
-.boite { width: 100%; max-width: 420px; }
-.demo { background: var(--bleu-clair); border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-top: 16px; }
+body { background: var(--gris-clair); }
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.lateral { background: var(--marine); color: #C6D2E8; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+.lateral .logo { color: #fff; padding: 6px 10px 18px; }
+.lien-lat { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: var(--r-pilule); color: #C6D2E8; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; font-family: inherit; text-align: left; width: 100%; }
+.lien-lat:hover { background: var(--marine-2); color: #fff; }
+.lien-lat.actif { background: var(--degrade); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,.28); }
+.bloc-user { margin-top: auto; background: var(--marine-2); border-radius: var(--r-champ); padding: 12px; display: flex; gap: 10px; align-items: center; }
+.entete-haut { background: #fff; border-bottom: 1px solid var(--bordure); padding: 14px 24px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 40; }
+.principal { padding: 24px; max-width: 1060px; }
+.cartes-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.stat { background: #fff; border: 1px solid var(--bordure); border-radius: var(--r-carte); padding: 18px 20px; box-shadow: var(--ombre); }
+.stat .valeur { font-size: 28px; font-weight: 800; margin-top: 4px; }
+.stat .delta { font-size: 12px; font-weight: 700; }
+.cloche { position: relative; margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; }
+.cloche .point { position: absolute; top: -4px; right: -6px; background: var(--rouge); color: #fff; font-size: 10px; font-weight: 700; border-radius: 99px; padding: 1px 5px; }
+.panneau-notifs { position: absolute; right: 24px; top: 60px; width: 330px; max-height: 400px; overflow: auto; background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: 0 16px 44px rgba(16,24,40,.18); display: none; z-index: 60; }
+.panneau-notifs.ouvert { display: block; }
+.notif { padding: 12px 14px; border-bottom: 1px solid var(--bordure); font-size: 13.5px; }
+.notif.non-lu { background: var(--bleu-clair); }
+.cal-semaine { display: grid; grid-template-columns: 54px repeat(7, 1fr); font-size: 12px; }
+.cal-cellule { border-top: 1px solid var(--bordure); border-left: 1px solid var(--bordure); min-height: 44px; position: relative; }
+.cal-entete { padding: 8px 4px; text-align: center; font-weight: 700; color: var(--gris); }
+.cal-heure { color: var(--gris); text-align: right; padding: 2px 6px 0 0; }
+.rdv-bloc { position: absolute; left: 3px; right: 3px; border-radius: 7px; padding: 3px 6px; font-size: 11px; font-weight: 600; overflow: hidden; cursor: pointer; }
+.pastilles { display: flex; gap: 8px; flex-wrap: wrap; }
+.pastille-couleur { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.pastille-couleur.choisie { border-color: var(--encre); }
+.section-cache { display: none; }
+.section-cache.visible { display: block; }
+#menuMobile { display: none; }
+@media (max-width: 880px) {
+  .app { grid-template-columns: 1fr; }
+  .lateral { position: fixed; inset: 0 30% 0 0; z-index: 90; transform: translateX(-100%); transition: .2s; }
+  .lateral.ouvert { transform: none; }
+  #menuMobile { display: inline-flex; }
+  .cartes-stats { grid-template-columns: 1fr 1fr; }
+}
+.ico-partage { width: 16px; height: 16px; object-fit: contain; vertical-align: -3px; display: inline-block; }
+.grille-equip { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; margin-top: 8px; }
+.equip-case { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1.5px solid var(--bordure); border-radius: var(--r-champ); cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--texte); background: #fff; }
+.equip-case:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+.equip-case input { width: auto; margin: 0; accent-color: var(--bleu); }
+.equip-case.on { border-color: var(--bleu); background: var(--bleu-clair); color: var(--marine); }
+.puces-equip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.puce-equip { display: inline-flex; align-items: center; gap: 5px; background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.choix-formule { display: grid; gap: 10px; }
+.opt-formule { display: flex; align-items: flex-start; gap: 11px; padding: 14px; border: 1.5px solid var(--bordure); border-radius: var(--r-champ); cursor: pointer; background: #fff; font-weight: 500; margin: 0; }
+.opt-formule:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+.opt-formule.on { border-color: var(--bleu); background: var(--bleu-clair); }
+.opt-formule input { width: auto; margin: 3px 0 0; accent-color: var(--bleu); flex: none; }
+.badge-resort { background: linear-gradient(90deg, #0B2C6B, #F26B21); color: #fff; }
+.champ-metier { margin-bottom: 4px; }
+#listeChampsMetier { display: grid; gap: 10px; }
+.etapes-dos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.etape-dos { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--bordure); background: #fff; color: var(--gris); font-weight: 800; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+.etape-dos:hover { border-color: var(--bleu); }
+.etape-dos.faite { background: var(--vert-fond); border-color: transparent; color: #07684A; }
+.etape-dos.active { background: var(--degrade); border-color: transparent; color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,.3); }
+.btn-etat { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 12px; border: 2px solid var(--bordure); border-radius: var(--r-champ); background: #fff; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); text-align: center; }
+.btn-etat:hover { border-color: var(--bleu); }
+.btn-etat.on { border-color: var(--bleu); background: var(--bleu-clair); color: var(--marine); box-shadow: 0 4px 12px rgba(37,99,235,.16); }
+.ligne-zone { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; align-items: center; }
+.ligne-zone input { margin: 0; }
+@media (max-width: 560px) { .ligne-zone { grid-template-columns: 1fr 1fr; } }
+.planning { font-size: 12.5px; }
+.planning th, .planning td { padding: 6px 8px; }
+.case-occ { text-align: center; font-weight: 700; border-radius: 6px; }
+.case-occ.libre { background: var(--vert-fond); color: #07684A; }
+.case-occ.partiel { background: var(--orange-fond); color: #C4520E; }
+.case-occ.complet { background: var(--rouge-fond); color: #B02121; }
 </style>
 </head>
 <body>
-<div class="boite">
-  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Randevou.ht" style="height:110px;width:auto"></a></div>
-  <div class="carte"><div class="carte-corps" style="padding:26px">
-    <h1 style="font-size:21px">Se connecter</h1>
-    <p class="muet petit" style="margin-top:4px">Accédez à votre tableau de bord.</p>
-    <form id="f">
-      <label>Email</label><input id="email" type="email" required placeholder="vous@entreprise.ht">
-      <label>Mot de passe</label><input id="mdp" type="password" required placeholder="••••••••">
-      <div class="champ-erreur" id="err"></div>
-      <button class="btn btn-primaire btn-large" style="width:100%">Se connecter</button>
-    </form>
-    <p class="petit centre mt">Pas encore de compte ? <a href="/inscription.html">Inscrire mon entreprise</a></p>
+<div class="app">
+  <aside class="lateral" id="lateral">
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Randevou.ht</a>
+    <button class="lien-lat actif" data-sec="bord">▦ Tableau de bord</button>
+    <button class="lien-lat" data-sec="rdv">🗓 Rendez-vous</button>
+    <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
+    <button class="lien-lat" data-sec="services">🧰 Services</button>
+    <button class="lien-lat" data-sec="chambres">🛏️ Chambres, séjours &amp; services</button>
+    <button class="lien-lat" data-sec="tarifs">💲 Tarifs &amp; saisons</button>
+    <button class="lien-lat" data-sec="planning">📊 Planning</button>
+    <button class="lien-lat" data-sec="hotel">⚙️ Politiques hôtel</button>
+    <button class="lien-lat" data-sec="carte">🍽️ Restaurant &amp; Bar</button>
+    <button class="lien-lat" data-sec="programmes">🎓 Programmes</button>
+    <button class="lien-lat" data-sec="inscriptions">📋 Inscriptions</button>
+    <button class="lien-lat" data-sec="dossiers">📁 Dossiers</button>
+    <button class="lien-lat" data-sec="urgence">🚨 Urgences</button>
+    <button class="lien-lat" data-sec="catalogue">🛒 Catalogue</button>
+    <button class="lien-lat" data-sec="commandes">📦 Commandes</button>
+    <button class="lien-lat" data-sec="vente">🛵 Livraison &amp; retrait</button>
+    <button class="lien-lat" data-sec="portefeuille">💰 Portefeuille &amp; Paiements</button>
+    <button class="lien-lat" data-sec="employes">👥 Employés</button>
+    <button class="lien-lat" data-sec="avis">⭐ Avis &amp; Notes</button>
+    <button class="lien-lat" data-sec="perso">🎨 Personnalisation</button>
+    <button class="lien-lat" data-sec="param">⚙️ Paramètres &amp; horaires</button>
+    <div class="bloc-user">
+      <span class="avatar" id="avatarUser">–</span>
+      <div style="flex:1;min-width:0">
+        <strong style="color:#fff;font-size:13px;display:block" id="nomEnt">…</strong>
+        <span class="petit" style="font-size:12px" id="nomUser">…</span>
+      </div>
+      <button class="btn btn-fantome btn-petit" style="color:#C6D2E8" onclick="deconnexion()" title="Se déconnecter">⎋</button>
+    </div>
+  </aside>
 
-  </div></div>
+  <div>
+    <header class="entete-haut">
+      <button class="btn btn-fantome btn-petit" id="menuMobile" onclick="document.getElementById('lateral').classList.toggle('ouvert')">☰</button>
+      <h1 style="font-size:17px" id="titreSection">Tableau de bord</h1>
+      <button class="cloche" onclick="basculerNotifs()" aria-label="Notifications">🔔<span class="point" id="ptNotif" style="display:none">0</span></button>
+      <a class="btn btn-contour btn-petit" id="lienPublic" target="_blank" href="#">Voir ma page publique ↗</a>
+    </header>
+    <div class="panneau-notifs" id="panneauNotifs"></div>
+
+    <main class="principal">
+      <div id="alerteStatut"></div>
+
+      <!-- ===== Tableau de bord ===== -->
+      <section id="sec-bord" class="section-cache visible">
+        <div class="carte" style="margin-bottom:14px"><div class="carte-corps flex entre" style="flex-wrap:wrap;gap:12px">
+          <div style="min-width:220px">
+            <h2 style="font-size:15px">📣 Partagez votre page de réservation</h2>
+            <p class="petit muet" id="lienPublic" style="word-break:break-all;margin-top:4px"></p>
+          </div>
+          <div class="flex" style="gap:8px;flex-wrap:wrap">
+            <button class="btn btn-fantome btn-petit" onclick="partagerPage('copier')">🔗 Copier le lien</button>
+            <button class="btn btn-succes btn-petit" onclick="partagerPage('whatsapp')"><img src="/logos/whatsapp.png" alt="" class="ico-partage"> WhatsApp</button>
+            <button class="btn btn-primaire btn-petit" onclick="partagerPage('facebook')"><img src="/logos/facebook.png" alt="" class="ico-partage"> Facebook</button>
+            <button class="btn btn-fantome btn-petit" onclick="partagerPage('x')"><img src="/logos/x.png" alt="" class="ico-partage"> X</button>
+          </div>
+        </div></div>
+        <div class="cartes-stats" id="stats"></div>
+        <div class="grille mt" style="grid-template-columns:1.4fr 1fr">
+          <div class="carte"><div class="carte-corps">
+            <div class="flex entre"><h2 style="font-size:16px">Rendez-vous récents</h2>
+              <button class="btn btn-fantome btn-petit" onclick="allerSection('rdv')">Voir tous →</button></div>
+            <div id="rdvRecents" class="mt"></div>
+          </div></div>
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Activité — 14 derniers jours</h2>
+            <canvas id="graphe" height="190" class="mt" style="width:100%"></canvas>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- ===== Rendez-vous ===== -->
+      <section id="sec-rdv" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+            <h2 style="font-size:16px">Tous les rendez-vous</h2>
+            <select id="filtreStatut" style="width:auto" onchange="dessinerRdv()">
+              <option value="">Tous les statuts</option>
+              <option value="en_attente">En attente</option>
+              <option value="confirme">Confirmés</option>
+              <option value="termine">Terminés</option>
+              <option value="annule">Annulés</option>
+            </select>
+          </div>
+          <div style="overflow:auto" class="mt"><table id="tableRdv"></table></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Calendrier ===== -->
+      <section id="sec-calendrier" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+            <h2 style="font-size:16px" id="titreSemaine">Semaine</h2>
+            <div class="flex">
+              <button class="btn btn-contour btn-petit" onclick="bougerSemaine(-1)">←</button>
+              <button class="btn btn-contour btn-petit" onclick="semaineOffset=0;dessinerCalendrier()">Aujourd'hui</button>
+              <button class="btn btn-contour btn-petit" onclick="bougerSemaine(1)">→</button>
+            </div>
+          </div>
+          <div style="overflow:auto" class="mt"><div class="cal-semaine" id="calendrier" style="min-width:760px"></div></div>
+          <p class="petit mt"><span class="badge badge-vert">Confirmé</span> <span class="badge badge-orange">En attente</span> <span class="badge badge-gris">Terminé</span> <span class="badge badge-rouge">Annulé</span></p>
+        </div></div>
+      </section>
+
+      <!-- ===== Services ===== -->
+      <section id="sec-services" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Mes services</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirService()">+ Ajouter un service</button></div>
+          <div style="overflow:auto" class="mt"><table id="tableServices"></table></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Chambres & Séjours ===== -->
+      <section id="sec-chambres" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Mes chambres</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirChambre()">+ Ajouter une chambre</button></div>
+          <p class="petit muet mt">Pour hôtels, auberges et guesthouses : définissez vos types de chambres, votre inventaire et vos prix par nuit. Une section « Chambres &amp; Séjours » apparaîtra automatiquement sur votre page publique.</p>
+          <div style="overflow:auto" class="mt"><table id="tableChambres"></table></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Services de l'établissement</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirService()">+ Ajouter un service</button></div>
+          <p class="petit muet mt">Navette aéroport, blanchisserie, location de salle, excursions… Ces prestations s'affichent sur votre page publique à côté des chambres. Celles qui ont une durée peuvent aussi être réservées sur créneau.</p>
+          <div style="overflow:auto" class="mt"><table id="tableServicesHotel"></table></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Demandes de séjour</h2>
+            <select id="filtreSejours" onchange="chargerSejours()" class="btn-petit">
+              <option value="">Tous les statuts</option><option value="en_attente">En attente</option>
+              <option value="confirme">Confirmés</option><option value="annule">Annulés</option><option value="termine">Terminés</option>
+            </select></div>
+          <div style="overflow:auto" class="mt"><table id="tableSejours"></table></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Restaurant & Bar ===== -->
+      <section id="sec-carte" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Carte du restaurant et du bar</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirArticle()">+ Ajouter un article</button>
+          </div>
+          <p class="petit muet mt">Vos plats, accompagnements, desserts et boissons. Tout ce qui est marqué disponible apparaît sur votre page publique, avec les prix.</p>
+          <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+            <select id="filtreCarte" onchange="chargerCarte()" class="btn-petit" style="max-width:220px">
+              <option value="">Toutes les catégories</option>
+              <option value="entree">Entrées</option><option value="plat">Plats</option>
+              <option value="accompagnement">Accompagnements</option><option value="dessert">Desserts</option>
+              <option value="boisson">Boissons sans alcool</option><option value="cocktail">Cocktails</option>
+              <option value="biere">Bières</option><option value="vin">Vins</option><option value="spiritueux">Spiritueux</option>
+            </select>
+          </div>
+          <div id="listeCarte" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Programmes ===== -->
+      <section id="sec-programmes" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Programmes proposés</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirProgramme()">+ Ajouter un programme</button>
+          </div>
+          <p class="petit muet mt">Niveaux, classes ou filières ouverts aux inscriptions. Les programmes ouverts apparaissent sur votre page publique avec leurs frais et le nombre de places restantes.</p>
+          <div id="listeProgrammes" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Inscriptions ===== -->
+      <section id="sec-inscriptions" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Demandes reçues</h2>
+            <select id="filtreInscriptions" onchange="chargerInscriptions()" style="max-width:200px">
+              <option value="">Toutes</option>
+              <option value="en_attente">En attente</option>
+              <option value="acceptee">Acceptées</option>
+              <option value="inscrit">Inscrits</option>
+              <option value="refusee">Refusées</option>
+            </select>
+          </div>
+          <div id="listeInscriptions" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Dossiers ===== -->
+      <section id="sec-dossiers" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Dossiers en cours</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirDossier()">+ Nouveau dossier</button>
+          </div>
+          <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+            <select id="filtreDossiers" onchange="chargerDossiers()" style="max-width:210px">
+              <option value="">Tous les statuts</option>
+              <option value="ouvert">Ouverts</option><option value="en_cours">En cours</option>
+              <option value="attente">En attente de pièces</option><option value="pret">Prêts</option>
+              <option value="clos">Clos</option><option value="annule">Annulés</option>
+            </select>
+          </div>
+          <div id="listeDossiers" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Urgences ===== -->
+      <section id="sec-urgence" class="section-cache">
+        <div class="carte carte-signature"><div class="carte-corps">
+          <h2 style="font-size:16px">🚨 État de votre service d'urgence</h2>
+          <p class="petit muet" style="margin-top:6px">Cet état est affiché aux personnes qui consultent votre page. Mettez-le à jour dès qu'il change : au-delà de 12 heures, il n'est plus montré au public pour éviter d'orienter quelqu'un sur une information dépassée.</p>
+          <div id="etatsUrgence" class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px"></div>
+          <p class="petit muet" id="etatMajInfo" style="margin-top:10px"></p>
+        </div></div>
+
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Coordonnées d'urgence</h2>
+          <label class="equip-case mt" style="margin:12px 0 0"><input type="checkbox" id="urActif" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Afficher un service d'urgence sur ma page publique</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="urPermanence" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Permanence 24h/24, 7j/7</span></label>
+          <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Téléphone d'urgence *</label><input id="urTel" placeholder="509 …"></div>
+            <div><label>Second numéro</label><input id="urTel2" placeholder="509 …"></div>
+          </div>
+          <label>Horaires si pas de permanence</label><input id="urHoraires" placeholder="Ex : 6h à 22h tous les jours">
+          <label class="equip-case" style="margin:14px 0 0"><input type="checkbox" id="urAmbulance" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Service d'ambulance</span></label>
+          <label>Numéro de l'ambulance</label><input id="urTelAmb" placeholder="509 …">
+          <label>Consigne aux patients</label>
+          <input id="urConsigne" maxlength="300" placeholder="Ex : entrée des urgences par le portail nord">
+          <div id="zoneGarde" style="display:none">
+            <label>Période de garde</label>
+            <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+              <div><input id="urGardeDebut" type="date"></div>
+              <div><input id="urGardeFin" type="date"></div>
+            </div>
+            <p class="aide">Pour les pharmacies de garde. Laissez vide si vous n'êtes pas de garde.</p>
+          </div>
+          <button class="btn btn-primaire mt" onclick="enregistrerUrgence()">Enregistrer</button>
+        </div></div>
+
+        <div class="carte mt" id="carteCapacites"><div class="carte-corps">
+          <h2 style="font-size:16px">Moyens disponibles</h2>
+          <p class="petit muet" style="margin-top:6px">Ce que votre service peut prendre en charge. Ces informations aident les familles et les autres établissements à orienter un patient.</p>
+          <div id="listeCapacites" class="grille-equip mt"></div>
+          <button class="btn btn-primaire mt" onclick="enregistrerUrgence()">Enregistrer</button>
+        </div></div>
+      </section>
+
+      <!-- ===== Catalogue ===== -->
+      <section id="sec-catalogue" class="section-cache">
+        <div class="carte" id="alerteStock" style="display:none"><div class="carte-corps" style="background:var(--orange-fond);border-radius:var(--r-carte)">
+          <strong id="texteAlerteStock"></strong>
+          <p class="petit" style="margin-top:4px;color:#C4520E">Ces produits restent visibles pour vous, mais disparaissent de votre page publique dès que le stock atteint zéro.</p>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Vos produits</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirProduit()">+ Ajouter un produit</button>
+          </div>
+          <p class="petit muet mt" id="noteCatalogue"></p>
+          <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+            <select id="filtreRayon" onchange="chargerCatalogue()" style="max-width:220px"><option value="">Tous les rayons</option></select>
+            <select id="filtreStock" onchange="chargerCatalogue()" style="max-width:200px">
+              <option value="">Tous les produits</option>
+              <option value="bas">Stock bas</option>
+              <option value="zero">Épuisés</option>
+              <option value="promo">En promotion</option>
+            </select>
+          </div>
+          <div id="listeCatalogue" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Commandes ===== -->
+      <section id="sec-commandes" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Commandes reçues</h2>
+            <select id="filtreCommandes" onchange="chargerCommandes()" style="max-width:210px">
+              <option value="">Toutes</option><option value="nouvelle">Nouvelles</option>
+              <option value="confirmee">Confirmées</option><option value="preparation">En préparation</option>
+              <option value="prete">Prêtes</option><option value="en_route">En route</option>
+              <option value="livree">Livrées / retirées</option><option value="annulee">Annulées</option>
+            </select>
+          </div>
+          <p class="petit muet mt">Le stock est décompté à la confirmation, et restitué si vous annulez.</p>
+          <div id="listeCommandes" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Livraison & retrait ===== -->
+      <section id="sec-vente" class="section-cache">
+        <div class="carte carte-signature"><div class="carte-corps">
+          <h2 style="font-size:16px">🛵 Comment vos clients reçoivent leur commande</h2>
+          <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="vtActives" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Accepter les commandes en ligne</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="vtCueillette" onchange="this.closest('.equip-case').classList.toggle('on', this.checked); majZonesVisibles()"><span>🏪 Retrait sur place</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="vtLivraison" onchange="this.closest('.equip-case').classList.toggle('on', this.checked); majZonesVisibles()"><span>🛵 Livraison</span></label>
+
+          <div id="blocCueillette" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--bordure)">
+            <label>Horaires de retrait</label><input id="vtHoraires" placeholder="Ex : 8h à 18h du lundi au samedi">
+          </div>
+
+          <div id="blocLivraison" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--bordure)">
+            <label>Délai de préparation ou de livraison</label><input id="vtDelai" placeholder="Ex : 2 à 4 heures">
+            <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+              <div><label>Frais par défaut (HTG)</label><input id="vtFraisBase" type="number" min="0" value="0"></div>
+              <div><label>Livraison offerte dès (HTG)</label><input id="vtSeuil" type="number" min="0" value="0"><p class="aide">0 = jamais offerte</p></div>
+            </div>
+            <label>Zones de livraison</label>
+            <p class="aide">Chaque zone a son tarif. Une adresse hors zone se voit appliquer les frais par défaut.</p>
+            <div id="listeZones"></div>
+            <button class="btn btn-contour btn-petit mt" onclick="ajouterZone()">+ Ajouter une zone</button>
+          </div>
+
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bordure)">
+            <h3 style="font-size:14px">💳 Paiement</h3>
+            <label class="equip-case" style="margin:10px 0 0"><input type="checkbox" id="vtPaieEnLigne" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Paiement en ligne (MonCash, NatCash, Kashpaw)</span></label>
+            <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="vtPaieRemise" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Paiement à la livraison ou au retrait</span></label>
+            <p class="aide">Une commande payée en ligne est confirmée automatiquement et le stock décompté. Votre part est versée sur votre portefeuille, commission déduite.</p>
+          </div>
+          <label style="margin-top:16px">Commande minimum (HTG)</label><input id="vtMinimum" type="number" min="0" value="0">
+          <label>Consigne aux clients</label><input id="vtConsigne" maxlength="300" placeholder="Ex : paiement à la livraison, en espèces ou MonCash">
+          <button class="btn btn-primaire mt" onclick="enregistrerVente()">Enregistrer</button>
+        </div></div>
+      </section>
+
+      <!-- ===== Tarifs & saisons ===== -->
+      <section id="sec-tarifs" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Plans tarifaires</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirTarif()">+ Ajouter un plan</button>
+          </div>
+          <p class="petit muet mt">Plusieurs façons de vendre la même chambre : tarif standard, non remboursable moins cher, ou avec petit-déjeuner. Le client choisit au moment de réserver.</p>
+          <div id="listeTarifs" class="mt"></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Saisons</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirSaison()">+ Ajouter une saison</button>
+          </div>
+          <p class="petit muet mt">Ajustez vos prix sur une période : haute saison, fêtes, basse saison. L'ajustement s'applique nuit par nuit.</p>
+          <div id="listeSaisons" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Planning ===== -->
+      <section id="sec-planning" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre">
+            <h2 style="font-size:16px">Occupation des chambres</h2>
+            <input type="date" id="planDebut" style="max-width:180px" onchange="chargerPlanning()">
+          </div>
+          <p class="petit muet mt">Nombre de chambres libres par jour et par type. Rouge : complet.</p>
+          <div id="grillePlanning" class="mt" style="overflow:auto"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Politiques hôtel ===== -->
+      <section id="sec-hotel" class="section-cache">
+        <div class="carte carte-signature"><div class="carte-corps">
+          <h2 style="font-size:16px">🏨 Conditions de vente</h2>
+          <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Heure d'arrivée</label><input type="time" id="hoCheckin"></div>
+            <div><label>Heure de départ</label><input type="time" id="hoCheckout"></div>
+          </div>
+          <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Séjour minimum (nuits)</label><input type="number" id="hoMin" min="0" value="0"><p class="aide">0 = pas de minimum</p></div>
+            <div><label>Séjour maximum (nuits)</label><input type="number" id="hoMax" min="0" value="0"><p class="aide">0 = pas de maximum</p></div>
+          </div>
+        </div></div>
+
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Taxes et acompte</h2>
+          <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Taxe sur le séjour (%)</label><input type="number" id="hoTaux" min="0" max="50" value="0"></div>
+            <div><label>Taxe fixe par nuit (HTG)</label><input type="number" id="hoTaxeNuit" min="0" value="0"></div>
+          </div>
+          <label>Acompte demandé à la réservation (%)</label>
+          <input type="number" id="hoAcompte" min="0" max="100" value="0">
+          <p class="aide">0 = paiement intégral sur place. 30 = le client règle 30 % pour garantir sa chambre.</p>
+        </div></div>
+
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Annulation et règlement intérieur</h2>
+          <label>Annulation gratuite jusqu'à (jours avant l'arrivée)</label>
+          <input type="number" id="hoDelai" min="0" max="90" value="0">
+          <label>Politique d'annulation</label>
+          <input id="hoAnnulation" maxlength="400" placeholder="Ex : annulation gratuite jusqu'à 7 jours avant l'arrivée, puis une nuit retenue">
+          <label>Autres conditions</label>
+          <input id="hoConditions" maxlength="600" placeholder="Ex : pièce d'identité obligatoire à l'arrivée">
+          <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="hoAnimaux" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>🐕 Animaux acceptés</span></label>
+          <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="hoFumeur" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>🚬 Chambres fumeurs</span></label>
+          <button class="btn btn-primaire mt" onclick="enregistrerHotel()">Enregistrer les politiques</button>
+        </div></div>
+      </section>
+
+      <!-- ===== Portefeuille & Paiements ===== -->
+      <section id="sec-portefeuille" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <h2 style="font-size:16px">💰 Votre portefeuille</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+            <div style="background:linear-gradient(135deg,var(--vert),var(--vert-clair));color:#fff;padding:16px 14px;border-radius:10px">
+              <p class="muet petit">Solde disponible</p>
+              <strong id="porteSolde" style="font-size:24px">0 HTG</strong>
+            </div>
+            <div style="background:linear-gradient(135deg,#FF9500,#FFB84D);color:#fff;padding:16px 14px;border-radius:10px">
+              <p class="muet petit">Bloqué (retraits en cours)</p>
+              <strong id="porteBloque" style="font-size:18px">0 HTG</strong>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bordure)">
+            <p class="petit muet">Total reçu : <strong id="porteTotalRecu">0 HTG</strong> • Total retiré : <strong id="porteTotalRetire">0 HTG</strong></p>
+          </div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Demander un retrait</h2><p class="petit muet">Minimum 1000 HTG</p></div>
+          <label>Montant (HTG) *</label><input id="retMontant" type="number" min="1000" placeholder="5000">
+          <label>Méthode *</label>
+          <select id="retMethode">
+            <option value="">Choisir...</option>
+            <option value="moncash">MonCash</option>
+            <option value="natcash">NatCash</option>
+          </select>
+          <label>ID ou téléphone destinataire *</label><input id="retDest" placeholder="Votre ID MonCash ou NatCash">
+          <button class="btn btn-primaire" style="width:100%;margin-top:14px" onclick="demanderRetrait()">Demander le retrait</button>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Historique des paiements</h2>
+          <div style="overflow:auto;margin-top:14px"><table id="tableTransactions"></table></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Employés ===== -->
+      <section id="sec-employes" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Mon équipe</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirEmploye()">+ Ajouter un employé</button></div>
+          <p class="petit muet mt">Le nombre d'employés actifs détermine combien de rendez-vous peuvent être pris sur un même créneau.</p>
+          <div id="listeEmployes" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Avis ===== -->
+      <section id="sec-avis" class="section-cache">
+        <div class="carte"><div class="carte-corps">
+          <h2 style="font-size:16px">Avis des clients</h2>
+          <div id="listeAvis" class="mt"></div>
+        </div></div>
+      </section>
+
+      <!-- ===== Personnalisation ===== -->
+      <section id="sec-perso" class="section-cache">
+        <div class="grille" style="grid-template-columns:1.2fr .8fr">
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Personnaliser mon espace</h2>
+            <label>Couleur principale</label>
+            <div class="pastilles" id="pastilles1"></div>
+            <label>Couleur secondaire</label>
+            <div class="pastilles" id="pastilles2"></div>
+            <label>Logo (initiales, 1 à 3 lettres)</label><input id="pLogo" maxlength="3">
+            <label>Logo (image) — facultatif</label>
+            <div class="flex" style="gap:10px;align-items:center">
+              <input type="file" id="pLogoImg" accept="image/*" style="flex:1">
+              <button class="btn btn-fantome btn-petit" type="button" onclick="retirerImage('logoImage')">Retirer</button>
+            </div>
+            <p class="petit muet" style="margin:4px 0 0">PNG ou JPG carré de préférence. Compressé automatiquement. Remplace les initiales.</p>
+            <label>Photo de couverture — facultatif</label>
+            <div class="flex" style="gap:10px;align-items:center">
+              <input type="file" id="pPhotoFond" accept="image/*" style="flex:1">
+              <button class="btn btn-fantome btn-petit" type="button" onclick="retirerImage('photoFond')">Retirer</button>
+            </div>
+            <p class="petit muet" style="margin:4px 0 0">Photo de votre salon, clinique ou local. Affichée en bannière sur votre page et dans l'annuaire.</p>
+            <label>Description de l'entreprise</label><textarea id="pDesc" rows="4" placeholder="Présentez votre entreprise à vos clients…"></textarea>
+            <button class="btn btn-primaire mt" onclick="enregistrerPerso()">Enregistrer</button>
+          </div></div>
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Aperçu</h2>
+            <div class="mt" style="border:1px solid var(--bordure);border-radius:14px;overflow:hidden">
+              <div id="apercuBanniere" style="height:80px"></div>
+              <div style="padding:14px;display:flex;gap:12px;align-items:center">
+                <div id="apercuLogo" style="width:52px;height:52px;border-radius:12px;color:#fff;display:grid;place-items:center;font-weight:800;font-size:19px"></div>
+                <div><strong id="apercuNom"></strong><p class="petit muet" id="apercuDesc"></p></div>
+              </div>
+            </div>
+            <p class="petit muet mt">Ces couleurs s'appliquent à votre page publique et à vos cartes dans l'annuaire.</p>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- ===== Paramètres ===== -->
+      <section id="sec-param" class="section-cache">
+        <div class="grille" style="grid-template-columns:1fr 1fr">
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Informations de l'entreprise</h2>
+            <label>Nom</label><input id="iNom">
+            <label>Catégorie</label>
+            <select id="iCat"></select>
+            <p class="aide">Changer de type d'activité adapte les modules et les informations de votre espace.</p>
+            <label>Adresse</label><input id="iAdresse">
+            <label>Téléphone</label><input id="iTel">
+            <label>Numéro WhatsApp (chiffres uniquement)</label><input id="iWhats" placeholder="Ex : 50937120000">
+            <label>Rendez-vous simultanés maximum</label>
+            <input id="iCapacite" type="number" min="0" max="50" placeholder="0 = automatique">
+            <p style="font-size:12px;color:var(--gris);margin:4px 0 0">Mettez <b>1</b> pour n'accepter qu'un seul rendez-vous à la fois. Laissez <b>0</b> (ou vide) pour le mode automatique : autant de rendez-vous simultanés que d'employés actifs.</p>
+            <button class="btn btn-primaire mt" onclick="enregistrerInfos()">Enregistrer les informations</button>
+          </div></div>
+          <div class="carte" id="carteModules"><div class="carte-corps">
+            <h2 style="font-size:16px">🧩 Fonctionnalités de votre espace</h2>
+            <p class="petit muet" style="margin-top:6px">Décochez ce dont vous n'avez pas besoin : les sections correspondantes disparaissent de votre menu. Vous pouvez les réactiver à tout moment.</p>
+            <div id="listeModules" class="grille-equip mt"></div>
+            <button class="btn btn-primaire mt" onclick="enregistrerModules()">Enregistrer</button>
+          </div></div>
+          <div class="carte" id="carteChampsMetier" style="display:none"><div class="carte-corps">
+            <h2 style="font-size:16px" id="titreChampsMetier">Informations complémentaires</h2>
+            <p class="petit muet" style="margin-top:6px">Ces informations apparaissent sur votre page publique et aident les clients à vous choisir.</p>
+            <div id="listeChampsMetier" class="mt"></div>
+            <button class="btn btn-primaire mt" onclick="enregistrerChampsMetier()">Enregistrer</button>
+          </div></div>
+          <div class="carte" id="carteFormule" style="display:none"><div class="carte-corps">
+            <h2 style="font-size:16px">🏝️ Formule d'hébergement</h2>
+            <p class="petit muet" style="margin-top:6px">Indiquez si votre établissement fonctionne à la carte ou en tout inclus. Un badge « Tout inclus » apparaîtra sur votre fiche et dans l'annuaire.</p>
+            <div class="choix-formule mt">
+              <label class="opt-formule">
+                <input type="radio" name="formule" value="standard" onchange="majFormule()">
+                <span><strong>Standard</strong><br><span class="petit muet">Nuitées à la carte. Repas et boissons facturés à part.</span></span>
+              </label>
+              <label class="opt-formule">
+                <input type="radio" name="formule" value="resort" onchange="majFormule()">
+                <span><strong>Resort — tout inclus</strong><br><span class="petit muet">Repas, boissons et activités compris dans le prix de la nuit.</span></span>
+              </label>
+            </div>
+            <div id="zoneInclus" style="display:none">
+              <label>Ce que comprend le séjour</label>
+              <p class="aide">Cochez les prestations comprises dans le prix. Elles s'affichent sur votre page publique.</p>
+              <div id="listeInclus" class="grille-equip"></div>
+              <label>Précision — facultatif</label>
+              <input id="iNoteFormule" maxlength="200" placeholder="Ex : bar ouvert de 10h à 23h, hors excursions">
+            </div>
+            <button class="btn btn-primaire mt" onclick="enregistrerFormule()">Enregistrer la formule</button>
+          </div></div>
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">Horaires d'ouverture</h2>
+            <div id="grilleHoraires" class="mt"></div>
+            <button class="btn btn-primaire mt" onclick="enregistrerHoraires()">Enregistrer les horaires</button>
+          </div></div>
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">📍 Position géographique</h2>
+            <p class="petit muet" style="margin-top:6px">Elle permet aux clients de vous trouver « près de moi » et d'ouvrir l'itinéraire vers votre établissement.</p>
+            <button class="btn btn-contour mt" style="width:100%" onclick="positionActuelle()">📡 Utiliser ma position actuelle</button>
+            <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+              <div><label>Latitude</label><input id="iLat" placeholder="Ex : 18.5392"></div>
+              <div><label>Longitude</label><input id="iLng" placeholder="Ex : -72.3364"></div>
+            </div>
+            <p class="petit muet" style="margin-top:6px">Vous pouvez aussi coller les coordonnées depuis Google Maps : clic droit sur votre local → cliquer sur les chiffres pour les copier.</p>
+            <div id="apercuPosition" class="mt"></div>
+            <div class="flex mt" style="gap:8px">
+              <button class="btn btn-primaire" style="flex:1" onclick="enregistrerPosition()">Enregistrer la position</button>
+              <button class="btn btn-fantome" onclick="effacerPosition()">Effacer</button>
+            </div>
+          </div></div>
+        </div>
+      </section>
+    </main>
+  </div>
 </div>
+
+<!-- Modale service -->
+<div class="voile" id="voileService"><div class="modale">
+  <h3 id="titreModaleService">Ajouter un service</h3>
+  <label>Nom du service *</label><input id="sNom" placeholder="Ex : Consultation">
+  <label>Durée (minutes) *</label><input id="sDuree" type="number" min="10" step="5" value="30">
+  <label>Prix (HTG)</label><input id="sPrix" type="number" min="0" value="0">
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileService')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerService()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- Modale chambre -->
+<div class="voile" id="voileTaksi"><div class="modale">
+  <h3>🚕 Livraison Taksi Konekte</h3>
+  <p class="petit muet" id="msgTaksi" style="margin-top:6px"></p>
+  <pre id="texteTaksi" style="background:var(--gris-clair);border-radius:var(--r-champ);padding:14px;margin-top:12px;white-space:pre-wrap;font:inherit;font-size:13.5px"></pre>
+  <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+    <button class="btn btn-contour btn-petit" onclick="copierTaksi()">📋 Copier</button>
+    <a class="btn btn-succes btn-petit" id="lienTaksi" target="_blank" rel="noopener">Envoyer sur WhatsApp</a>
+  </div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileTaksi')">Fermer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileProduit"><div class="modale" style="max-width:540px">
+  <h3 id="titreModaleProduit">Ajouter un produit</h3>
+  <label>Nom du produit *</label><input id="prNom" placeholder="Ex : Riz Tchako 5 lb">
+  <label>Description</label><input id="prDesc" placeholder="Précisions utiles au client">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Rayon</label><input id="prRayon" list="listeRayons" placeholder="Choisir ou saisir"><datalist id="listeRayons"></datalist></div>
+    <div><label>Marque</label><input id="prMarque"></div>
+  </div>
+  <div class="grille" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div><label>Prix (HTG) *</label><input id="prPrix" type="number" min="1" value="100"></div>
+    <div><label>Prix promo</label><input id="prPromo" type="number" min="0" value="0"></div>
+    <div><label>Unité</label><input id="prUnite" placeholder="sac, litre"></div>
+  </div>
+  <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="prSuiviStock" checked onchange="this.closest('.equip-case').classList.toggle('on', this.checked); document.getElementById('zoneStock').style.display = this.checked ? '' : 'none'"><span>Suivre la quantité en stock</span></label>
+  <div id="zoneStock" class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Quantité en stock</label><input id="prStock" type="number" min="0" value="0"></div>
+    <div><label>Seuil d'alerte</label><input id="prSeuil" type="number" min="0" value="5"></div>
+  </div>
+  <label>Référence interne</label><input id="prRef" placeholder="Code produit — facultatif">
+  <label>Photo</label><input type="file" id="prPhoto" accept="image/*">
+  <div id="prApercu" class="mt"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileProduit')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerProduit()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileDossier"><div class="modale" style="max-width:560px">
+  <h3 id="titreModaleDossier">Nouveau dossier</h3>
+  <label>Objet du dossier *</label><input id="doObjet" placeholder="Ex : Bornage terrain Morne Rouge">
+  <label>Description</label><input id="doDesc" placeholder="Précisions utiles">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Nom du client *</label><input id="doClient"></div>
+    <div><label>Téléphone (WhatsApp)</label><input id="doTel" placeholder="50937120000"></div>
+  </div>
+  <label id="labelLocalisation">Localisation</label><input id="doLieu" placeholder="Ex : Morne Rouge, 3e section">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Honoraires (HTG)</label><input id="doHono" type="number" min="0" value="0"></div>
+    <div><label>Avance reçue (HTG)</label><input id="doAvance" type="number" min="0" value="0"></div>
+  </div>
+  <label>Échéance</label><input id="doEcheance" type="date">
+  <label>Pièces à fournir</label>
+  <div id="doPieces" class="grille-equip"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileDossier')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerDossier()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileProgramme"><div class="modale">
+  <h3 id="titreModaleProg">Ajouter un programme</h3>
+  <label>Nom du programme *</label><input id="pgNom" placeholder="Ex : Fondamental 1re année, Licence en Droit">
+  <label>Description</label><input id="pgDesc" placeholder="Ex : classe de 25 élèves, horaire du matin">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Année scolaire</label><input id="pgAnnee" placeholder="2026-2027"></div>
+    <div><label>Places (0 = illimité)</label><input id="pgPlaces" type="number" min="0" value="0"></div>
+  </div>
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Frais d'inscription (HTG)</label><input id="pgFrais" type="number" min="0" value="0"></div>
+    <div><label>Scolarité (HTG)</label><input id="pgScol" type="number" min="0" value="0"></div>
+  </div>
+  <label>Périodicité de la scolarité</label>
+  <select id="pgPeriode"><option value="mensuel">Par mois</option><option value="trimestriel">Par trimestre</option><option value="annuel">Par an</option></select>
+  <label>Documents à fournir</label>
+  <input id="pgDocs" placeholder="Acte de naissance, Bulletin, 2 photos">
+  <p class="aide">Séparez par des virgules. Ces documents seront indiqués aux parents.</p>
+  <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="pgOuvert" checked onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Ouvert aux inscriptions</span></label>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileProgramme')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerProgramme()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileArticle"><div class="modale">
+  <h3 id="titreModaleArticle">Ajouter un article</h3>
+  <label>Nom *</label><input id="arNom" placeholder="Ex : Griot ak bannann, Prestige, Jus de chadèque">
+  <label>Catégorie *</label>
+  <select id="arCat">
+    <optgroup label="Cuisine">
+      <option value="entree">Entrée</option><option value="plat" selected>Plat</option>
+      <option value="accompagnement">Accompagnement</option><option value="dessert">Dessert</option>
+    </optgroup>
+    <optgroup label="Bar">
+      <option value="boisson">Boisson sans alcool</option><option value="cocktail">Cocktail</option>
+      <option value="biere">Bière</option><option value="vin">Vin</option><option value="spiritueux">Spiritueux</option>
+    </optgroup>
+  </select>
+  <label>Description</label><input id="arDesc" placeholder="Ex : Porc mariné, riz collé, pikliz">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Prix (HTG) *</label><input id="arPrix" type="number" min="1" value="500"></div>
+    <div><label>Format — facultatif</label><input id="arVol" placeholder="Ex : 33 cl, portion"></div>
+  </div>
+  <label>Photo — facultatif</label><input type="file" id="arPhoto" accept="image/*">
+  <div id="arApercu" class="mt"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileArticle')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerArticle()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileTarif"><div class="modale">
+  <h3 id="titreModaleTarif">Ajouter un plan tarifaire</h3>
+  <label>Nom du plan *</label><input id="tfNom" placeholder="Ex : Tarif standard, Non remboursable">
+  <label>Description</label><input id="tfDesc" placeholder="Ex : -15%, sans annulation possible">
+  <label>Type de chambre</label>
+  <select id="tfChambre"><option value="">Toutes les chambres</option></select>
+  <label>Prix par nuit (HTG)</label><input type="number" id="tfPrix" min="0" value="0">
+  <p class="aide">0 = utiliser le prix de la chambre.</p>
+  <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="tfRembours" checked onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>Remboursable</span></label>
+  <label class="equip-case" style="margin:8px 0 0"><input type="checkbox" id="tfPetitDej" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>🥐 Petit-déjeuner inclus</span></label>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileTarif')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerTarif()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileSaison"><div class="modale">
+  <h3 id="titreModaleSaison">Ajouter une saison</h3>
+  <label>Nom *</label><input id="saNom" placeholder="Ex : Haute saison, Fêtes de fin d'année">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Du *</label><input type="date" id="saDebut"></div>
+    <div><label>Au *</label><input type="date" id="saFin"></div>
+  </div>
+  <label>Type d'ajustement</label>
+  <select id="saType"><option value="pourcentage">Pourcentage (%)</option><option value="montant">Montant fixe (HTG)</option></select>
+  <label>Valeur</label><input type="number" id="saValeur" value="0">
+  <p class="aide">Positif pour augmenter, négatif pour réduire. Ex : 40 = +40 %, -20 = -20 %.</p>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileSaison')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerSaison()">Enregistrer</button>
+  </div>
+</div></div>
+
+<div class="voile" id="voileChambre"><div class="modale">
+  <h3 id="titreModaleChambre">Ajouter une chambre</h3>
+  <label>Type de chambre *</label><input id="chNom" placeholder="Ex : Chambre Standard, Suite Vue Mer">
+  <label>Description</label><input id="chDesc" placeholder="Ex : Lit double, climatisation, wifi">
+  <label>Prix par nuit (HTG) *</label><input id="chPrix" type="number" min="1" value="5000">
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Capacité (personnes)</label><input id="chCap" type="number" min="1" max="20" value="2"></div>
+    <div><label>Nombre de chambres de ce type</label><input id="chQte" type="number" min="1" max="200" value="1"></div>
+  </div>
+  <label>Équipements de la chambre</label>
+  <p class="aide">Cochez ce que le client trouvera dans la chambre. Ces éléments s'affichent sur votre page publique.</p>
+  <div id="chEquipements" class="grille-equip"></div>
+  <label>Photo de la chambre — facultatif</label><input type="file" id="chPhoto" accept="image/*">
+  <div id="chApercu" class="mt"></div>
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileChambre')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerChambre()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- Modale employé -->
+<div class="voile" id="voileEmploye"><div class="modale">
+  <h3>Ajouter un employé</h3>
+  <label>Nom complet *</label><input id="eNom" placeholder="Ex : Stéphania Louis">
+  <label>Poste</label><input id="ePoste" placeholder="Ex : Esthéticienne">
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileEmploye')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerEmploye()">Ajouter</button>
+  </div>
+</div></div>
+
 <script src="/app.js"></script>
 <script>
-document.getElementById('f').addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  try {
-    const r = await api('/api/connexion', 'POST', { email: email.value.trim(), motdepasse: mdp.value });
-    location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
-  } catch (e) { document.getElementById('err').textContent = e.message; }
+let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
+const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
+const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres, séjours & services', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
+
+function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
+async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
+
+function allerSection(sec){
+  document.querySelectorAll('.lien-lat').forEach(b=>b.classList.toggle('actif', b.dataset.sec===sec));
+  document.querySelectorAll('main > section').forEach(s=>s.classList.toggle('visible', s.id==='sec-'+sec));
+  document.getElementById('titreSection').textContent = TITRES[sec];
+  document.getElementById('lateral').classList.remove('ouvert');
+  if(sec==='calendrier') dessinerCalendrier();
+}
+document.querySelectorAll('.lien-lat').forEach(b=>b.addEventListener('click',()=>allerSection(b.dataset.sec)));
+
+async function demarrer(){
+  try { moi = await api('/api/moi'); } catch { location.href='/connexion.html'; return; }
+  if (moi.role !== 'responsable') { location.href='/admin.html'; return; }
+  ent = moi.entreprise;
+  document.getElementById('nomEnt').textContent = ent.nom;
+  document.getElementById('nomUser').textContent = moi.nom;
+  // Lien public à partager
+  const lienPub = location.origin + '/' + ent.slug;
+  document.getElementById('lienPublic').textContent = lienPub;
+  window.partagerPage = async (canal) => {
+    const texte = `Prenez rendez-vous chez ${ent.nom} en ligne sur Randevou.ht : `;
+    if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + lienPub), '_blank');
+    else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lienPub), '_blank');
+    else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(lienPub), '_blank');
+    else {
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Randevou.ht', text: texte, url: lienPub }); return; } catch {} }
+      try { await navigator.clipboard.writeText(lienPub); toast('Lien copié ! Partagez-le avec vos clients.'); }
+      catch { prompt('Copiez ce lien :', lienPub); }
+    }
+  };
+  document.getElementById('avatarUser').textContent = moi.nom.split(' ').map(w=>w[0]).join('').slice(0,2);
+  document.getElementById('lienPublic').href = '/' + ent.slug;
+  if (ent.statut !== 'approuvee') {
+    document.getElementById('alerteStatut').innerHTML = `<div class="carte mb" style="border-color:var(--orange)"><div class="carte-corps" style="padding:14px 18px;background:var(--orange-fond);border-radius:14px">
+      <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Randevou.ht examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
+  }
+  // Le module Chambres & Séjours ne concerne que l'hôtellerie
+  appliquerModuleHotellerie();
+  await Promise.all([chargerStats(), chargerRdv(), chargerNotifs()]);
+  chargerServices(); chargerEmployes(); chargerAvis(); remplirPerso(); remplirParam(); chargerPortefeuille();
+  try { REF_METIERS = await api('/api/metiers'); } catch {}
+  appliquerMetier();
+  remplirFormule();
+  if (estHotellerie()) { chargerChambres(); chargerSejours(); chargerCarte(); }
+  if (aModule('inscriptions')) { chargerProgrammes(); chargerInscriptions(); }
+  if (aModule('dossiers')) chargerDossiers();
+  if (aModule('urgences')) chargerUrgence();
+  if (aModule('catalogue')) chargerCatalogue();
+  if (aModule('commandes')) { chargerCommandes(); chargerVente(); }
+}
+
+// ---- Module hôtellerie (chambres & séjours) ----
+function estHotellerie(){
+  // Repose sur le module déclaré par le métier, plus sur le libellé de catégorie
+  return aModule('hotellerie');
+}
+function appliquerModuleHotellerie(){
+  const actif = estHotellerie();
+  ['chambres','carte'].forEach((sec) => {
+    const b = document.querySelector(`.lien-lat[data-sec="${sec}"]`);
+    if (b) b.style.display = actif ? '' : 'none';
+  });
+  // Si la section était ouverte et ne l'est plus, revenir au tableau de bord
+  if (!actif) {
+    const sec = document.getElementById('sec-chambres');
+    if (sec && !sec.classList.contains('section-cache')) {
+      const accueil = document.querySelector('.lien-lat[data-sec="bord"]');
+      if (accueil) accueil.click();
+    }
+  }
+}
+
+// ---- Statistiques ----
+async function chargerStats(){
+  const s = await api('/api/stats');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span class="petit muet">Rendez-vous aujourd'hui</span><div class="valeur">${s.rdvAujourdhui}</div></div>
+    <div class="stat"><span class="petit muet">Rendez-vous ce mois</span><div class="valeur">${s.rdvCeMois}</div></div>
+    <div class="stat"><span class="petit muet">Clients totaux</span><div class="valeur">${s.clientsTotaux}</div></div>
+    <div class="stat"><span class="petit muet">Avis positifs</span><div class="valeur">${s.note || '—'}<span style="font-size:15px;color:var(--gris)">/5</span></div><span class="delta" style="color:var(--vert)">${s.totalAvis} avis</span></div>`;
+  dessinerGraphe(s.parJour);
+}
+
+function dessinerGraphe(parJour){
+  const c = document.getElementById('graphe');
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = 190;
+  c.width = w*dpr; c.height = h*dpr; ctx.scale(dpr,dpr);
+  const vals = Object.values(parJour), cles = Object.keys(parJour);
+  const max = Math.max(1, ...vals);
+  const marge = 22, lw = (w - marge) / vals.length;
+  ctx.clearRect(0,0,w,h);
+  vals.forEach((v,i)=>{
+    const bh = (v/max)*(h-46);
+    const x = marge + i*lw + 3, y = h-26-bh;
+    ctx.fillStyle = i===vals.length-1 ? '#2563EB' : 'var(--bordure)';
+    ctx.beginPath(); ctx.roundRect(x, y, lw-6, bh || 2, 4); ctx.fill();
+    if (i % 3 === 0 || i === vals.length-1){
+      ctx.fillStyle = 'var(--gris)'; ctx.font = '10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(cles[i].slice(8)+'/'+cles[i].slice(5,7), x+(lw-6)/2, h-8);
+    }
+  });
+}
+
+// ---- Rendez-vous ----
+async function chargerRdv(){
+  tousRdv = await api('/api/rendezvous');
+  const auj = new Date().toISOString().slice(0,10);
+  const recents = tousRdv.filter(r=>r.date>=auj).slice(0,5);
+  document.getElementById('rdvRecents').innerHTML = recents.length ? recents.map(r=>`
+    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid var(--bordure);gap:10px">
+      <div class="flex"><span class="avatar">${ech(r.clientNom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+        <div><strong class="petit">${ech(r.clientNom)}</strong><div class="petit muet">${ech(r.service ? r.service.nom : '—')}</div></div></div>
+      <div class="centre petit muet">${r.date.slice(8)}/${r.date.slice(5,7)}<br>${r.heure}</div>
+      <div>${BADGE_STATUT[r.statut]}</div>
+    </div>`).join('') : '<p class="muet petit mt">Aucun rendez-vous à venir. Partagez votre lien public pour recevoir des réservations !</p>';
+  dessinerRdv();
+}
+
+function dessinerRdv(){
+  const f = document.getElementById('filtreStatut').value;
+  const liste = tousRdv.filter(r=>!f || r.statut===f).slice().reverse();
+  document.getElementById('tableRdv').innerHTML = `
+    <tr><th>Client</th><th>Service</th><th>Date &amp; heure</th><th>Contact</th><th>Statut</th><th>Actions</th></tr>` +
+    (liste.length ? liste.map(r=>`
+    <tr>
+      <td><strong>${ech(r.clientNom)}</strong></td>
+      <td>${ech(r.service ? r.service.nom : '—')}<div class="petit muet">${r.service ? r.service.duree+' min • '+htg(r.service.prix) : ''}</div></td>
+      <td>${dateFR(r.date)}<div class="petit muet">${r.heure}</div></td>
+      <td class="petit">${ech(r.clientTel)}${r.clientTel ? ` <a target="_blank" rel="noopener" href="https://wa.me/${r.clientTel.replace(/\\D/g,'')}" title="WhatsApp">💬</a>` : ''}</td>
+      <td>${BADGE_STATUT[r.statut]}</td>
+      <td><div class="flex" style="gap:6px">
+        ${r.statut==='en_attente' ? `<button class="btn btn-succes btn-petit" onclick="changerStatut('${r.id}','confirme')">Confirmer</button>` : ''}
+        ${r.statut==='confirme' ? `<button class="btn btn-contour btn-petit" onclick="changerStatut('${r.id}','termine')">Terminer</button>` : ''}
+        ${['en_attente','confirme'].includes(r.statut) ? `<button class="btn btn-danger btn-petit" onclick="changerStatut('${r.id}','annule')">Annuler</button>` : ''}
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="muet centre">Aucun rendez-vous pour ce filtre.</td></tr>');
+}
+
+async function changerStatut(id, statut){
+  await api('/api/rendezvous/'+id, 'PUT', { statut });
+  toast('Rendez-vous ' + ({confirme:'confirmé — le client sera notifié',annule:'annulé — le client sera notifié',termine:'marqué comme terminé'}[statut]));
+  await chargerRdv(); chargerStats(); dessinerCalendrier();
+}
+
+// ---- Calendrier hebdomadaire ----
+function bougerSemaine(n){ semaineOffset += n; dessinerCalendrier(); }
+function dessinerCalendrier(){
+  const base = new Date(); base.setDate(base.getDate() - ((base.getDay()+6)%7) + semaineOffset*7);
+  const jours = [...Array(7)].map((_,i)=>{ const d=new Date(base); d.setDate(d.getDate()+i); return d; });
+  const iso = d=>d.toISOString().slice(0,10);
+  document.getElementById('titreSemaine').textContent =
+    `${jours[0].getDate()} ${MOIS_FR[jours[0].getMonth()]} – ${jours[6].getDate()} ${MOIS_FR[jours[6].getMonth()]} ${jours[6].getFullYear()}`;
+  const heures = [...Array(11)].map((_,i)=>7+i); // 07h → 17h
+  const couleurs = { confirme:'#D1FADF;color:#067647', en_attente:'#FEF0C7;color:#B54708', termine:'var(--bordure);color:var(--texte)', annule:'#FEE4E2;color:#B42318' };
+  let html = '<div></div>' + jours.map(d=>`<div class="cal-entete">${JOURS_FR[d.getDay()].slice(0,3)} ${d.getDate()}</div>`).join('');
+  heures.forEach(h=>{
+    html += `<div class="cal-cellule cal-heure">${String(h).padStart(2,'0')}:00</div>`;
+    jours.forEach(d=>{
+      const rdvs = tousRdv.filter(r=>r.date===iso(d) && +r.heure.slice(0,2)===h);
+      html += `<div class="cal-cellule">${rdvs.map(r=>{
+        const min = +r.heure.slice(3,5);
+        return `<div class="rdv-bloc" style="top:${min/60*100}%;background:${couleurs[r.statut]}" title="${ech(r.clientNom)} — ${ech(r.service?r.service.nom:'')} à ${r.heure}" onclick="allerSection('rdv')">${r.heure} ${ech(r.clientNom.split(' ')[0])}</div>`;
+      }).join('')}</div>`;
+    });
+  });
+  document.getElementById('calendrier').innerHTML = html;
+}
+
+// ---- Services ----
+async function chargerServices(){
+  const liste = await api('/api/mon-entreprise/services');
+  // Le même tableau alimente la section Services et le bloc fusionné du module hôtel
+  const html =
+    '<tr><th>Service</th><th>Durée</th><th>Prix</th><th>Statut</th><th>Actions</th></tr>' +
+    (liste.length ? liste.map(s=>`
+    <tr>
+      <td><strong>${ech(s.nom)}</strong></td><td>${s.duree} min</td><td>${htg(s.prix)}</td>
+      <td>${s.actif ? '<span class="badge badge-vert">Actif</span>' : '<span class="badge badge-gris">Masqué</span>'}</td>
+      <td><div class="flex" style="gap:6px">
+        <button class="btn btn-contour btn-petit" onclick='ouvrirService(${JSON.stringify(s)})'>Modifier</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerService('${s.id}',${!s.actif})">${s.actif?'Masquer':'Activer'}</button>
+        <button class="btn btn-danger btn-petit" onclick="supprimerService('${s.id}')">Supprimer</button>
+      </div></td>
+    </tr>`).join('') : `<tr><td colspan="5" class="muet centre">${aModule('hotellerie')
+        ? "Aucun service. Ajoutez vos prestations : navette, blanchisserie, excursions…"
+        : "Aucun service. Ajoutez votre premier service pour recevoir des réservations."}</td></tr>`);
+  ['tableServices','tableServicesHotel'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
+}
+function ouvrirService(s){
+  serviceEnCours = s || null;
+  document.getElementById('titreModaleService').textContent = s ? 'Modifier le service' : 'Ajouter un service';
+  sNom.value = s ? s.nom : ''; sDuree.value = s ? s.duree : 30; sPrix.value = s ? s.prix : 0;
+  document.getElementById('voileService').classList.add('ouvert');
+}
+async function enregistrerService(){
+  if(!sNom.value.trim()) return toast('Indiquez le nom du service.');
+  const donnees = { nom:sNom.value.trim(), duree:sDuree.value, prix:sPrix.value };
+  if (serviceEnCours) await api('/api/mon-entreprise/services/'+serviceEnCours.id,'PUT',donnees);
+  else await api('/api/mon-entreprise/services','POST',donnees);
+  fermer('voileService'); toast('Service enregistré.'); chargerServices();
+}
+async function basculerService(id, actif){ await api('/api/mon-entreprise/services/'+id,'PUT',{actif}); chargerServices(); }
+
+
+// ===== Équipements (mêmes clés que le serveur) =====
+const EQUIPEMENTS = {
+  clim:{lib:'Climatiseur',ico:'❄️'}, ventilateur:{lib:'Ventilateur',ico:'🌀'},
+  wifi:{lib:'Internet Wi-Fi',ico:'📶'}, litdouble:{lib:'Lit double',ico:'🛏️'},
+  litsimple:{lib:'Lit simple',ico:'🛌'}, tv:{lib:'Téléviseur',ico:'📺'},
+  netflix:{lib:'Netflix / streaming',ico:'🎬'}, eauchaude:{lib:'Eau chaude',ico:'🚿'},
+  sdb:{lib:'Salle de bain privée',ico:'🛁'}, balcon:{lib:'Balcon',ico:'🌅'},
+  frigo:{lib:'Réfrigérateur',ico:'🧊'}, coffre:{lib:'Coffre-fort',ico:'🔒'},
+  inverter:{lib:'Inverter / courant 24h',ico:'🔋'}, parking:{lib:'Parking',ico:'🅿️'},
+  piscine:{lib:'Accès piscine',ico:'🏊'}, petitdej:{lib:'Petit-déjeuner inclus',ico:'🥐'}
+};
+function dessinerEquipements(choisis){
+  const sel = new Set(choisis || []);
+  document.getElementById('chEquipements').innerHTML = Object.entries(EQUIPEMENTS).map(([k,v]) =>
+    `<label class="equip-case${sel.has(k)?' on':''}">
+       <input type="checkbox" value="${k}"${sel.has(k)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${v.ico} ${v.lib}</span></label>`).join('');
+}
+function equipementsChoisis(){
+  return [...document.querySelectorAll('#chEquipements input:checked')].map(i => i.value);
+}
+
+// ===== Chambres & Séjours =====
+let chambreEnCours = null, photoChambre = '';
+async function chargerChambres(){
+  const liste = await api('/api/mon-entreprise/chambres');
+  document.getElementById('tableChambres').innerHTML = liste.length ? `
+    <tr><th>Chambre</th><th>Prix/nuit</th><th>Cap.</th><th>Qté</th><th>Statut</th><th></th></tr>` +
+    liste.map(c => `<tr>
+      <td><strong>${ech(c.nom)}</strong><br><span class="petit muet">${ech(c.description||'')}</span>
+        ${(c.equipements||[]).length ? `<div class="puces-equip">${c.equipements.map(k => EQUIPEMENTS[k] ? `<span class="puce-equip">${EQUIPEMENTS[k].ico} ${EQUIPEMENTS[k].lib}</span>` : '').join('')}</div>` : ''}</td>
+      <td>${(+c.prixNuit).toLocaleString('fr-HT')} HTG</td>
+      <td>${c.capacite}</td><td>${c.quantite}</td>
+      <td><span class="badge ${c.actif?'badge-vert':'badge-gris'}">${c.actif?'Active':'Masquée'}</span></td>
+      <td class="flex" style="gap:6px">
+        <button class="btn btn-fantome btn-petit" onclick='ouvrirChambre(${JSON.stringify(c).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerChambre('${c.id}',${!c.actif})">${c.actif?'👁️‍🗨️':'👁️'}</button>
+        <button class="btn btn-fantome btn-petit" onclick="supprimerChambre('${c.id}')">🗑️</button>
+      </td></tr>`).join('')
+    : '<tr><td class="muet petit">Aucune chambre. Cliquez sur « + Ajouter une chambre » pour commencer.</td></tr>';
+}
+function ouvrirChambre(c){
+  chambreEnCours = c || null; photoChambre = c && c.photo || '';
+  document.getElementById('titreModaleChambre').textContent = c ? 'Modifier la chambre' : 'Ajouter une chambre';
+  chNom.value = c ? c.nom : ''; chDesc.value = c ? (c.description||'') : '';
+  chPrix.value = c ? c.prixNuit : 5000; chCap.value = c ? c.capacite : 2; chQte.value = c ? c.quantite : 1;
+  document.getElementById('chPhoto').value = '';
+  dessinerEquipements(c ? c.equipements : []);
+  document.getElementById('chApercu').innerHTML = photoChambre ? `<img src="${photoChambre}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  document.getElementById('voileChambre').classList.add('ouvert');
+}
+document.getElementById('chPhoto')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { photoChambre = await compresserImage(f, 900, 0.78);
+    document.getElementById('chApercu').innerHTML = `<img src="${photoChambre}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">`;
+  } catch { toast('Image illisible.'); }
 });
+async function enregistrerChambre(){
+  const corps = { nom: chNom.value.trim(), description: chDesc.value.trim(), prixNuit: +chPrix.value, capacite: +chCap.value, quantite: +chQte.value, photo: photoChambre, equipements: equipementsChoisis() };
+  if (!corps.nom || !(corps.prixNuit > 0)) { toast('Nom et prix par nuit obligatoires.'); return; }
+  try {
+    if (chambreEnCours) await api('/api/mon-entreprise/chambres/'+chambreEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/chambres','POST',corps);
+    fermer('voileChambre'); toast('Chambre enregistrée.'); chargerChambres();
+  } catch(e){ toast(e.message); }
+}
+async function basculerChambre(id, actif){ await api('/api/mon-entreprise/chambres/'+id,'PUT',{actif}); chargerChambres(); }
+async function supprimerChambre(id){
+  if (!confirm('Supprimer cette chambre ? Les séjours existants restent dans l\'historique.')) return;
+  await api('/api/mon-entreprise/chambres/'+id,'DELETE'); toast('Chambre supprimée.'); chargerChambres();
+}
+async function chargerSejours(){
+  const liste = await api('/api/sejours');
+  const filtre = document.getElementById('filtreSejours').value;
+  const visibles = filtre ? liste.filter(s => s.statut === filtre) : liste;
+  document.getElementById('tableSejours').innerHTML = visibles.length ? `
+    <tr><th>Client</th><th>Chambre</th><th>Dates</th><th>Total</th><th>Statut</th><th>Actions</th></tr>` +
+    visibles.map(s => `<tr>
+      <td><strong>${ech(s.clientNom)}</strong><br><span class="petit muet">${ech(s.clientTel)} • ${s.nbPersonnes} pers.</span></td>
+      <td>${ech(s.chambre ? s.chambre.nom : '—')}</td>
+      <td>${s.arrivee} → ${s.depart}<br><span class="petit muet">${s.nuits} nuit${s.nuits>1?'s':''}</span></td>
+      <td><strong>${(+s.prixTotal).toLocaleString('fr-HT')} HTG</strong></td>
+      <td>${BADGE_STATUT[s.statut] || s.statut}</td>
+      <td class="flex" style="gap:6px;flex-wrap:wrap">
+        ${s.statut==='en_attente' ? `<button class="btn btn-succes btn-petit" onclick="statutSejour('${s.id}','confirme')">✓ Confirmer</button>` : ''}
+        ${['en_attente','confirme'].includes(s.statut) ? `<button class="btn btn-danger btn-petit" onclick="statutSejour('${s.id}','annule')">✕ Annuler</button>` : ''}
+        ${s.statut==='confirme' ? `<button class="btn btn-fantome btn-petit" onclick="statutSejour('${s.id}','termine')">Terminé</button>` : ''}
+      </td></tr>`).join('')
+    : '<tr><td class="muet petit">Aucune demande de séjour pour le moment.</td></tr>';
+}
+async function statutSejour(id, statut){
+  await api('/api/sejours/'+id,'PUT',{statut}); toast('Séjour mis à jour. Le client est prévenu par email.'); chargerSejours();
+}
+
+
+
+
+
+// ===== Modules choisis par l'entreprise =====
+const LIB_MODULES = {
+  rdv:{lib:'Rendez-vous et calendrier',ico:'🗓'}, equipe:{lib:'Équipe',ico:'👥'},
+  hotellerie:{lib:'Chambres et séjours',ico:'🛏️'}, carte:{lib:'Restaurant et bar',ico:'🍽️'},
+  catalogue:{lib:'Catalogue produits',ico:'🛒'}, commandes:{lib:'Commandes et livraison',ico:'📦'}, inscriptions:{lib:'Programmes et inscriptions',ico:'🎓'},
+  dossiers:{lib:'Suivi de dossiers',ico:'📁'}, urgences:{lib:'Service d\'urgence',ico:'🚨'}
+};
+function dessinerModules(){
+  const dispo = ent.modulesDisponibles || Object.keys(LIB_MODULES);
+  const actifs = new Set(ent.modulesActifs || []);
+  const duMetier = new Set(ent.modulesMetier || []);
+  document.getElementById('listeModules').innerHTML = dispo.map(m => {
+    const l = LIB_MODULES[m] || { lib: m, ico: '•' };
+    return `<label class="equip-case${actifs.has(m)?' on':''}">
+      <input type="checkbox" data-module="${m}"${actifs.has(m)?' checked':''}
+             onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+      <span>${l.ico} ${l.lib}${duMetier.has(m)?'':' <span class="petit muet">(hors métier)</span>'}</span></label>`;
+  }).join('');
+}
+async function enregistrerModules(){
+  const dispo = ent.modulesDisponibles || [];
+  const duMetier = new Set(ent.modulesMetier || []);
+  const coches = new Set([...document.querySelectorAll('#listeModules input:checked')].map(i => i.dataset.module));
+  // On enregistre les écarts par rapport au métier, pas la liste brute
+  const modulesOff = dispo.filter(m => duMetier.has(m) && !coches.has(m));
+  const modulesOn  = dispo.filter(m => !duMetier.has(m) && coches.has(m));
+  try {
+    await api('/api/mon-entreprise','PUT',{ modulesOff, modulesOn });
+    ent = await api('/api/mon-entreprise');
+    appliquerMetier(); dessinerModules();
+    toast('Fonctionnalités mises à jour.');
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Métier : vocabulaire, modules et champs =====
+let REF_METIERS = null;
+function metierActuel(){
+  return (REF_METIERS && REF_METIERS.METIERS[ent.metier]) || (REF_METIERS && REF_METIERS.METIERS['autre']) || null;
+}
+function aModule(mod){
+  if (Array.isArray(ent.modulesActifs)) return ent.modulesActifs.includes(mod);
+  const m = metierActuel();
+  return m ? m.modules.includes(mod) : true;
+}
+function mot(cle, majuscule){
+  const m = metierActuel();
+  const v = m && m.mots[cle] ? m.mots[cle].fr : cle;
+  return majuscule ? v.charAt(0).toUpperCase() + v.slice(1) : v;
+}
+// Modules → entrées de menu et sections concernées
+const MODULE_SECTIONS = {
+  rdv: ['rdv', 'calendrier'], equipe: ['employes'],
+  hotellerie: ['chambres','tarifs','planning','hotel'], carte: ['carte'], catalogue: ['catalogue'], commandes: ['commandes','vente'],
+  inscriptions: ['programmes','inscriptions'], dossiers: ['dossiers'], urgences: ['urgence']
+};
+function appliquerMetier(){
+  const m = metierActuel();
+  if (!m) return;
+  // En hôtellerie, les services sont gérés dans la section Chambres :
+  // on évite de proposer deux endroits pour la même chose.
+  const btnServices = document.querySelector('.lien-lat[data-sec="services"]');
+  if (btnServices) btnServices.style.display = aModule('hotellerie') ? 'none' : '';
+  // 1) Masquer les entrées de menu des modules non déclarés
+  Object.entries(MODULE_SECTIONS).forEach(([mod, secs]) => {
+    const actif = aModule(mod);
+    secs.forEach((s) => {
+      const b = document.querySelector(`.lien-lat[data-sec="${s}"]`);
+      if (b) b.style.display = actif ? '' : 'none';
+    });
+  });
+  // 2) Adapter le vocabulaire des libellés
+  document.querySelectorAll('[data-mot]').forEach((el) => {
+    el.textContent = mot(el.dataset.mot, el.dataset.maj !== undefined);
+  });
+  // 3) Champs propres au métier
+  dessinerChampsMetier();
+  dessinerModules();
+}
+function dessinerChampsMetier(){
+  const m = metierActuel(); const carte = document.getElementById('carteChampsMetier');
+  if (!m || !carte) return;
+  const champs = m.champs.filter((c) => REF_METIERS.CHAMPS[c] && REF_METIERS.CHAMPS[c].type !== 'interne');
+  if (!champs.length) { carte.style.display = 'none'; return; }
+  carte.style.display = '';
+  document.getElementById('titreChampsMetier').textContent = `${m.ico} Informations — ${m.nom.fr}`;
+  const v = ent.champs || {};
+  document.getElementById('listeChampsMetier').innerHTML = champs.map((c) => {
+    const d = REF_METIERS.CHAMPS[c];
+    const val = v[c];
+    if (d.type === 'bool')
+      return `<label class="equip-case${val?' on':''}" style="margin:0">
+                <input type="checkbox" data-champ="${c}"${val?' checked':''}
+                       onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+                <span>${d.fr}</span></label>`;
+    const aide = d.aide ? `<p class="aide">${d.aide.fr}</p>` : '';
+    const type = d.type === 'nombre' ? 'number' : (d.type === 'heure' ? 'time' : 'text');
+    const valeur = Array.isArray(val) ? val.join(', ') : (val === undefined ? '' : val);
+    const espace = d.type === 'liste' ? 'placeholder="Séparez par des virgules"' : '';
+    return `<div class="champ-metier"><label>${d.fr}</label>
+              <input type="${type}" data-champ="${c}" value="${String(valeur).replace(/"/g,'&quot;')}" ${espace}>${aide}</div>`;
+  }).join('');
+}
+async function enregistrerChampsMetier(){
+  const champs = {};
+  document.querySelectorAll('#listeChampsMetier [data-champ]').forEach((el) => {
+    champs[el.dataset.champ] = el.type === 'checkbox' ? el.checked : el.value.trim();
+  });
+  try {
+    ent = await api('/api/mon-entreprise','PUT',{ champs });
+    toast('Informations enregistrées.');
+    dessinerChampsMetier();
+  } catch(e){ toast(e.message); }
+}
+
+
+// ===== Gestion hôtelière : tarifs, saisons, planning, politiques =====
+let tarifEnCours = null, saisonEnCours = null;
+
+async function chargerTarifs(){
+  const [tarifs, chambres] = await Promise.all([
+    api('/api/mon-entreprise/tarifs'), api('/api/mon-entreprise/chambres')]);
+  const sel = document.getElementById('tfChambre');
+  sel.innerHTML = '<option value="">Toutes les chambres</option>' +
+    chambres.map(c => `<option value="${c.id}">${ech(c.nom)}</option>`).join('');
+  const z = document.getElementById('listeTarifs');
+  z.innerHTML = tarifs.length ? `<div style="overflow:auto"><table>
+    <tr><th>Plan</th><th>Chambre</th><th>Prix/nuit</th><th>Conditions</th><th>Statut</th><th></th></tr>
+    ${tarifs.map(x => {
+      const ch = chambres.find(c => c.id === x.chambreId);
+      return `<tr>
+        <td><strong>${ech(x.nom)}</strong>${x.description?`<br><span class="petit muet">${ech(x.description)}</span>`:''}</td>
+        <td class="petit muet">${ch ? ech(ch.nom) : 'Toutes'}</td>
+        <td>${x.prixNuit ? (+x.prixNuit).toLocaleString('fr-HT')+' HTG' : '<span class="petit muet">prix chambre</span>'}</td>
+        <td>${x.remboursable?'<span class="badge badge-vert">Remboursable</span>':'<span class="badge badge-orange">Non remboursable</span>'}
+            ${x.petitDejeuner?'<span class="badge badge-bleu">🥐 Petit-déj</span>':''}</td>
+        <td><span class="badge ${x.actif?'badge-vert':'badge-gris'}">${x.actif?'Actif':'Inactif'}</span></td>
+        <td class="flex" style="gap:6px">
+          <button class="btn btn-fantome btn-petit" onclick='ouvrirTarif(${JSON.stringify(x).replace(/'/g,"&#39;")})'>✏️</button>
+          <button class="btn btn-fantome btn-petit" onclick="basculerTarif('${x.id}',${!x.actif})">${x.actif?'🚫':'✅'}</button>
+          <button class="btn btn-fantome btn-petit" onclick="supprimerTarif('${x.id}')">🗑️</button>
+        </td></tr>`;
+    }).join('')}</table></div>`
+    : '<p class="muet petit">Aucun plan. Sans plan, vos chambres se vendent au prix indiqué dans leur fiche.</p>';
+  chargerSaisons();
+}
+function ouvrirTarif(x){
+  tarifEnCours = x || null;
+  document.getElementById('titreModaleTarif').textContent = x ? 'Modifier le plan' : 'Ajouter un plan tarifaire';
+  tfNom.value = x?x.nom:''; tfDesc.value = x?(x.description||''):'';
+  tfChambre.value = x?(x.chambreId||''):''; tfPrix.value = x?x.prixNuit:0;
+  tfRembours.checked = x ? x.remboursable : true; tfPetitDej.checked = x ? x.petitDejeuner : false;
+  [tfRembours, tfPetitDej].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+  document.getElementById('voileTarif').classList.add('ouvert');
+}
+async function enregistrerTarif(){
+  const corps = { nom:tfNom.value.trim(), description:tfDesc.value.trim(), chambreId:tfChambre.value,
+    prixNuit:+tfPrix.value||0, remboursable:tfRembours.checked, petitDejeuner:tfPetitDej.checked };
+  if (!corps.nom) { toast('Le nom du plan est obligatoire.'); return; }
+  try {
+    if (tarifEnCours) await api('/api/mon-entreprise/tarifs/'+tarifEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/tarifs','POST',corps);
+    fermer('voileTarif'); toast('Plan enregistré.'); chargerTarifs();
+  } catch(e){ toast(e.message); }
+}
+async function basculerTarif(id, actif){ await api('/api/mon-entreprise/tarifs/'+id,'PUT',{actif}); chargerTarifs(); }
+async function supprimerTarif(id){
+  if (!confirm('Supprimer ce plan tarifaire ?')) return;
+  await api('/api/mon-entreprise/tarifs/'+id,'DELETE'); toast('Plan supprimé.'); chargerTarifs();
+}
+
+async function chargerSaisons(){
+  const liste = await api('/api/mon-entreprise/saisons');
+  const z = document.getElementById('listeSaisons');
+  z.innerHTML = liste.length ? `<div style="overflow:auto"><table>
+    <tr><th>Saison</th><th>Période</th><th>Ajustement</th><th>Statut</th><th></th></tr>
+    ${liste.map(s => `<tr>
+      <td><strong>${ech(s.nom)}</strong></td>
+      <td class="petit muet">${s.debut} → ${s.fin}</td>
+      <td><strong style="color:${s.valeur>=0?'var(--orange)':'var(--vert)'}">${s.valeur>0?'+':''}${s.valeur}${s.type==='pourcentage'?' %':' HTG'}</strong></td>
+      <td><span class="badge ${s.actif?'badge-vert':'badge-gris'}">${s.actif?'Active':'Inactive'}</span></td>
+      <td class="flex" style="gap:6px">
+        <button class="btn btn-fantome btn-petit" onclick='ouvrirSaison(${JSON.stringify(s).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerSaison('${s.id}',${!s.actif})">${s.actif?'🚫':'✅'}</button>
+        <button class="btn btn-fantome btn-petit" onclick="supprimerSaison('${s.id}')">🗑️</button>
+      </td></tr>`).join('')}</table></div>`
+    : '<p class="muet petit">Aucune saison. Vos prix restent identiques toute l\'année.</p>';
+}
+function ouvrirSaison(s){
+  saisonEnCours = s || null;
+  document.getElementById('titreModaleSaison').textContent = s ? 'Modifier la saison' : 'Ajouter une saison';
+  saNom.value = s?s.nom:''; saDebut.value = s?s.debut:''; saFin.value = s?s.fin:'';
+  saType.value = s?s.type:'pourcentage'; saValeur.value = s?s.valeur:0;
+  document.getElementById('voileSaison').classList.add('ouvert');
+}
+async function enregistrerSaison(){
+  const corps = { nom:saNom.value.trim(), debut:saDebut.value, fin:saFin.value,
+                  type:saType.value, valeur:+saValeur.value||0 };
+  if (!corps.nom || !corps.debut || !corps.fin) { toast('Nom, début et fin obligatoires.'); return; }
+  try {
+    if (saisonEnCours) await api('/api/mon-entreprise/saisons/'+saisonEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/saisons','POST',corps);
+    fermer('voileSaison'); toast('Saison enregistrée.'); chargerSaisons();
+  } catch(e){ toast(e.message); }
+}
+async function basculerSaison(id, actif){ await api('/api/mon-entreprise/saisons/'+id,'PUT',{actif}); chargerSaisons(); }
+async function supprimerSaison(id){
+  if (!confirm('Supprimer cette saison ?')) return;
+  await api('/api/mon-entreprise/saisons/'+id,'DELETE'); toast('Saison supprimée.'); chargerSaisons();
+}
+
+async function chargerPlanning(){
+  const debut = document.getElementById('planDebut').value || new Date().toISOString().slice(0,10);
+  const r = await api(`/api/mon-entreprise/occupation?debut=${debut}&jours=14`);
+  const z = document.getElementById('grillePlanning');
+  if (!r.chambres.length) { z.innerHTML = '<p class="muet petit">Aucune chambre enregistrée.</p>'; return; }
+  z.innerHTML = `<table class="planning"><tr><th>Chambre</th>${r.dates.map(d =>
+    `<th class="petit" style="text-align:center">${d.slice(8)}/${d.slice(5,7)}</th>`).join('')}</tr>
+    ${r.chambres.map(c => `<tr><td><strong class="petit">${ech(c.nom)}</strong><br><span class="petit muet">${c.quantite} ch.</span></td>
+      ${c.occupation.map(o => `<td class="case-occ ${o.libres===0?'complet':(o.pris?'partiel':'libre')}" title="${o.jour} — ${o.libres} libre(s)">${o.libres}</td>`).join('')}
+    </tr>`).join('')}</table>`;
+}
+
+async function chargerHotel(){
+  const h = await api('/api/mon-entreprise/hotel');
+  hoCheckin.value = h.checkin||''; hoCheckout.value = h.checkout||'';
+  hoMin.value = h.sejourMin||0; hoMax.value = h.sejourMax||0;
+  hoTaux.value = h.tauxTaxe||0; hoTaxeNuit.value = h.taxeSejour||0; hoAcompte.value = h.acompte||0;
+  hoDelai.value = h.delaiAnnulation||0; hoAnnulation.value = h.annulation||''; hoConditions.value = h.conditions||'';
+  hoAnimaux.checked = !!h.animaux; hoFumeur.checked = !!h.fumeur;
+  [hoAnimaux, hoFumeur].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+}
+async function enregistrerHotel(){
+  if (+hoMax.value && +hoMin.value && +hoMax.value < +hoMin.value) {
+    toast('Le séjour maximum doit être supérieur au minimum.'); return;
+  }
+  try {
+    await api('/api/mon-entreprise/hotel','PUT',{
+      checkin:hoCheckin.value, checkout:hoCheckout.value,
+      sejourMin:+hoMin.value||0, sejourMax:+hoMax.value||0,
+      tauxTaxe:+hoTaux.value||0, taxeSejour:+hoTaxeNuit.value||0, acompte:+hoAcompte.value||0,
+      delaiAnnulation:+hoDelai.value||0, annulation:hoAnnulation.value.trim(),
+      conditions:hoConditions.value.trim(), animaux:hoAnimaux.checked, fumeur:hoFumeur.checked });
+    toast('Politiques enregistrées.');
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Formule d'hébergement (standard / resort) =====
+const INCLUS = {
+  petitdej:{lib:'Petit-déjeuner',ico:'🥐'}, dejeuner:{lib:'Déjeuner',ico:'🍽️'},
+  diner:{lib:'Dîner',ico:'🍛'}, collations:{lib:'Collations à volonté',ico:'🍪'},
+  boissons:{lib:'Boissons sans alcool',ico:'🧃'}, alcool:{lib:'Boissons alcoolisées',ico:'🍹'},
+  barouvert:{lib:'Bar ouvert',ico:'🍸'}, piscine:{lib:'Accès piscine',ico:'🏊'},
+  plage:{lib:'Accès plage privée',ico:'🏖️'}, animations:{lib:'Animations et soirées',ico:'🎶'},
+  sport:{lib:'Activités sportives',ico:'🏐'}, nautique:{lib:'Sports nautiques',ico:'🚤'},
+  spa:{lib:'Accès spa',ico:'💆'}, gym:{lib:'Salle de sport',ico:'🏋️'},
+  kids:{lib:'Club enfants',ico:'🧒'}, navette:{lib:'Navette aéroport',ico:'🚐'},
+  wifi:{lib:'Wi-Fi partout',ico:'📶'}, parking:{lib:'Parking',ico:'🅿️'}
+};
+function dessinerInclus(choisis){
+  const sel = new Set(choisis || []);
+  document.getElementById('listeInclus').innerHTML = Object.entries(INCLUS).map(([k,v]) =>
+    `<label class="equip-case${sel.has(k)?' on':''}">
+       <input type="checkbox" value="${k}"${sel.has(k)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${v.ico} ${v.lib}</span></label>`).join('');
+}
+function majFormule(){
+  const choisie = document.querySelector('input[name="formule"]:checked')?.value || 'standard';
+  document.querySelectorAll('.opt-formule').forEach(o =>
+    o.classList.toggle('on', o.querySelector('input').checked));
+  document.getElementById('zoneInclus').style.display = choisie === 'resort' ? '' : 'none';
+}
+function remplirFormule(){
+  const carte = document.getElementById('carteFormule');
+  if (!carte) return;
+  carte.style.display = aModule('hotellerie') ? '' : 'none';
+  const f = ent.formule || 'standard';
+  const radio = document.querySelector(`input[name="formule"][value="${f}"]`);
+  if (radio) radio.checked = true;
+  dessinerInclus(ent.inclus || []);
+  const note = document.getElementById('iNoteFormule');
+  if (note) note.value = ent.noteFormule || '';
+  majFormule();
+}
+async function enregistrerFormule(){
+  const formule = document.querySelector('input[name="formule"]:checked')?.value || 'standard';
+  const inclus = [...document.querySelectorAll('#listeInclus input:checked')].map(i => i.value);
+  if (formule === 'resort' && !inclus.length) {
+    toast('Cochez au moins une prestation comprise dans le séjour.'); return;
+  }
+  try {
+    ent = await api('/api/mon-entreprise','PUT',{ formule, inclus, noteFormule: document.getElementById('iNoteFormule').value.trim() });
+    toast(formule === 'resort' ? 'Formule tout inclus enregistrée.' : 'Formule standard enregistrée.');
+    remplirFormule(); chargerCarte();
+  } catch(e){ toast(e.message); }
+}
+
+
+
+
+
+
+// ===== Vente : commandes, livraison et retrait =====
+const STATUTS_CMD = {
+  nouvelle:{lib:'Nouvelle',badge:'badge-orange'}, confirmee:{lib:'Confirmée',badge:'badge-bleu'},
+  preparation:{lib:'En préparation',badge:'badge-violet'}, prete:{lib:'Prête',badge:'badge-bleu'},
+  en_route:{lib:'En route',badge:'badge-violet'}, livree:{lib:'Livrée / retirée',badge:'badge-vert'},
+  annulee:{lib:'Annulée',badge:'badge-rouge'}
+};
+const SUITE_CMD = {
+  cueillette: ['nouvelle','confirmee','preparation','prete','livree'],
+  livraison:  ['nouvelle','confirmee','preparation','en_route','livree']
+};
+async function chargerCommandes(){
+  const r = await api('/api/mon-entreprise/commandes');
+  const f = document.getElementById('filtreCommandes').value;
+  const vis = f ? r.commandes.filter(c => c.statut === f) : r.commandes;
+  const z = document.getElementById('listeCommandes');
+  if (!vis.length) { z.innerHTML = '<p class="muet petit">Aucune commande pour le moment.</p>'; return; }
+  z.innerHTML = vis.map(c => {
+    const suite = SUITE_CMD[c.mode] || SUITE_CMD.cueillette;
+    const i = suite.indexOf(c.statut);
+    const suivant = i >= 0 && i < suite.length - 1 ? suite[i+1] : null;
+    return `<div class="panneau">
+      <div class="flex entre" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <strong>${c.reference}</strong>
+          <span class="badge ${STATUTS_CMD[c.statut].badge}" style="margin-left:6px">${STATUTS_CMD[c.statut].lib}</span>
+          <span class="badge badge-gris" style="margin-left:4px">${c.mode==='livraison'?'🛵 Livraison':'🏪 Retrait'}</span>
+          <span class="badge ${c.paye?'badge-vert':'badge-orange'}" style="margin-left:4px">${c.paye?'💳 Payée':'À encaisser'}</span>
+          ${c.taksi?`<span class="badge badge-violet" style="margin-left:4px">🚕 Taksi ${c.taksi.mode==='api'?'envoyée':'à transmettre'}</span>`:''}
+          <p class="petit muet" style="margin-top:5px">
+            👤 ${ech(c.clientNom)} · <a href="https://wa.me/${String(c.clientTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(c.clientTel)}</a>
+            ${c.mode==='livraison'?`<br>📍 ${ech(c.adresse)}${c.zone?` <span class="badge badge-bleu">${ech(c.zone)}</span>`:''}`:''}
+            ${c.repere?`<br>🧭 ${ech(c.repere)}`:''}
+            ${c.creneau?`<br>🕐 ${ech(c.creneau)}`:''}
+            ${c.message?`<br>💬 ${ech(c.message)}`:''}
+          </p>
+          <table style="margin-top:8px">
+            ${c.lignes.map(l => `<tr><td class="petit">${ech(l.nom)} ${l.unite?`<span class="muet">(${ech(l.unite)})</span>`:''}</td>
+              <td class="petit num">×${l.quantite}</td>
+              <td class="petit num">${(+l.total).toLocaleString('fr-HT')} HTG</td></tr>`).join('')}
+            ${c.frais?`<tr><td class="petit muet">Livraison${c.zone?` — ${ech(c.zone)}`:''}</td><td></td><td class="petit num">${(+c.frais).toLocaleString('fr-HT')} HTG</td></tr>`:''}
+            <tr><td><strong>Total</strong></td><td></td><td class="num"><strong>${(+c.total).toLocaleString('fr-HT')} HTG</strong></td></tr>
+          </table>
+        </div>
+        <div style="text-align:right">
+          <p class="petit muet">${c.creeLe.slice(0,10)} ${c.creeLe.slice(11,16)}</p>
+        </div>
+      </div>
+      <div class="flex mt" style="gap:6px;flex-wrap:wrap">
+        ${suivant?`<button class="btn btn-primaire btn-petit" onclick="statutCommande('${c.id}','${suivant}')">→ ${STATUTS_CMD[suivant].lib}</button>`:''}
+        ${c.mode==='livraison'&&c.statut!=='annulee'&&c.statut!=='livree'?`<button class="btn btn-contour btn-petit" onclick="envoyerTaksi('${c.id}')">🚕 Livrer avec Taksi Konekte</button>`:''}
+        ${c.statut!=='annulee'&&c.statut!=='livree'?`<button class="btn btn-danger btn-petit" onclick="statutCommande('${c.id}','annulee')">Annuler</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function statutCommande(id, statut){
+  if (statut === 'annulee' && !confirm('Annuler cette commande ? Le stock sera restitué.')) return;
+  try { await api('/api/mon-entreprise/commandes/'+id,'PUT',{statut});
+    toast('Le client est prévenu par WhatsApp.');
+    chargerCommandes(); if (aModule('catalogue')) chargerCatalogue();
+  } catch(e){ toast(e.message); }
+}
+
+async function envoyerTaksi(id){
+  try {
+    const r = await api('/api/mon-entreprise/commandes/'+id+'/taksi','POST',{});
+    if (r.mode === 'api') { toast('Course envoyée à Taksi Konekte.'); chargerCommandes(); return; }
+    // Repli : on montre le récapitulatif prêt à transmettre
+    const z = document.getElementById('zoneTaksi');
+    document.getElementById('texteTaksi').textContent = r.texte;
+    document.getElementById('lienTaksi').style.display = r.lienWhatsApp ? '' : 'none';
+    if (r.lienWhatsApp) document.getElementById('lienTaksi').href = r.lienWhatsApp;
+    document.getElementById('msgTaksi').textContent = r.message || '';
+    document.getElementById('voileTaksi').classList.add('ouvert');
+    chargerCommandes();
+  } catch(e){ toast(e.message); }
+}
+function copierTaksi(){
+  const txt = document.getElementById('texteTaksi').textContent;
+  navigator.clipboard?.writeText(txt).then(() => toast('Récapitulatif copié.'), () => toast('Copie impossible.'));
+}
+
+// ---- Réglages de livraison et retrait ----
+let ZONES = [];
+function majZonesVisibles(){
+  document.getElementById('blocCueillette').style.display = vtCueillette.checked ? '' : 'none';
+  document.getElementById('blocLivraison').style.display = vtLivraison.checked ? '' : 'none';
+}
+function dessinerZones(){
+  document.getElementById('listeZones').innerHTML = ZONES.map((z,i) => `
+    <div class="ligne-zone">
+      <input value="${String(z.nom).replace(/"/g,'&quot;')}" placeholder="Nom de la zone" oninput="ZONES[${i}].nom=this.value">
+      <input type="number" min="0" value="${z.frais}" placeholder="Frais" oninput="ZONES[${i}].frais=+this.value">
+      <input value="${String(z.delai||'').replace(/"/g,'&quot;')}" placeholder="Délai" oninput="ZONES[${i}].delai=this.value">
+      <button class="btn btn-fantome btn-petit" onclick="ZONES.splice(${i},1);dessinerZones()">🗑️</button>
+    </div>`).join('') || '<p class="petit muet">Aucune zone. Les frais par défaut s\'appliqueront partout.</p>';
+}
+function ajouterZone(){ ZONES.push({nom:'',frais:0,delai:''}); dessinerZones(); }
+async function chargerVente(){
+  const r = await api('/api/mon-entreprise/vente');
+  const v = r.vente || {};
+  vtActives.checked = !!v.commandesActives; vtCueillette.checked = !!v.cueillette; vtLivraison.checked = !!v.livraison;
+  [vtActives, vtCueillette, vtLivraison].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+  vtHoraires.value = v.horairesCueillette||''; vtDelai.value = v.delaiPreparation||'';
+  vtFraisBase.value = v.fraisBase||0; vtSeuil.value = v.seuilGratuite||0;
+  vtMinimum.value = v.minimumCommande||0; vtConsigne.value = v.consigne||'';
+  vtPaieEnLigne.checked = v.paiementEnLigne !== false; vtPaieRemise.checked = v.paiementRemise !== false;
+  [vtPaieEnLigne, vtPaieRemise].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+  ZONES = (v.zones||[]).map(z => ({...z}));
+  dessinerZones(); majZonesVisibles();
+}
+async function enregistrerVente(){
+  if (vtActives.checked && !vtCueillette.checked && !vtLivraison.checked) {
+    toast('Choisissez au moins le retrait sur place ou la livraison.'); return;
+  }
+  if (vtActives.checked && !vtPaieEnLigne.checked && !vtPaieRemise.checked) {
+    toast('Choisissez au moins un moyen de paiement.'); return;
+  }
+  const zones = ZONES.filter(z => String(z.nom).trim());
+  try {
+    await api('/api/mon-entreprise/vente','PUT',{
+      commandesActives: vtActives.checked, cueillette: vtCueillette.checked, livraison: vtLivraison.checked,
+      horairesCueillette: vtHoraires.value.trim(), delaiPreparation: vtDelai.value.trim(),
+      fraisBase: +vtFraisBase.value||0, seuilGratuite: +vtSeuil.value||0,
+      minimumCommande: +vtMinimum.value||0, consigne: vtConsigne.value.trim(), zones,
+      paiementEnLigne: vtPaieEnLigne.checked, paiementRemise: vtPaieRemise.checked });
+    toast('Réglages enregistrés.'); chargerVente();
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Module catalogue =====
+let prodEnCours = null, photoProduit = '', RAYONS = [];
+async function chargerCatalogue(){
+  const r = await api('/api/mon-entreprise/produits');
+  RAYONS = r.rayons;
+  // Rayons dans le filtre et la saisie
+  const sel = document.getElementById('filtreRayon');
+  const garde = sel.value;
+  sel.innerHTML = '<option value="">Tous les rayons</option>' + RAYONS.map(x => `<option>${ech(x)}</option>`).join('');
+  sel.value = garde;
+  document.getElementById('listeRayons').innerHTML = RAYONS.map(x => `<option value="${ech(x)}">`).join('');
+  // Note propre à la pharmacie
+  const note = document.getElementById('noteCatalogue');
+  note.textContent = ent.metier === 'pharmacie'
+    ? "Présentez ici vos produits de parapharmacie et de soins. Les médicaments soumis à ordonnance ne devraient pas être proposés à la commande en ligne."
+    : "Les produits disponibles apparaissent sur votre page publique. Un produit épuisé en disparaît automatiquement.";
+  // Alertes
+  const bas = r.produits.filter(p => p.stock !== null && p.stock <= p.seuilAlerte);
+  document.getElementById('alerteStock').style.display = bas.length ? '' : 'none';
+  if (bas.length) document.getElementById('texteAlerteStock').textContent =
+    `⚠ ${bas.length} produit${bas.length>1?'s':''} à réapprovisionner`;
+  // Filtres
+  const fr = sel.value, fs = document.getElementById('filtreStock').value;
+  let vis = r.produits;
+  if (fr) vis = vis.filter(p => p.rayon === fr);
+  if (fs === 'bas') vis = vis.filter(p => p.stock !== null && p.stock <= p.seuilAlerte && p.stock > 0);
+  if (fs === 'zero') vis = vis.filter(p => p.stock === 0);
+  if (fs === 'promo') vis = vis.filter(p => p.prixPromo > 0);
+  const z = document.getElementById('listeCatalogue');
+  if (!vis.length) {
+    z.innerHTML = r.produits.length ? '<p class="muet petit">Aucun produit dans cette sélection.</p>'
+      : '<p class="muet petit">Votre catalogue est vide. Ajoutez vos premiers produits pour les présenter à vos clients.</p>';
+    return;
+  }
+  z.innerHTML = `<div style="overflow:auto"><table>
+    <tr><th>Produit</th><th>Rayon</th><th>Prix</th><th>Stock</th><th>Statut</th><th></th></tr>
+    ${vis.map(p => {
+      const rupture = p.stock === 0, bas2 = p.stock !== null && p.stock > 0 && p.stock <= p.seuilAlerte;
+      return `<tr>
+        <td><div class="flex" style="gap:9px">
+          ${p.photo?`<img src="${p.photo}" style="width:42px;height:42px;object-fit:cover;border-radius:8px;flex:none">`:''}
+          <div><strong>${ech(p.nom)}</strong>${p.marque?` <span class="petit muet">${ech(p.marque)}</span>`:''}
+          ${p.description?`<br><span class="petit muet">${ech(p.description)}</span>`:''}</div></div></td>
+        <td class="petit muet">${ech(p.rayon||'—')}</td>
+        <td>${p.prixPromo ? `<s class="petit muet">${(+p.prix).toLocaleString('fr-HT')}</s> <strong style="color:var(--orange)">${(+p.prixPromo).toLocaleString('fr-HT')}</strong>` : `<strong>${(+p.prix).toLocaleString('fr-HT')}</strong>`} HTG${p.unite?`<br><span class="petit muet">/${ech(p.unite)}</span>`:''}</td>
+        <td>${p.stock === null ? '<span class="petit muet">non suivi</span>' : `
+          <div class="flex" style="gap:4px">
+            <button class="btn btn-fantome btn-petit" onclick="mouvementStock('${p.id}',-1)">−</button>
+            <strong style="min-width:28px;text-align:center;${rupture?'color:var(--rouge)':(bas2?'color:var(--orange)':'')}">${p.stock}</strong>
+            <button class="btn btn-fantome btn-petit" onclick="mouvementStock('${p.id}',1)">+</button>
+          </div>`}</td>
+        <td>${rupture ? '<span class="badge badge-rouge">Épuisé</span>'
+              : bas2 ? '<span class="badge badge-orange">Stock bas</span>'
+              : p.disponible ? '<span class="badge badge-vert">En vente</span>' : '<span class="badge badge-gris">Retiré</span>'}</td>
+        <td class="flex" style="gap:6px">
+          <button class="btn btn-fantome btn-petit" onclick='ouvrirProduit(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+          <button class="btn btn-fantome btn-petit" onclick="basculerProduit('${p.id}',${!p.disponible})" title="${p.disponible?'Retirer de la vente':'Remettre en vente'}">${p.disponible?'🚫':'✅'}</button>
+          <button class="btn btn-fantome btn-petit" onclick="supprimerProduit('${p.id}')">🗑️</button>
+        </td></tr>`;
+    }).join('')}
+  </table></div>`;
+}
+function ouvrirProduit(p){
+  prodEnCours = p || null; photoProduit = p && p.photo || '';
+  document.getElementById('titreModaleProduit').textContent = p ? 'Modifier le produit' : 'Ajouter un produit';
+  prNom.value = p?p.nom:''; prDesc.value = p?(p.description||''):'';
+  prRayon.value = p?(p.rayon||''):''; prMarque.value = p?(p.marque||''):'';
+  prPrix.value = p?p.prix:100; prPromo.value = p?(p.prixPromo||0):0;
+  prUnite.value = p?(p.unite||''):''; prRef.value = p?(p.reference||''):'';
+  const suivi = p ? p.stock !== null : true;
+  prSuiviStock.checked = suivi;
+  prSuiviStock.closest('.equip-case').classList.toggle('on', suivi);
+  document.getElementById('zoneStock').style.display = suivi ? '' : 'none';
+  prStock.value = p && p.stock !== null ? p.stock : 0;
+  prSeuil.value = p?p.seuilAlerte:5;
+  document.getElementById('prPhoto').value = '';
+  document.getElementById('prApercu').innerHTML = photoProduit ? `<img src="${photoProduit}" style="width:110px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  document.getElementById('voileProduit').classList.add('ouvert');
+}
+document.getElementById('prPhoto')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { photoProduit = await compresserImage(f, 900, 0.78);
+    document.getElementById('prApercu').innerHTML = `<img src="${photoProduit}" style="width:110px;height:80px;object-fit:cover;border-radius:10px">`;
+  } catch { toast('Image illisible.'); }
+});
+async function enregistrerProduit(){
+  const corps = { nom:prNom.value.trim(), description:prDesc.value.trim(), rayon:prRayon.value.trim(),
+    marque:prMarque.value.trim(), prix:+prPrix.value||0, prixPromo:+prPromo.value||0,
+    unite:prUnite.value.trim(), reference:prRef.value.trim(), photo:photoProduit,
+    stock: prSuiviStock.checked ? (+prStock.value||0) : null,
+    seuilAlerte: +prSeuil.value||0 };
+  if (!corps.nom || !(corps.prix > 0)) { toast('Nom et prix obligatoires.'); return; }
+  if (corps.prixPromo && corps.prixPromo >= corps.prix) { toast('Le prix promotionnel doit être inférieur au prix normal.'); return; }
+  try {
+    if (prodEnCours) await api('/api/mon-entreprise/produits/'+prodEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/produits','POST',corps);
+    fermer('voileProduit'); toast('Produit enregistré.'); chargerCatalogue();
+  } catch(e){ toast(e.message); }
+}
+async function mouvementStock(id, n){
+  try { await api('/api/mon-entreprise/produits/'+id,'PUT',{mouvement:n}); chargerCatalogue(); }
+  catch(e){ toast(e.message); }
+}
+async function basculerProduit(id, disponible){
+  await api('/api/mon-entreprise/produits/'+id,'PUT',{disponible}); chargerCatalogue();
+}
+async function supprimerProduit(id){
+  if (!confirm('Supprimer ce produit du catalogue ?')) return;
+  await api('/api/mon-entreprise/produits/'+id,'DELETE'); toast('Produit supprimé.'); chargerCatalogue();
+}
+
+// ===== Module urgences =====
+let URG = {}, CAPACITES_REF = {}, ETATS_REF = [];
+async function chargerUrgence(){
+  const r = await api('/api/mon-entreprise/urgence');
+  URG = r.urgence || {}; CAPACITES_REF = r.capacites; ETATS_REF = r.etats;
+  // Boutons d'état
+  document.getElementById('etatsUrgence').innerHTML = ETATS_REF.map(e =>
+    `<button class="btn-etat${URG.etat===e.cle?' on':''}" onclick="definirEtat('${e.cle}')">
+       <span style="font-size:22px">${e.ico}</span>
+       <span>${e.fr}</span></button>`).join('');
+  const info = document.getElementById('etatMajInfo');
+  if (URG.etatMaj) {
+    const h = Math.round((Date.now() - new Date(URG.etatMaj).getTime()) / 3600000);
+    info.innerHTML = h >= 12
+      ? `<span style="color:var(--rouge);font-weight:700">⚠ Déclaré il y a ${h} h — cet état n'est plus affiché au public. Mettez-le à jour.</span>`
+      : `Dernière mise à jour il y a ${h} h.`;
+  } else info.textContent = "Aucun état déclaré pour le moment.";
+  // Formulaire
+  urActif.checked = !!URG.actif; urPermanence.checked = !!URG.permanence;
+  urAmbulance.checked = !!URG.ambulance;
+  [urActif, urPermanence, urAmbulance].forEach(c => c.closest('.equip-case').classList.toggle('on', c.checked));
+  urTel.value = URG.telephone || ''; urTel2.value = URG.telephone2 || '';
+  urHoraires.value = URG.horaires || ''; urTelAmb.value = URG.telAmbulance || '';
+  urConsigne.value = URG.consigne || '';
+  urGardeDebut.value = URG.gardeDebut || ''; urGardeFin.value = URG.gardeFin || '';
+  // La garde ne concerne que les pharmacies
+  document.getElementById('zoneGarde').style.display = ent.metier === 'pharmacie' ? '' : 'none';
+  // Les moyens ne concernent pas les pharmacies
+  document.getElementById('carteCapacites').style.display = ent.metier === 'pharmacie' ? 'none' : '';
+  const sel = new Set(URG.capacites || []);
+  document.getElementById('listeCapacites').innerHTML = Object.entries(CAPACITES_REF).map(([k,v]) =>
+    `<label class="equip-case${sel.has(k)?' on':''}">
+       <input type="checkbox" data-cap="${k}"${sel.has(k)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${v.ico} ${v.fr}</span></label>`).join('');
+}
+async function definirEtat(etat){
+  try {
+    await api('/api/mon-entreprise/urgence','PUT',{etat});
+    toast('État mis à jour. Il est visible sur votre page publique.');
+    chargerUrgence();
+  } catch(e){ toast(e.message); }
+}
+async function enregistrerUrgence(){
+  const corps = {
+    actif: urActif.checked, permanence: urPermanence.checked,
+    telephone: urTel.value.trim(), telephone2: urTel2.value.trim(),
+    horaires: urHoraires.value.trim(), ambulance: urAmbulance.checked,
+    telAmbulance: urTelAmb.value.trim(), consigne: urConsigne.value.trim(),
+    gardeDebut: urGardeDebut.value, gardeFin: urGardeFin.value,
+    capacites: [...document.querySelectorAll('#listeCapacites input:checked')].map(i => i.dataset.cap)
+  };
+  if (corps.actif && !corps.telephone) { toast("Indiquez un téléphone d'urgence : c'est le premier moyen de vous joindre."); return; }
+  try { URG = await api('/api/mon-entreprise/urgence','PUT',corps); toast('Enregistré.'); chargerUrgence(); }
+  catch(e){ toast(e.message); }
+}
+
+// ===== Module dossiers =====
+let dosEnCours = null, ETAPES_DOS = [], PIECES_DOS = [];
+const STATUTS_DOS = {
+  ouvert:{lib:'Ouvert',badge:'badge-bleu'}, en_cours:{lib:'En cours',badge:'badge-orange'},
+  attente:{lib:'En attente de pièces',badge:'badge-gris'}, pret:{lib:'Prêt',badge:'badge-violet'},
+  clos:{lib:'Clos',badge:'badge-vert'}, annule:{lib:'Annulé',badge:'badge-rouge'}
+};
+async function chargerDossiers(){
+  const r = await api('/api/mon-entreprise/dossiers');
+  ETAPES_DOS = r.etapes; PIECES_DOS = r.pieces;
+  const f = document.getElementById('filtreDossiers').value;
+  const vis = f ? r.dossiers.filter(d => d.statut === f) : r.dossiers;
+  const z = document.getElementById('listeDossiers');
+  if (!vis.length) { z.innerHTML = '<p class="muet petit">Aucun dossier. Créez-en un pour suivre son avancement et tenir le client informé.</p>'; return; }
+  z.innerHTML = vis.map(d => {
+    const idx = ETAPES_DOS.findIndex(e => e.cle === d.etape);
+    const reste = (d.honoraires || 0) - (d.avance || 0);
+    const manquantes = (d.pieces||[]).filter(p => !p.fournie);
+    return `<div class="panneau">
+      <div class="flex entre" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <strong>${ech(d.objet)}</strong>
+          <span class="badge badge-gris" style="margin-left:6px">${d.reference}</span>
+          <span class="badge ${STATUTS_DOS[d.statut].badge}" style="margin-left:4px">${STATUTS_DOS[d.statut].lib}</span>
+          <p class="petit muet" style="margin-top:4px">
+            👤 ${ech(d.clientNom)}${d.clientTel?` · <a href="https://wa.me/${String(d.clientTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(d.clientTel)}</a>`:''}
+            ${d.localisation?`<br>📍 ${ech(d.localisation)}`:''}
+            ${d.echeance?`<br>📅 échéance : ${ech(d.echeance)}`:''}
+          </p>
+          ${d.honoraires?`<p class="petit muet">💰 ${(+d.honoraires).toLocaleString('fr-HT')} HTG${d.avance?` · avance ${(+d.avance).toLocaleString('fr-HT')} · reste <strong>${reste.toLocaleString('fr-HT')} HTG</strong>`:''}</p>`:''}
+          ${manquantes.length?`<p class="petit" style="color:var(--orange)">📎 ${manquantes.length} pièce(s) manquante(s) : ${manquantes.map(p=>ech(p.nom)).join(', ')}</p>`:''}
+        </div>
+        <div class="flex" style="gap:6px">
+          <button class="btn btn-fantome btn-petit" onclick='ouvrirDossier(${JSON.stringify(d).replace(/'/g,"&#39;")})'>✏️</button>
+          <button class="btn btn-fantome btn-petit" onclick="supprimerDossier('${d.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="etapes-dos">
+        ${ETAPES_DOS.map((e,i) => `<button class="etape-dos${i<idx?' faite':''}${i===idx?' active':''}"
+            onclick="changerEtape('${d.id}','${e.cle}')" title="${ech(e.fr)}">${i+1}</button>`).join('')}
+      </div>
+      <p class="petit muet" style="margin-top:6px">Étape ${idx+1} sur ${ETAPES_DOS.length} — <strong>${ech(ETAPES_DOS[idx]?ETAPES_DOS[idx].fr:'—')}</strong></p>
+      <div class="flex mt" style="gap:6px;flex-wrap:wrap">
+        ${Object.entries(STATUTS_DOS).filter(([c])=>c!==d.statut).map(([c,s])=>
+          `<button class="btn btn-fantome btn-petit" onclick="changerStatutDossier('${d.id}','${c}')">${s.lib}</button>`).join('')}
+      </div>
+      ${(d.journal||[]).length?`<details style="margin-top:10px"><summary class="petit muet" style="cursor:pointer">Historique (${d.journal.length})</summary>
+        <div style="margin-top:6px">${d.journal.slice().reverse().map(j=>`<p class="petit muet">${j.le.slice(0,10)} — ${ech(j.texte)}</p>`).join('')}</div></details>`:''}
+    </div>`;
+  }).join('');
+}
+function ouvrirDossier(d){
+  dosEnCours = d || null;
+  document.getElementById('titreModaleDossier').textContent = d ? 'Modifier le dossier' : 'Nouveau dossier';
+  doObjet.value = d?d.objet:''; doDesc.value = d?(d.description||''):'';
+  doClient.value = d?d.clientNom:''; doTel.value = d?(d.clientTel||''):'';
+  doLieu.value = d?(d.localisation||''):'';
+  doHono.value = d?d.honoraires:0; doAvance.value = d?d.avance:0;
+  doEcheance.value = d?(d.echeance||''):'';
+  // Le champ localisation n'a de sens que pour l'arpentage et le notariat
+  const utile = ['arpenteur','notaire'].includes(ent.metier);
+  document.getElementById('labelLocalisation').style.display = utile?'':'none';
+  doLieu.style.display = utile?'':'none';
+  const dejaCochees = new Set((d?d.pieces:[]).filter(p=>p.fournie).map(p=>p.nom));
+  const toutes = [...new Set([...(PIECES_DOS||[]), ...((d?d.pieces:[])||[]).map(p=>p.nom)])];
+  document.getElementById('doPieces').innerHTML = toutes.map(nom =>
+    `<label class="equip-case${dejaCochees.has(nom)?' on':''}">
+       <input type="checkbox" data-piece="${nom.replace(/"/g,'&quot;')}"${dejaCochees.has(nom)?' checked':''}
+              onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
+       <span>${ech(nom)}</span></label>`).join('')
+    || '<p class="petit muet">Aucune pièce type pour ce métier.</p>';
+  document.getElementById('voileDossier').classList.add('ouvert');
+}
+async function enregistrerDossier(){
+  const pieces = [...document.querySelectorAll('#doPieces [data-piece]')].map(i => ({ nom: i.dataset.piece, fournie: i.checked }));
+  const corps = { objet:doObjet.value.trim(), description:doDesc.value.trim(), clientNom:doClient.value.trim(),
+    clientTel:doTel.value.trim(), localisation:doLieu.value.trim(), honoraires:+doHono.value||0,
+    avance:+doAvance.value||0, echeance:doEcheance.value, pieces };
+  if (!corps.objet || !corps.clientNom) { toast("L'objet et le nom du client sont obligatoires."); return; }
+  try {
+    if (dosEnCours) await api('/api/mon-entreprise/dossiers/'+dosEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/dossiers','POST',corps);
+    fermer('voileDossier'); toast('Dossier enregistré.'); chargerDossiers();
+  } catch(e){ toast(e.message); }
+}
+async function changerEtape(id, etape){
+  try { await api('/api/mon-entreprise/dossiers/'+id,'PUT',{etape});
+    toast('Étape mise à jour. Le client est prévenu par WhatsApp.'); chargerDossiers();
+  } catch(e){ toast(e.message); }
+}
+async function changerStatutDossier(id, statut){
+  try { await api('/api/mon-entreprise/dossiers/'+id,'PUT',{statut}); chargerDossiers(); }
+  catch(e){ toast(e.message); }
+}
+async function supprimerDossier(id){
+  if (!confirm('Supprimer définitivement ce dossier ?')) return;
+  await api('/api/mon-entreprise/dossiers/'+id,'DELETE'); toast('Dossier supprimé.'); chargerDossiers();
+}
+
+// ===== Module scolaire : programmes et inscriptions =====
+let progEnCours = null;
+const PERIODES = { mensuel:'par mois', trimestriel:'par trimestre', annuel:'par an' };
+const STATUTS_INS = {
+  en_attente:{lib:'En attente',badge:'badge-orange'}, acceptee:{lib:'Acceptée',badge:'badge-bleu'},
+  inscrit:{lib:'Inscrit',badge:'badge-vert'}, refusee:{lib:'Refusée',badge:'badge-rouge'}
+};
+
+async function chargerProgrammes(){
+  const liste = await api('/api/mon-entreprise/programmes');
+  const z = document.getElementById('listeProgrammes');
+  if (!liste.length) { z.innerHTML = '<p class="muet petit">Aucun programme. Créez vos niveaux ou filières pour recevoir des inscriptions.</p>'; return; }
+  z.innerHTML = `<div style="overflow:auto"><table>
+    <tr><th>Programme</th><th>Frais</th><th>Scolarité</th><th>Places</th><th>Demandes</th><th>Statut</th><th></th></tr>
+    ${liste.map(p => `<tr>
+      <td><strong>${ech(p.nom)}</strong>${p.anneeScolaire?`<span class="badge badge-gris" style="margin-left:6px">${ech(p.anneeScolaire)}</span>`:''}
+        ${p.description?`<br><span class="petit muet">${ech(p.description)}</span>`:''}
+        ${(p.documents||[]).length?`<br><span class="petit muet">📎 ${p.documents.map(ech).join(', ')}</span>`:''}</td>
+      <td>${p.fraisInscription ? (+p.fraisInscription).toLocaleString('fr-HT')+' HTG' : '—'}</td>
+      <td>${p.scolarite ? (+p.scolarite).toLocaleString('fr-HT')+' HTG <span class="petit muet">'+PERIODES[p.periodicite]+'</span>' : '—'}</td>
+      <td>${p.places ? `${p.inscrits}/${p.places}` : `${p.inscrits} <span class="petit muet">illimité</span>`}</td>
+      <td>${p.demandes ? `<span class="badge badge-orange">${p.demandes}</span>` : '—'}</td>
+      <td><span class="badge ${p.ouvert?'badge-vert':'badge-gris'}">${p.ouvert?'Ouvert':'Fermé'}</span></td>
+      <td class="flex" style="gap:6px">
+        <button class="btn btn-fantome btn-petit" onclick='ouvrirProgramme(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-fantome btn-petit" onclick="basculerProgramme('${p.id}',${!p.ouvert})">${p.ouvert?'🔒':'🔓'}</button>
+        <button class="btn btn-fantome btn-petit" onclick="supprimerProgramme('${p.id}')">🗑️</button>
+      </td></tr>`).join('')}
+  </table></div>`;
+}
+function ouvrirProgramme(p){
+  progEnCours = p || null;
+  document.getElementById('titreModaleProg').textContent = p ? 'Modifier le programme' : 'Ajouter un programme';
+  pgNom.value = p?p.nom:''; pgDesc.value = p?(p.description||''):'';
+  pgAnnee.value = p?(p.anneeScolaire||''):''; pgPlaces.value = p?p.places:0;
+  pgFrais.value = p?p.fraisInscription:0; pgScol.value = p?p.scolarite:0;
+  pgPeriode.value = p?p.periodicite:'mensuel';
+  pgDocs.value = p?(p.documents||[]).join(', '):'';
+  pgOuvert.checked = p ? p.ouvert : true;
+  pgOuvert.closest('.equip-case').classList.toggle('on', pgOuvert.checked);
+  document.getElementById('voileProgramme').classList.add('ouvert');
+}
+async function enregistrerProgramme(){
+  const corps = { nom:pgNom.value.trim(), description:pgDesc.value.trim(), anneeScolaire:pgAnnee.value.trim(),
+    places:+pgPlaces.value||0, fraisInscription:+pgFrais.value||0, scolarite:+pgScol.value||0,
+    periodicite:pgPeriode.value, ouvert:pgOuvert.checked,
+    documents: pgDocs.value.split(',').map(s=>s.trim()).filter(Boolean) };
+  if (!corps.nom) { toast('Le nom du programme est obligatoire.'); return; }
+  try {
+    if (progEnCours) await api('/api/mon-entreprise/programmes/'+progEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/programmes','POST',corps);
+    fermer('voileProgramme'); toast('Programme enregistré.'); chargerProgrammes();
+  } catch(e){ toast(e.message); }
+}
+async function basculerProgramme(id, ouvert){
+  await api('/api/mon-entreprise/programmes/'+id,'PUT',{ouvert});
+  toast(ouvert?'Programme ouvert aux inscriptions.':'Programme fermé.'); chargerProgrammes();
+}
+async function supprimerProgramme(id){
+  if (!confirm('Supprimer ce programme ?')) return;
+  try { await api('/api/mon-entreprise/programmes/'+id,'DELETE'); toast('Programme supprimé.'); chargerProgrammes(); }
+  catch(e){ toast(e.message); }
+}
+
+async function chargerInscriptions(){
+  const liste = await api('/api/mon-entreprise/inscriptions');
+  const f = document.getElementById('filtreInscriptions').value;
+  const vis = f ? liste.filter(i => i.statut === f) : liste;
+  const z = document.getElementById('listeInscriptions');
+  if (!vis.length) { z.innerHTML = '<p class="muet petit">Aucune demande d\'inscription pour le moment.</p>'; return; }
+  z.innerHTML = `<div style="overflow:auto"><table>
+    <tr><th>Élève</th><th>Programme</th><th>Responsable</th><th>Reçue le</th><th>Statut</th><th></th></tr>
+    ${vis.map(i => `<tr>
+      <td><strong>${ech(i.eleveNom)}</strong>
+        ${i.eleveNaissance?`<br><span class="petit muet">né(e) le ${ech(i.eleveNaissance)}</span>`:''}
+        ${i.ecoleProvenance?`<br><span class="petit muet">vient de : ${ech(i.ecoleProvenance)}</span>`:''}</td>
+      <td class="petit">${ech(i.programme?i.programme.nom:'—')}</td>
+      <td class="petit">${ech(i.parentNom)}${i.parentLien?` <span class="muet">(${ech(i.parentLien)})</span>`:''}
+        <br><a href="https://wa.me/${String(i.parentTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(i.parentTel)}</a></td>
+      <td class="petit muet">${i.creeLe.slice(0,10)}</td>
+      <td><span class="badge ${STATUTS_INS[i.statut].badge}">${STATUTS_INS[i.statut].lib}</span></td>
+      <td class="flex" style="gap:6px;flex-wrap:wrap">
+        ${i.statut!=='inscrit'?`<button class="btn btn-succes btn-petit" onclick="statutInscription('${i.id}','inscrit')">Inscrire</button>`:''}
+        ${i.statut==='en_attente'?`<button class="btn btn-contour btn-petit" onclick="statutInscription('${i.id}','acceptee')">Accepter</button>`:''}
+        ${i.statut!=='refusee'?`<button class="btn btn-danger btn-petit" onclick="statutInscription('${i.id}','refusee')">Refuser</button>`:''}
+      </td></tr>`).join('')}
+  </table></div>`;
+}
+async function statutInscription(id, statut){
+  try {
+    await api('/api/mon-entreprise/inscriptions/'+id,'PUT',{statut});
+    toast('Le responsable est prévenu par WhatsApp.');
+    chargerInscriptions(); chargerProgrammes();
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Restaurant & Bar =====
+const CATS_CARTE = {
+  entree:{lib:'Entrées',ico:'🥗',groupe:'Cuisine'}, plat:{lib:'Plats',ico:'🍽️',groupe:'Cuisine'},
+  accompagnement:{lib:'Accompagnements',ico:'🍚',groupe:'Cuisine'}, dessert:{lib:'Desserts',ico:'🍰',groupe:'Cuisine'},
+  boisson:{lib:'Boissons sans alcool',ico:'🧃',groupe:'Bar'}, cocktail:{lib:'Cocktails',ico:'🍹',groupe:'Bar'},
+  biere:{lib:'Bières',ico:'🍺',groupe:'Bar'}, vin:{lib:'Vins',ico:'🍷',groupe:'Bar'},
+  spiritueux:{lib:'Spiritueux',ico:'🥃',groupe:'Bar'}
+};
+const ORDRE_CATS = ['entree','plat','accompagnement','dessert','boisson','cocktail','biere','vin','spiritueux'];
+let articleEnCours = null, photoArticle = '';
+
+async function chargerCarte(){
+  const liste = await api('/api/mon-entreprise/carte');
+  const filtre = document.getElementById('filtreCarte').value;
+  const visibles = filtre ? liste.filter(a => a.categorie === filtre) : liste;
+  const zone = document.getElementById('listeCarte');
+  if (!visibles.length) {
+    zone.innerHTML = liste.length
+      ? '<p class="muet petit">Aucun article dans cette catégorie.</p>'
+      : '<p class="muet petit">Votre carte est vide. Cliquez sur « + Ajouter un article » pour créer votre premier plat ou votre première boisson.</p>';
+    return;
+  }
+  zone.innerHTML = ORDRE_CATS.filter(c => visibles.some(a => a.categorie === c)).map(c => {
+    const arts = visibles.filter(a => a.categorie === c);
+    return `<h3 style="font-size:14px;margin:18px 0 8px">${CATS_CARTE[c].ico} ${CATS_CARTE[c].lib}
+              <span class="petit muet" style="font-weight:500">— ${arts.length}</span></h3>
+      <div style="overflow:auto"><table>
+        <tr><th>Article</th><th>Format</th><th>Prix</th><th>Statut</th><th></th></tr>
+        ${arts.map(a => `<tr>
+          <td><strong>${ech(a.nom)}</strong>${a.description ? `<br><span class="petit muet">${ech(a.description)}</span>` : ''}</td>
+          <td class="petit muet">${ech(a.volume||'—')}</td>
+          <td>${(+a.prix).toLocaleString('fr-HT')} HTG</td>
+          <td><span class="badge ${a.disponible?'badge-vert':'badge-gris'}">${a.disponible?'Disponible':'Épuisé'}</span></td>
+          <td class="flex" style="gap:6px">
+            <button class="btn btn-fantome btn-petit" onclick='ouvrirArticle(${JSON.stringify(a).replace(/'/g,"&#39;")})'>✏️</button>
+            <button class="btn btn-fantome btn-petit" onclick="basculerArticle('${a.id}',${!a.disponible})" title="${a.disponible?'Marquer épuisé':'Remettre disponible'}">${a.disponible?'🚫':'✅'}</button>
+            <button class="btn btn-fantome btn-petit" onclick="supprimerArticle('${a.id}')">🗑️</button>
+          </td></tr>`).join('')}
+      </table></div>`;
+  }).join('');
+}
+function ouvrirArticle(a){
+  articleEnCours = a || null; photoArticle = a && a.photo || '';
+  document.getElementById('titreModaleArticle').textContent = a ? "Modifier l'article" : 'Ajouter un article';
+  arNom.value = a ? a.nom : ''; arDesc.value = a ? (a.description||'') : '';
+  arCat.value = a ? a.categorie : 'plat';
+  arPrix.value = a ? a.prix : 500; arVol.value = a ? (a.volume||'') : '';
+  document.getElementById('arPhoto').value = '';
+  document.getElementById('arApercu').innerHTML = photoArticle ? `<img src="${photoArticle}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  document.getElementById('voileArticle').classList.add('ouvert');
+}
+document.getElementById('arPhoto')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { photoArticle = await compresserImage(f, 900, 0.78);
+    document.getElementById('arApercu').innerHTML = `<img src="${photoArticle}" style="width:120px;height:80px;object-fit:cover;border-radius:10px">`;
+  } catch { toast('Image illisible.'); }
+});
+async function enregistrerArticle(){
+  const corps = { nom: arNom.value.trim(), description: arDesc.value.trim(), categorie: arCat.value,
+                  prix: +arPrix.value, volume: arVol.value.trim(), photo: photoArticle };
+  if (!corps.nom || !(corps.prix > 0)) { toast('Nom et prix obligatoires.'); return; }
+  try {
+    if (articleEnCours) await api('/api/mon-entreprise/carte/'+articleEnCours.id,'PUT',corps);
+    else await api('/api/mon-entreprise/carte','POST',corps);
+    fermer('voileArticle'); toast('Article enregistré.'); chargerCarte();
+  } catch(e){ toast(e.message); }
+}
+async function basculerArticle(id, disponible){
+  await api('/api/mon-entreprise/carte/'+id,'PUT',{disponible}); chargerCarte();
+}
+async function supprimerArticle(id){
+  if (!confirm('Supprimer cet article de la carte ?')) return;
+  await api('/api/mon-entreprise/carte/'+id,'DELETE'); toast('Article supprimé.'); chargerCarte();
+}
+
+// ===== Portefeuille =====
+async function chargerPortefeuille(){
+  const d = await api('/api/mon-entreprise/portefeuille');
+  document.getElementById('porteSolde').textContent = (d.portefeuille.solde).toLocaleString('fr-HT') + ' HTG';
+  document.getElementById('porteBloque').textContent = (d.portefeuille.soldeBloque).toLocaleString('fr-HT') + ' HTG';
+  document.getElementById('porteTotalRecu').textContent = (d.portefeuille.totalRecu).toLocaleString('fr-HT') + ' HTG';
+  document.getElementById('porteTotalRetire').textContent = (d.portefeuille.totalRetire).toLocaleString('fr-HT') + ' HTG';
+  
+  // Transactions
+  document.getElementById('tableTransactions').innerHTML = d.transactions.length ? `
+    <tr><th>Date</th><th>Type</th><th>Montant brut</th><th>Commission</th><th>Net</th><th>Statut</th></tr>` +
+    d.transactions.map(p => `<tr>
+      <td><small>${p.creeLe.slice(0,10)}</small></td>
+      <td>${p.commandeType === 'rdv' ? '📅 RDV' : '🛏️ Séjour'}</td>
+      <td>${(+p.montantBrut).toLocaleString('fr-HT')} HTG</td>
+      <td class="petit muet">-${(+p.commission).toLocaleString('fr-HT')} HTG</td>
+      <td><strong>${(+p.montantNet).toLocaleString('fr-HT')} HTG</strong></td>
+      <td><span class="badge ${p.statut === 'confirme' ? 'badge-vert' : 'badge-orange'}">${p.statut}</span></td>
+    </tr>`).join('')
+    : '<tr><td class="muet petit" colspan="6">Aucune transaction pour le moment.</td></tr>';
+}
+async function demanderRetrait(){
+  const montant = +document.getElementById('retMontant').value;
+  const methode = document.getElementById('retMethode').value;
+  const dest = document.getElementById('retDest').value.trim();
+  if (montant < 1000) { toast('Minimum 1000 HTG.'); return; }
+  if (!methode || !dest) { toast('Tous les champs obligatoires.'); return; }
+  try {
+    await api('/api/mon-entreprise/retraits','POST',{ montant, methode, destinataire: dest });
+    document.getElementById('retMontant').value = '';
+    document.getElementById('retDest').value = '';
+    toast('Demande de retrait envoyée. Vérifiez votre email de confirmation.');
+    chargerPortefeuille();
+  } catch(e){ toast(e.message); }
+}
+async function supprimerService(id){ if(confirm('Supprimer ce service ?')){ await api('/api/mon-entreprise/services/'+id,'DELETE'); toast('Service supprimé.'); chargerServices(); } }
+
+// ---- Employés ----
+async function chargerEmployes(){
+  const liste = await api('/api/mon-entreprise/employes');
+  document.getElementById('listeEmployes').innerHTML = liste.length ? liste.map(x=>`
+    <div class="flex entre" style="padding:10px 0;border-bottom:1px solid var(--bordure)">
+      <div class="flex"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+        <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)||'—'}</div></div></div>
+      <button class="btn btn-danger btn-petit" onclick="supprimerEmploye('${x.id}')">Retirer</button>
+    </div>`).join('') : '<p class="muet petit">Aucun employé enregistré.</p>';
+}
+function ouvrirEmploye(){ eNom.value=''; ePoste.value=''; document.getElementById('voileEmploye').classList.add('ouvert'); }
+async function enregistrerEmploye(){
+  if(!eNom.value.trim()) return toast("Indiquez le nom de l'employé.");
+  await api('/api/mon-entreprise/employes','POST',{nom:eNom.value.trim(),poste:ePoste.value.trim()});
+  fermer('voileEmploye'); toast('Employé ajouté.'); chargerEmployes();
+}
+async function supprimerEmploye(id){ if(confirm('Retirer cet employé ?')){ await api('/api/mon-entreprise/employes/'+id,'DELETE'); chargerEmployes(); } }
+
+// ---- Avis ----
+async function chargerAvis(){
+  const liste = await api('/api/mon-entreprise/avis');
+  document.getElementById('listeAvis').innerHTML = liste.length ? liste.map(a=>`
+    <div style="padding:12px 0;border-bottom:1px solid var(--bordure)">
+      <div class="flex entre"><strong class="petit">${ech(a.clientNom)}</strong><span class="etoiles petit">${etoiles(a.note)}</span></div>
+      <p class="petit muet" style="margin-top:4px">${ech(a.commentaire)}</p>
+    </div>`).join('') : '<p class="muet petit">Aucun avis pour le moment.</p>';
+}
+
+// ---- Personnalisation ----
+function remplirPerso(){
+  const zone1 = document.getElementById('pastilles1'), zone2 = document.getElementById('pastilles2');
+  zone1.innerHTML = COULEURS.map(c=>`<button class="pastille-couleur ${c===ent.couleur?'choisie':''}" style="background:${c}" data-c="${c}" aria-label="Couleur ${c}"></button>`).join('');
+  zone2.innerHTML = COULEURS.map(c=>`<button class="pastille-couleur ${c===ent.couleur2?'choisie':''}" style="background:${c}" data-c="${c}" aria-label="Couleur ${c}"></button>`).join('');
+  zone1.querySelectorAll('button').forEach(b=>b.onclick=()=>{ ent.couleur=b.dataset.c; remplirPerso(); });
+  zone2.querySelectorAll('button').forEach(b=>b.onclick=()=>{ ent.couleur2=b.dataset.c; remplirPerso(); });
+  pLogo.value = ent.logoTexte; pDesc.value = ent.description || '';
+  const ban = document.getElementById('apercuBanniere');
+  if (ent.photoFond) {
+    ban.style.background = `linear-gradient(130deg, ${ent.couleur}CC, ${ent.couleur2}99), url('${ent.photoFond}') center/cover`;
+  } else {
+    ban.style.background = `linear-gradient(130deg, ${ent.couleur}, ${ent.couleur2})`;
+  }
+  const lg = document.getElementById('apercuLogo');
+  if (ent.logoImage) {
+    lg.style.background = '#fff';
+    lg.innerHTML = `<img src="${ent.logoImage}" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`;
+  } else {
+    lg.style.background = ent.couleur;
+    lg.textContent = pLogo.value || ent.logoTexte;
+  }
+  document.getElementById('apercuNom').textContent = ent.nom;
+  document.getElementById('apercuDesc').textContent = (pDesc.value || '').slice(0,60) || 'Votre description apparaîtra ici.';
+}
+pLogo?.addEventListener?.('input', remplirPerso);
+
+// Compression d'image dans le navigateur (canvas) avant envoi
+function compresserImage(fichier, maxCote, qualite){
+  return new Promise((resoudre, rejeter) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(1, maxCote / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * ratio); c.height = Math.round(img.height * ratio);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resoudre(c.toDataURL('image/jpeg', qualite));
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => rejeter(new Error('Image illisible'));
+    img.src = URL.createObjectURL(fichier);
+  });
+}
+document.getElementById('pLogoImg')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { ent.logoImage = await compresserImage(f, 256, 0.85); remplirPerso(); toast('Logo chargé. Cliquez sur Enregistrer pour publier.'); }
+  catch { toast("Impossible de lire cette image."); }
+});
+document.getElementById('pPhotoFond')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { ent.photoFond = await compresserImage(f, 1400, 0.78); remplirPerso(); toast('Photo chargée. Cliquez sur Enregistrer pour publier.'); }
+  catch { toast("Impossible de lire cette image."); }
+});
+function retirerImage(champ){
+  ent[champ] = '';
+  document.getElementById(champ === 'logoImage' ? 'pLogoImg' : 'pPhotoFond').value = '';
+  remplirPerso(); toast('Image retirée. Cliquez sur Enregistrer pour publier.');
+}
+async function enregistrerPerso(){
+  ent = await api('/api/mon-entreprise','PUT',{ couleur:ent.couleur, couleur2:ent.couleur2, logoTexte:pLogo.value.toUpperCase()||ent.logoTexte, description:pDesc.value.trim(), logoImage:ent.logoImage||'', photoFond:ent.photoFond||'' });
+  toast('Personnalisation enregistrée. Votre page publique est à jour.');
+  remplirPerso();
+}
+
+// ---- Paramètres & horaires ----
+function remplirParam(){
+  if (REF_METIERS && !iCat.options.length) {
+    const parFam = {};
+    for (const [cle, m] of Object.entries(REF_METIERS.METIERS))
+      (parFam[m.famille] = parFam[m.famille] || []).push([cle, m]);
+    iCat.innerHTML = REF_METIERS.FAMILLES.map(f =>
+      `<optgroup label="${f}">` + (parFam[f]||[]).map(([cle,m]) =>
+        `<option value="${cle}">${m.ico} ${m.nom.fr}</option>`).join('') + '</optgroup>').join('');
+  }
+  iCat.value = ent.metier || 'autre';
+  iNom.value=ent.nom; iAdresse.value=ent.adresse; iTel.value=ent.telephone; iWhats.value=ent.whatsapp||''; iCapacite.value=ent.capaciteMax||0;
+  iLat.value = ent.latitude ?? ''; iLng.value = ent.longitude ?? '';
+  dessinerApercuPosition();
+  document.getElementById('grilleHoraires').innerHTML = ['lun','mar','mer','jeu','ven','sam','dim'].map(j=>{
+    const h = ent.horaires[j];
+    return `<div class="flex" style="gap:8px;padding:5px 0">
+      <label style="margin:0;width:86px">${NOMS_JOURS[j]}</label>
+      <input type="checkbox" style="width:auto" id="h_${j}_o" ${h.ouvert?'checked':''} aria-label="Ouvert ${NOMS_JOURS[j]}">
+      <input type="time" id="h_${j}_d" value="${h.debut}" style="width:110px">
+      <span class="muet">→</span>
+      <input type="time" id="h_${j}_f" value="${h.fin}" style="width:110px">
+    </div>`;
+  }).join('');
+}
+async function enregistrerInfos(){
+  const cleM = iCat.value;
+  ent = await api('/api/mon-entreprise','PUT',{ nom:iNom.value.trim(), metier: cleM,
+    categorie: (REF_METIERS && REF_METIERS.METIERS[cleM] ? REF_METIERS.METIERS[cleM].famille : ent.categorie), adresse:iAdresse.value.trim(), telephone:iTel.value.trim(), whatsapp:iWhats.value.replace(/\D/g,''), capaciteMax:+iCapacite.value||0 });
+  document.getElementById('nomEnt').textContent = ent.nom;
+  appliquerModuleHotellerie();
+  appliquerMetier();
+  remplirFormule();
+  if (estHotellerie()) { chargerChambres(); chargerSejours(); chargerCarte(); }
+  toast('Informations enregistrées.');
+}
+// ---- Position géographique ----
+function dessinerApercuPosition(){
+  const z = document.getElementById('apercuPosition');
+  const lat = parseFloat(iLat.value), lng = parseFloat(iLng.value);
+  if (!isFinite(lat) || !isFinite(lng)) { z.innerHTML = '<p class="petit muet">Aucune position enregistrée.</p>'; return; }
+  const url = `https://www.google.com/maps?q=${lat},${lng}`;
+  z.innerHTML = `<div class="recap"><div><span>Coordonnées</span><strong>${lat.toFixed(5)}, ${lng.toFixed(5)}</strong></div></div>
+    <a class="btn btn-contour btn-petit mt" target="_blank" rel="noopener" href="${url}">Vérifier sur Google Maps ↗</a>`;
+}
+function positionActuelle(){
+  if (!navigator.geolocation) return toast("Votre navigateur ne permet pas la géolocalisation. Saisissez les coordonnées à la main.");
+  toast('Recherche de votre position…');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { iLat.value = pos.coords.latitude.toFixed(6); iLng.value = pos.coords.longitude.toFixed(6); dessinerApercuPosition(); toast('Position détectée. Vérifiez puis enregistrez.'); },
+    (err) => toast(err.code === 1 ? "Autorisation refusée. Activez la localisation ou saisissez les coordonnées à la main." : "Position introuvable. Saisissez les coordonnées à la main."),
+    { enableHighAccuracy: true, timeout: 12000 }
+  );
+}
+async function enregistrerPosition(){
+  const lat = parseFloat(iLat.value), lng = parseFloat(iLng.value);
+  if (!isFinite(lat) || !isFinite(lng)) return toast('Saisissez une latitude et une longitude valides.');
+  try {
+    ent = await api('/api/mon-entreprise','PUT',{ latitude: lat, longitude: lng });
+    dessinerApercuPosition();
+    toast('Position enregistrée.');
+  } catch(e){ toast(e.message); }
+}
+async function effacerPosition(){
+  try {
+    ent = await api('/api/mon-entreprise','PUT',{ latitude: '', longitude: '' });
+    iLat.value = ''; iLng.value = ''; dessinerApercuPosition();
+    toast('Position effacée.');
+  } catch(e){ toast(e.message); }
+}
+
+async function enregistrerHoraires(){
+  const horaires = {};
+  ['lun','mar','mer','jeu','ven','sam','dim'].forEach(j=>{
+    horaires[j] = { ouvert: document.getElementById('h_'+j+'_o').checked, debut: document.getElementById('h_'+j+'_d').value, fin: document.getElementById('h_'+j+'_f').value };
+  });
+  ent = await api('/api/mon-entreprise','PUT',{ horaires });
+  toast('Horaires enregistrés. Les créneaux de réservation sont mis à jour.');
+}
+
+// ---- Notifications ----
+async function chargerNotifs(){
+  const notifs = await api('/api/notifications');
+  const nonLues = notifs.filter(n=>!n.lu).length;
+  const pt = document.getElementById('ptNotif');
+  pt.style.display = nonLues ? 'block' : 'none'; pt.textContent = nonLues;
+  document.getElementById('panneauNotifs').innerHTML = notifs.length ? notifs.map(n=>`
+    <div class="notif ${n.lu?'':'non-lu'}">${ech(n.message)}<div class="petit muet">${new Date(n.creeLe).toLocaleString('fr-FR')}</div></div>`).join('')
+    : '<div class="notif muet">Aucune notification.</div>';
+}
+async function basculerNotifs(){
+  const p = document.getElementById('panneauNotifs');
+  p.classList.toggle('ouvert');
+  if (p.classList.contains('ouvert')) { await api('/api/notifications','PUT'); setTimeout(chargerNotifs, 400); }
+}
+
+demarrer();
+setInterval(()=>{ chargerNotifs(); chargerRdv(); }, 20000); // actualisation automatique
 </script>
 </body>
 </html>
