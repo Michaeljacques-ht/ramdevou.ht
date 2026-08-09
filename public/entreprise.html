@@ -174,8 +174,9 @@
     </div></section>
 
     <section class="carte" id="carteChambres" style="display:none"><div class="carte-corps">
-      <h2 style="font-size:19px">🛏️ Chambres & Séjours</h2>
+      <h2 style="font-size:19px">🛏️ <span data-i18n="hotel.titre">Chambres, séjours &amp; services</span></h2>
       <div id="listeChambres" class="mt"></div>
+      <div id="servicesHotel" class="mt"></div>
       <div id="politiquesHotel" class="petit muet mt"></div>
       <div class="mt" style="border-top:1px solid var(--bordure);padding-top:16px">
         <h3 style="font-size:15px;margin-bottom:10px">Réserver un séjour</h3>
@@ -808,14 +809,39 @@ function refEquip(cle){
     document.getElementById('sjArrivee').min = auj.toISOString().slice(0,10);
     document.getElementById('sjDepart').min = dem.toISOString().slice(0,10);
     document.getElementById('sjChambre').addEventListener('change', dessinerPlans);
-    dessinerPlans(); dessinerPolitiques();
+    dessinerPlans(); dessinerPolitiques(); dessinerServicesHotel();
+    // L'appel est différé : verifierSejour est assignée plus bas dans cette
+    // fonction, la référencer directement ici lèverait une ReferenceError
+    // qui interromprait tout le rendu de la page.
     ['sjArrivee','sjDepart','sjChambre','sjPersonnes','sjPlan'].forEach((id) => {
       const el = document.getElementById(id);
-      el.addEventListener('change', verifierSejour);
-      el.addEventListener('input', verifierSejour);
+      if (!el) return;
+      const relancer = () => { if (typeof window.verifierSejour === 'function') window.verifierSejour(); };
+      el.addEventListener('change', relancer);
+      el.addEventListener('input', relancer);
     });
   }
 
+
+
+  // ---- Services de l'hôtel, présentés avec les chambres ----
+  function dessinerServicesHotel(){
+    const z = document.getElementById('servicesHotel');
+    const services = ent.services || [];
+    if (!z || !services.length) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    z.innerHTML = `<h3 style="font-size:15px;margin:18px 0 6px">✨ ${lg==='ht'?'Sèvis otèl la':'Services de l\'établissement'}</h3>
+      ${services.map(s => `<div class="ligne-menu">
+        <div style="flex:1">
+          <strong>${ech(s.nom)}</strong>
+          ${s.duree ? `<p class="petit muet">${s.duree} min</p>` : ''}
+        </div>
+        <div style="text-align:right">
+          <span class="prix-menu">${(+s.prix).toLocaleString('fr-HT')} HTG</span>
+          ${s.duree ? `<br><button class="btn btn-contour btn-petit" style="margin-top:6px" onclick="choisirService('${s.id}')">${lg==='ht'?'Rezève':'Réserver'}</button>` : ''}
+        </div>
+      </div>`).join('')}`;
+  }
 
   // ---- Politiques de l'établissement, visibles avant de réserver ----
   function dessinerPolitiques(){
@@ -955,9 +981,14 @@ function refEquip(cle){
 
   // Sans service au catalogue, les cartes Services et Réservation n'ont pas lieu d'être
   // (cas d'un hôtel, d'une boutique ou d'un établissement qui ne prend pas de rendez-vous)
-  if (!(ent.services || []).length) {
+  // La carte Services disparaît si l'établissement n'en a aucun, ou s'il s'agit
+  // d'un hôtel : ses prestations sont alors présentées avec les chambres.
+  const estHotel = (ent.chambres || []).length > 0;
+  if (!(ent.services || []).length || estHotel) {
     const cs = document.getElementById('carteServices'); if (cs) cs.style.display = 'none';
-    const cr = document.getElementById('carteResa');     if (cr) cr.style.display = 'none';
+  }
+  if (!(ent.services || []).length) {
+    const cr = document.getElementById('carteResa'); if (cr) cr.style.display = 'none';
   }
   dessinerBoutique();
   dessinerUrgence();

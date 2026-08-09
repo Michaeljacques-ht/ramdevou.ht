@@ -87,7 +87,7 @@ body { background: var(--gris-clair); }
     <button class="lien-lat" data-sec="rdv">🗓 Rendez-vous</button>
     <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
     <button class="lien-lat" data-sec="services">🧰 Services</button>
-    <button class="lien-lat" data-sec="chambres">🛏️ Chambres &amp; Séjours</button>
+    <button class="lien-lat" data-sec="chambres">🛏️ Chambres, séjours &amp; services</button>
     <button class="lien-lat" data-sec="tarifs">💲 Tarifs &amp; saisons</button>
     <button class="lien-lat" data-sec="planning">📊 Planning</button>
     <button class="lien-lat" data-sec="hotel">⚙️ Politiques hôtel</button>
@@ -203,6 +203,12 @@ body { background: var(--gris-clair); }
             <button class="btn btn-primaire btn-petit" onclick="ouvrirChambre()">+ Ajouter une chambre</button></div>
           <p class="petit muet mt">Pour hôtels, auberges et guesthouses : définissez vos types de chambres, votre inventaire et vos prix par nuit. Une section « Chambres &amp; Séjours » apparaîtra automatiquement sur votre page publique.</p>
           <div style="overflow:auto" class="mt"><table id="tableChambres"></table></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <div class="flex entre"><h2 style="font-size:16px">Services de l'établissement</h2>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirService()">+ Ajouter un service</button></div>
+          <p class="petit muet mt">Navette aéroport, blanchisserie, location de salle, excursions… Ces prestations s'affichent sur votre page publique à côté des chambres. Celles qui ont une durée peuvent aussi être réservées sur créneau.</p>
+          <div style="overflow:auto" class="mt"><table id="tableServicesHotel"></table></div>
         </div></div>
         <div class="carte mt"><div class="carte-corps">
           <div class="flex entre"><h2 style="font-size:16px">Demandes de séjour</h2>
@@ -838,7 +844,7 @@ body { background: var(--gris-clair); }
 let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
 const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
-const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres & Séjours', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres, séjours & services', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
 
 function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
 async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
@@ -1015,7 +1021,8 @@ function dessinerCalendrier(){
 // ---- Services ----
 async function chargerServices(){
   const liste = await api('/api/mon-entreprise/services');
-  document.getElementById('tableServices').innerHTML =
+  // Le même tableau alimente la section Services et le bloc fusionné du module hôtel
+  const html =
     '<tr><th>Service</th><th>Durée</th><th>Prix</th><th>Statut</th><th>Actions</th></tr>' +
     (liste.length ? liste.map(s=>`
     <tr>
@@ -1026,7 +1033,13 @@ async function chargerServices(){
         <button class="btn btn-fantome btn-petit" onclick="basculerService('${s.id}',${!s.actif})">${s.actif?'Masquer':'Activer'}</button>
         <button class="btn btn-danger btn-petit" onclick="supprimerService('${s.id}')">Supprimer</button>
       </div></td>
-    </tr>`).join('') : '<tr><td colspan="5" class="muet centre">Aucun service. Ajoutez votre premier service pour recevoir des réservations.</td></tr>');
+    </tr>`).join('') : `<tr><td colspan="5" class="muet centre">${aModule('hotellerie')
+        ? "Aucun service. Ajoutez vos prestations : navette, blanchisserie, excursions…"
+        : "Aucun service. Ajoutez votre premier service pour recevoir des réservations."}</td></tr>`);
+  ['tableServices','tableServicesHotel'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
 }
 function ouvrirService(s){
   serviceEnCours = s || null;
@@ -1201,6 +1214,10 @@ const MODULE_SECTIONS = {
 function appliquerMetier(){
   const m = metierActuel();
   if (!m) return;
+  // En hôtellerie, les services sont gérés dans la section Chambres :
+  // on évite de proposer deux endroits pour la même chose.
+  const btnServices = document.querySelector('.lien-lat[data-sec="services"]');
+  if (btnServices) btnServices.style.display = aModule('hotellerie') ? 'none' : '';
   // 1) Masquer les entrées de menu des modules non déclarés
   Object.entries(MODULE_SECTIONS).forEach(([mod, secs]) => {
     const actif = aModule(mod);
