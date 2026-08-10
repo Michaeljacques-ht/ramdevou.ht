@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Randevou.ht — Rendez-vous en ligne",
-  "short_name": "Randevou",
-  "description": "Prenez rendez-vous en ligne avec les salons, cliniques et professionnels en Haïti. Réservation simple, rappels automatiques, paiement sur place.",
+  "name": "Biznis Konekte — Rendez-vous et vente en ligne",
+  "short_name": "Biznis Konekte",
+  "description": "Konekte kliyan ak biznis yo. Prenez rendez-vous, réservez une chambre et achetez auprès des commerçants haïtiens.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "/",
@@ -11,7 +11,11 @@
   "orientation": "portrait",
   "background_color": "#FFFFFF",
   "theme_color": "#2563EB",
-  "categories": ["business", "productivity", "lifestyle"],
+  "categories": [
+    "business",
+    "productivity",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "/icone-192.png",

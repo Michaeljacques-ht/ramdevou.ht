@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tableau de bord — Randevou.ht</title>
+<title>Tableau de bord — Biznis Konekte</title>
 <link rel="stylesheet" href="/style.css">
 <style>
 body { background: var(--gris-clair); }
@@ -82,7 +82,7 @@ body { background: var(--gris-clair); }
 <body>
 <div class="app">
   <aside class="lateral" id="lateral">
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Randevou.ht</a>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Biznis Konekte</a>
     <button class="lien-lat actif" data-sec="bord">▦ Tableau de bord</button>
     <button class="lien-lat" data-sec="rdv">🗓 Rendez-vous</button>
     <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
@@ -841,7 +841,7 @@ body { background: var(--gris-clair); }
 
 <script src="/app.js"></script>
 <script>
-let moi = null, ent = null, tousRdv = [], semaineOffset = 0, serviceEnCours = null;
+let moi = null, ent = null, tousRdv = [], tousSejours = [], semaineOffset = 0, serviceEnCours = null;
 const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
 const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres, séjours & services', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
@@ -868,12 +868,12 @@ async function demarrer(){
   const lienPub = location.origin + '/' + ent.slug;
   document.getElementById('lienPublic').textContent = lienPub;
   window.partagerPage = async (canal) => {
-    const texte = `Prenez rendez-vous chez ${ent.nom} en ligne sur Randevou.ht : `;
+    const texte = `Prenez rendez-vous chez ${ent.nom} en ligne sur Biznis Konekte : `;
     if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + lienPub), '_blank');
     else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lienPub), '_blank');
     else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(lienPub), '_blank');
     else {
-      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Randevou.ht', text: texte, url: lienPub }); return; } catch {} }
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Biznis Konekte', text: texte, url: lienPub }); return; } catch {} }
       try { await navigator.clipboard.writeText(lienPub); toast('Lien copié ! Partagez-le avec vos clients.'); }
       catch { prompt('Copiez ce lien :', lienPub); }
     }
@@ -882,7 +882,7 @@ async function demarrer(){
   document.getElementById('lienPublic').href = '/' + ent.slug;
   if (ent.statut !== 'approuvee') {
     document.getElementById('alerteStatut').innerHTML = `<div class="carte mb" style="border-color:var(--orange)"><div class="carte-corps" style="padding:14px 18px;background:var(--orange-fond);border-radius:14px">
-      <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Randevou.ht examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
+      <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Biznis Konekte examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
   }
   // Le module Chambres & Séjours ne concerne que l'hôtellerie
   appliquerModuleHotellerie();
@@ -967,6 +967,7 @@ async function chargerRdv(){
   if (aModule('hotellerie')) {
     try { sejours = await api('/api/sejours'); } catch { sejours = []; }
   }
+  tousSejours = sejours;
   const entrees = [
     ...tousRdv.filter(r => r.date >= auj).map(r => ({
       type: 'rdv', nom: r.clientNom, detail: r.service ? r.service.nom : '—',
@@ -996,8 +997,27 @@ async function chargerRdv(){
 function dessinerRdv(){
   const f = document.getElementById('filtreStatut').value;
   const liste = tousRdv.filter(r=>!f || r.statut===f).slice().reverse();
+  // Les séjours se confirment ici aussi : sans cela, l'hôtelier voit sa
+  // réservation sur le tableau de bord sans pouvoir agir dessus.
+  const sejoursVis = (aModule('hotellerie') ? tousSejours : [])
+    .filter(s => !f || s.statut === f)
+    .slice().sort((a,b) => b.arrivee.localeCompare(a.arrivee));
+  const lignesSejours = sejoursVis.map(s => `
+    <tr>
+      <td><strong>${ech(s.clientNom)}</strong><div class="petit muet">🛏️ Séjour</div></td>
+      <td>${ech(s.chambre ? s.chambre.nom : 'Chambre')}<div class="petit muet">${s.nuits} nuit${s.nuits>1?'s':''} • ${htg(s.prixTotal)}${s.planNom?' • '+ech(s.planNom):''}</div></td>
+      <td>${dateFR(s.arrivee)}<div class="petit muet">→ ${dateFR(s.depart)}</div></td>
+      <td class="petit">${ech(s.clientTel)}${s.clientTel ? ` <a target="_blank" rel="noopener" href="https://wa.me/${String(s.clientTel).replace(/\D/g,'')}" title="WhatsApp">💬</a>` : ''}</td>
+      <td>${BADGE_STATUT[s.statut] || ''}</td>
+      <td><div class="flex" style="gap:6px">
+        ${s.statut==='en_attente' ? `<button class="btn btn-succes btn-petit" onclick="statutSejourDepuisRdv('${s.id}','confirme')">Confirmer</button>` : ''}
+        ${s.statut==='confirme' ? `<button class="btn btn-contour btn-petit" onclick="statutSejourDepuisRdv('${s.id}','termine')">Terminer</button>` : ''}
+        ${['en_attente','confirme'].includes(s.statut) ? `<button class="btn btn-danger btn-petit" onclick="statutSejourDepuisRdv('${s.id}','annule')">Annuler</button>` : ''}
+      </div></td>
+    </tr>`).join('');
   document.getElementById('tableRdv').innerHTML = `
-    <tr><th>Client</th><th>Service</th><th>Date &amp; heure</th><th>Contact</th><th>Statut</th><th>Actions</th></tr>` +
+    <tr><th>Client</th><th>${aModule('hotellerie')?'Prestation':'Service'}</th><th>Date &amp; heure</th><th>Contact</th><th>Statut</th><th>Actions</th></tr>` +
+    lignesSejours +
     (liste.length ? liste.map(r=>`
     <tr>
       <td><strong>${ech(r.clientNom)}</strong></td>
@@ -1010,7 +1030,17 @@ function dessinerRdv(){
         ${r.statut==='confirme' ? `<button class="btn btn-contour btn-petit" onclick="changerStatut('${r.id}','termine')">Terminer</button>` : ''}
         ${['en_attente','confirme'].includes(r.statut) ? `<button class="btn btn-danger btn-petit" onclick="changerStatut('${r.id}','annule')">Annuler</button>` : ''}
       </div></td>
-    </tr>`).join('') : '<tr><td colspan="6" class="muet centre">Aucun rendez-vous pour ce filtre.</td></tr>');
+    </tr>`).join('') : (lignesSejours ? '' : `<tr><td colspan="6" class="muet centre">${aModule('hotellerie')?'Aucune réservation pour ce filtre.':'Aucun rendez-vous pour ce filtre.'}</td></tr>`));
+}
+
+// Confirmer ou annuler un séjour depuis la liste des réservations
+async function statutSejourDepuisRdv(id, statut){
+  try {
+    await api('/api/sejours/'+id, 'PUT', { statut });
+    toast('Séjour ' + ({confirme:'confirmé — le client sera notifié',annule:'annulé — le client sera notifié',termine:'marqué comme terminé'}[statut]));
+    await chargerRdv(); chargerStats();
+    if (aModule('hotellerie')) chargerSejours();
+  } catch(e){ toast(e.message); }
 }
 
 async function changerStatut(id, statut){

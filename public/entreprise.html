@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Entreprise — Randevou.ht</title>
+<title>Entreprise — Biznis Konekte</title>
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -84,7 +84,7 @@
 
 <nav class="nav">
   <div class="conteneur nav-int">
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Randevou.ht</a>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Biznis Konekte</a>
     <div class="nav-droite">
       <a class="btn btn-fantome" href="/">← Retour à l'accueil</a>
     </div>
@@ -273,7 +273,7 @@ async function charger() {
   try { ent = await api('/api/entreprises/' + slug); }
   catch { document.body.innerHTML = '<div class="conteneur centre" style="padding:80px 20px"><h1>Entreprise introuvable</h1><p class="muet mt">Cette page n\'existe pas ou n\'est pas encore approuvée.</p><a class="btn btn-primaire mt" href="/" style="margin-top:20px">Retour à l\'accueil</a></div>'; return; }
 
-  document.title = ent.nom + ' — Randevou.ht';
+  document.title = ent.nom + ' — Biznis Konekte';
   document.documentElement.style.setProperty('--marque', ent.couleur);
   document.documentElement.style.setProperty('--marque2', ent.couleur2);
 
@@ -306,12 +306,12 @@ async function charger() {
 
   window.partager = async (canal) => {
     const url = location.href;
-    const texte = `Prenez rendez-vous chez ${ent.nom} sur Randevou.ht : `;
+    const texte = `Prenez rendez-vous chez ${ent.nom} sur Biznis Konekte : `;
     if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + url), '_blank');
     else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
     else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(url), '_blank');
     else if (canal === 'copier') {
-      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Randevou.ht', text: texte, url }); return; } catch {} }
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Biznis Konekte', text: texte, url }); return; } catch {} }
       try { await navigator.clipboard.writeText(url); toast('Lien copié ! Collez-le où vous voulez.'); }
       catch { prompt('Copiez ce lien :', url); }
     }

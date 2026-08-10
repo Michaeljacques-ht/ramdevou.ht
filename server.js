@@ -1,5 +1,5 @@
 // ============================================================
-// Randevou.ht — Serveur (Node.js pur, zéro dépendance)
+// Biznis Konekte — Serveur (Node.js pur, zéro dépendance)
 // Lancer :  node server.js   →  http://localhost:3000
 // ============================================================
 const http = require('http');
@@ -12,7 +12,7 @@ const metiers = require('./lib/metiers.js');
 const taksi = require('./lib/taksi.js');
 
 // ---- Paramètres commerciaux ----
-const COMMISSION_RANDEVOU = 0.15;   // part Randevou.ht sur chaque encaissement
+const COMMISSION_RANDEVOU = 0.15;   // part Biznis Konekte sur chaque encaissement
 const MONTANT_MIN_RETRAIT = 1000;   // retrait minimum du portefeuille, en HTG
 
 const PORT = process.env.PORT || 3000;
@@ -225,7 +225,7 @@ function envoyerEmail(destinataire, sujet, html) {
     return;
   }
   const corps = JSON.stringify({
-    sender: { name: 'Randevou.ht', email: exp },
+    sender: { name: 'Biznis Konekte', email: exp },
     to: [{ email: destinataire }],
     subject: sujet,
     htmlContent: html
@@ -244,11 +244,11 @@ function gabaritEmail(titre, couleur, lignes, pied) {
   return `<!DOCTYPE html><html lang="fr"><body style="margin:0;background:#F2F4F7;font-family:Arial,Helvetica,sans-serif">
   <div style="max-width:560px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #E4E7EC">
     <div style="background:${couleur};color:#fff;padding:22px 26px">
-      <div style="font-size:13px;opacity:.85;font-weight:bold">📅 Randevou.ht</div>
+      <div style="font-size:13px;opacity:.85;font-weight:bold">📅 Biznis Konekte</div>
       <h1 style="margin:6px 0 0;font-size:21px">${titre}</h1>
     </div>
     <div style="padding:24px 26px;color:#101828;font-size:15px;line-height:1.65">${lignes}</div>
-    <div style="padding:16px 26px;border-top:1px solid #E4E7EC;color:#667085;font-size:12px">${pied || 'Randevou.ht — La plateforme haïtienne de prise de rendez-vous en ligne.'}</div>
+    <div style="padding:16px 26px;border-top:1px solid #E4E7EC;color:#667085;font-size:12px">${pied || 'Biznis Konekte — La plateforme haïtienne de prise de rendez-vous en ligne.'}</div>
   </div></body></html>`;
 }
 // Vue publique du service d'urgence.
@@ -1690,7 +1690,7 @@ async function api(req, res, url) {
             conf ? 'Séjour confirmé 🎉' : 'Séjour annulé', conf ? (e.couleur || '#2563EB') : '#B42318',
             `<p>Bonjour <strong>${s.clientNom}</strong>,</p>
              <p>Votre séjour chez <strong>${e.nom}</strong>${c ? ' (' + c.nom + ')' : ''} du <strong>${s.arrivee}</strong> au <strong>${s.depart}</strong> (${s.nuits} nuit${s.nuits > 1 ? 's' : ''}, ${s.prixTotal.toLocaleString('fr-HT')} HTG) a été <strong>${libelle}</strong>.</p>
-             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Nous vous attendons le ${s.arrivee}${e.adresse ? ' à : ' + e.adresse : ''}. Le paiement se fait sur place.</p>` : `<p>Vous pouvez réserver d'autres dates à tout moment sur Randevou.ht.</p>`}`,
+             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Nous vous attendons le ${s.arrivee}${e.adresse ? ' à : ' + e.adresse : ''}. Le paiement se fait sur place.</p>` : `<p>Vous pouvez réserver d'autres dates à tout moment sur Biznis Konekte.</p>`}`,
             `Référence : ${s.id}`
           ));
         }
@@ -1779,7 +1779,7 @@ async function api(req, res, url) {
             conf ? 'Rendez-vous confirmé 🎉' : 'Rendez-vous annulé', conf ? (e.couleur || '#2563EB') : '#B42318',
             `<p>Bonjour <strong>${r.clientNom}</strong>,</p>
              <p>Votre rendez-vous chez <strong>${e.nom}</strong>${srv ? ' (' + srv.nom + ')' : ''} du <strong>${r.date}</strong> à <strong>${r.heure}</strong> a été <strong>${libelle}</strong>.</p>
-             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Présentez-vous quelques minutes en avance${e.adresse ? ' à : ' + e.adresse : ''}.</p>` : `<p>Vous pouvez réserver un autre créneau à tout moment sur Randevou.ht.</p>`}`,
+             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Présentez-vous quelques minutes en avance${e.adresse ? ' à : ' + e.adresse : ''}.</p>` : `<p>Vous pouvez réserver un autre créneau à tout moment sur Biznis Konekte.</p>`}`,
             `Référence : ${r.id}`
           ));
         }
@@ -1943,7 +1943,7 @@ setTimeout(envoyerRappels, 20 * 1000); // première vérification 20 s après le
 
 server.listen(PORT, () => {
   console.log('==================================================');
-  console.log('  RANDEVOU.HT — Plateforme de rendez-vous en ligne');
+  console.log('  BIZNIS KONEKTE — Plateforme de rendez-vous en ligne');
   console.log('==================================================');
   console.log(`  Site           : http://localhost:${PORT}`);
   console.log(`  Démo entreprise: http://localhost:${PORT}/salon-elegance`);

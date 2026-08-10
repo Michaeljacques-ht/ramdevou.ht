@@ -1,5 +1,5 @@
-// Randevou.ht — Service Worker (requis pour PWA / Play Store)
-const CACHE = 'randevou-v15';
+// Biznis Konekte — Service Worker (requis pour PWA / Play Store)
+const CACHE = 'biznis-v1';
 const STATIQUES = [
   '/style.css',
   '/app.js',
@@ -52,7 +52,7 @@ self.addEventListener('fetch', (e) => {
             (r) =>
               r ||
               new Response(
-                '<!DOCTYPE html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors ligne — Randevou.ht</title><body style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#0B1424"><h1 style="color:#2563EB">📶 Pas de connexion</h1><p>Randevou.ht a besoin d\'Internet pour afficher les rendez-vous.<br>Vérifiez votre connexion puis réessayez.</p><button onclick="location.reload()" style="background:#2563EB;color:#fff;border:0;padding:12px 28px;border-radius:8px;font-size:16px">Réessayer</button></body></html>',
+                '<!DOCTYPE html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors ligne — Biznis Konekte</title><body style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#0B1424"><h1 style="color:#2563EB">📶 Pas de connexion</h1><p>Biznis Konekte a besoin d\'Internet pour afficher les rendez-vous.<br>Vérifiez votre connexion puis réessayez.</p><button onclick="location.reload()" style="background:#2563EB;color:#fff;border:0;padding:12px 28px;border-radius:8px;font-size:16px">Réessayer</button></body></html>',
                 { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
               )
           )

@@ -1,4 +1,4 @@
-// Randevou.ht — utilitaires partagés
+// Biznis Konekte — utilitaires partagés
 async function api(url, methode = 'GET', corps) {
   const r = await fetch(url, {
     method: methode,
