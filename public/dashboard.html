@@ -143,7 +143,7 @@ body { background: var(--gris-clair); }
         <div class="cartes-stats" id="stats"></div>
         <div class="grille mt" style="grid-template-columns:1.4fr 1fr">
           <div class="carte"><div class="carte-corps">
-            <div class="flex entre"><h2 style="font-size:16px">Rendez-vous récents</h2>
+            <div class="flex entre"><h2 style="font-size:16px" id="titreRecents">Rendez-vous récents</h2>
               <button class="btn btn-fantome btn-petit" onclick="allerSection('rdv')">Voir tous →</button></div>
             <div id="rdvRecents" class="mt"></div>
           </div></div>
@@ -924,8 +924,12 @@ function appliquerModuleHotellerie(){
 async function chargerStats(){
   const s = await api('/api/stats');
   document.getElementById('stats').innerHTML = `
-    <div class="stat"><span class="petit muet">Rendez-vous aujourd'hui</span><div class="valeur">${s.rdvAujourdhui}</div></div>
-    <div class="stat"><span class="petit muet">Rendez-vous ce mois</span><div class="valeur">${s.rdvCeMois}</div></div>
+    <div class="stat"><span class="petit muet">${aModule('hotellerie')?'Réservations aujourd\'hui':'Rendez-vous aujourd\'hui'}</span><div class="valeur">${s.rdvAujourdhui}</div></div>
+    <div class="stat"><span class="petit muet">${aModule('hotellerie')?'Réservations ce mois':'Rendez-vous ce mois'}</span><div class="valeur">${s.rdvCeMois}</div></div>
+    ${aModule('hotellerie') ? `
+    <div class="stat"><span class="petit muet">Séjours en cours</span><div class="valeur">${s.sejoursEnCours ?? 0}</div></div>
+    <div class="stat"><span class="petit muet">Arrivées / départs du jour</span><div class="valeur">${s.arriveesAujourdhui ?? 0} / ${s.departsAujourdhui ?? 0}</div></div>
+    ${s.sejoursEnAttente ? `<div class="stat" style="border-color:var(--orange)"><span class="petit muet">Séjours à confirmer</span><div class="valeur" style="color:var(--orange)">${s.sejoursEnAttente}</div></div>` : ''}` : ''}
     <div class="stat"><span class="petit muet">Clients totaux</span><div class="valeur">${s.clientsTotaux}</div></div>
     <div class="stat"><span class="petit muet">Avis positifs</span><div class="valeur">${s.note || '—'}<span style="font-size:15px;color:var(--gris)">/5</span></div><span class="delta" style="color:var(--vert)">${s.totalAvis} avis</span></div>`;
   dessinerGraphe(s.parJour);
@@ -957,14 +961,35 @@ function dessinerGraphe(parJour){
 async function chargerRdv(){
   tousRdv = await api('/api/rendezvous');
   const auj = new Date().toISOString().slice(0,10);
-  const recents = tousRdv.filter(r=>r.date>=auj).slice(0,5);
-  document.getElementById('rdvRecents').innerHTML = recents.length ? recents.map(r=>`
+  // Les séjours figurent dans la même liste que les rendez-vous : l'hôtelier
+  // doit voir ses réservations sur son tableau de bord, pas seulement des rdv.
+  let sejours = [];
+  if (aModule('hotellerie')) {
+    try { sejours = await api('/api/sejours'); } catch { sejours = []; }
+  }
+  const entrees = [
+    ...tousRdv.filter(r => r.date >= auj).map(r => ({
+      type: 'rdv', nom: r.clientNom, detail: r.service ? r.service.nom : '—',
+      date: r.date, ligne2: r.heure, statut: r.statut
+    })),
+    ...sejours.filter(s => s.statut !== 'annule' && s.depart >= auj).map(s => ({
+      type: 'sejour', nom: s.clientNom,
+      detail: (s.chambre ? s.chambre.nom : 'Séjour') + ' · ' + s.nuits + ' nuit' + (s.nuits>1?'s':''),
+      date: s.arrivee, ligne2: '→ ' + s.depart.slice(8) + '/' + s.depart.slice(5,7), statut: s.statut
+    }))
+  ].sort((a,b) => a.date.localeCompare(b.date)).slice(0, 6);
+
+  document.getElementById('rdvRecents').innerHTML = entrees.length ? entrees.map(x=>`
     <div class="flex entre" style="padding:10px 0;border-bottom:1px solid var(--bordure);gap:10px">
-      <div class="flex"><span class="avatar">${ech(r.clientNom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
-        <div><strong class="petit">${ech(r.clientNom)}</strong><div class="petit muet">${ech(r.service ? r.service.nom : '—')}</div></div></div>
-      <div class="centre petit muet">${r.date.slice(8)}/${r.date.slice(5,7)}<br>${r.heure}</div>
-      <div>${BADGE_STATUT[r.statut]}</div>
-    </div>`).join('') : '<p class="muet petit mt">Aucun rendez-vous à venir. Partagez votre lien public pour recevoir des réservations !</p>';
+      <div class="flex"><span class="avatar">${ech(String(x.nom).split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+        <div><strong class="petit">${ech(x.nom)}</strong>
+          <div class="petit muet">${x.type==='sejour'?'🛏️ ':''}${ech(x.detail)}</div></div></div>
+      <div class="centre petit muet">${x.date.slice(8)}/${x.date.slice(5,7)}<br>${ech(x.ligne2)}</div>
+      <div>${BADGE_STATUT[x.statut] || ''}</div>
+    </div>`).join('')
+    : `<p class="muet petit mt">${aModule('hotellerie')
+        ? 'Aucune réservation à venir. Partagez votre lien public pour en recevoir !'
+        : 'Aucun rendez-vous à venir. Partagez votre lien public pour recevoir des réservations !'}</p>`;
   dessinerRdv();
 }
 
@@ -1233,6 +1258,8 @@ function appliquerMetier(){
   // 3) Champs propres au métier
   dessinerChampsMetier();
   dessinerModules();
+  const tr = document.getElementById('titreRecents');
+  if (tr) tr.textContent = aModule('hotellerie') ? 'Réservations récentes' : 'Rendez-vous récents';
 }
 function dessinerChampsMetier(){
   const m = metierActuel(); const carte = document.getElementById('carteChampsMetier');

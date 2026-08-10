@@ -1794,22 +1794,36 @@ async function api(req, res, url) {
     if (p === '/api/stats') {
       const aujourdhui = new Date().toISOString().slice(0, 10);
       const debutMois = aujourdhui.slice(0, 8) + '01';
-      const rdvs = db.rendezvous.filter((r) => r.entrepriseId === e.id);
-      const actifs = rdvs.filter((r) => r.statut !== 'annule');
+      const actifs = db.rendezvous.filter((r) => r.entrepriseId === e.id && r.statut !== 'annule');
+      // Les séjours comptent au même titre que les rendez-vous : sans cela, un
+      // hôtel voit un tableau de bord vide alors qu'il a des réservations.
+      const sejoursActifs = db.sejours.filter((s) => s.entrepriseId === e.id && s.statut !== 'annule');
       const parJour = {};
       for (let i = 13; i >= 0; i--) {
         const d = new Date(); d.setDate(d.getDate() - i);
         parJour[d.toISOString().slice(0, 10)] = 0;
       }
       actifs.forEach((r) => { if (parJour[r.date] !== undefined) parJour[r.date]++; });
+      sejoursActifs.forEach((s) => { if (parJour[s.arrivee] !== undefined) parJour[s.arrivee]++; });
       const { note, total } = noteMoyenne(e.id);
+      const enCoursAujourdhui = sejoursActifs.filter((s) => s.arrivee <= aujourdhui && s.depart > aujourdhui);
       return json(res, 200, {
-        rdvAujourdhui: actifs.filter((r) => r.date === aujourdhui).length,
-        rdvCeMois: actifs.filter((r) => r.date >= debutMois).length,
-        clientsTotaux: new Set(actifs.map((r) => r.clientTel)).size,
+        // « Aujourd'hui » : rendez-vous du jour + arrivées du jour + séjours en cours
+        rdvAujourdhui: actifs.filter((r) => r.date === aujourdhui).length
+          + sejoursActifs.filter((s) => s.arrivee === aujourdhui).length,
+        rdvCeMois: actifs.filter((r) => r.date >= debutMois).length
+          + sejoursActifs.filter((s) => s.arrivee >= debutMois).length,
+        clientsTotaux: new Set([...actifs.map((r) => r.clientTel), ...sejoursActifs.map((s) => s.clientTel)]).size,
         note, totalAvis: total,
         revenusMois: actifs.filter((r) => r.date >= debutMois && ['confirme', 'termine'].includes(r.statut))
-          .reduce((s, r) => s + ((db.services.find((x) => x.id === r.serviceId) || {}).prix || 0), 0),
+            .reduce((s, r) => s + ((db.services.find((x) => x.id === r.serviceId) || {}).prix || 0), 0)
+          + sejoursActifs.filter((s) => s.arrivee >= debutMois && ['confirme', 'termine'].includes(s.statut))
+            .reduce((n, s) => n + (s.prixTotal || 0), 0),
+        // Chiffres propres à l'hôtellerie
+        sejoursEnCours: enCoursAujourdhui.length,
+        arriveesAujourdhui: sejoursActifs.filter((s) => s.arrivee === aujourdhui).length,
+        departsAujourdhui: sejoursActifs.filter((s) => s.depart === aujourdhui).length,
+        sejoursEnAttente: sejoursActifs.filter((s) => s.statut === 'en_attente').length,
         parJour
       });
     }
