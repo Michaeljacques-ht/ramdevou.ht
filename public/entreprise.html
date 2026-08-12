@@ -78,6 +78,9 @@
 .recap { background: var(--gris-clair); border-radius: var(--r-champ); padding: 12px 14px; }
 .recap div { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
 .recap .total { border-top: 1px solid var(--bordure); margin-top: 6px; padding-top: 8px; font-weight: 800; font-size: 16px; color: var(--marine); }
+.galerie-pub { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; padding-bottom: 4px; }
+.galerie-pub img { width: 92px; height: 68px; object-fit: cover; border-radius: 8px; flex: none; cursor: zoom-in; border: 2px solid transparent; }
+.galerie-pub img:hover { border-color: var(--bleu); }
 </style>
 </head>
 <body>
@@ -294,7 +297,15 @@ async function charger() {
       <p class="petit" style="margin-top:6px"><span class="etoiles">${etoiles(ent.note)}</span> <strong>${ent.note || '—'}</strong> <span class="muet">(${ent.totalAvis} avis)</span></p>
     </div>
     <div style="display:grid;gap:8px">
-      <a class="btn btn-primaire" href="#carteResa" style="background:var(--marque)">Réserver maintenant</a>
+      ${(() => {
+        // Le bouton suit le métier : on n'invite pas à « réserver » chez un commerçant,
+        // et on renvoie vers la section qui existe réellement sur sa page.
+        const lgn = (localStorage.getItem('langue') || 'fr');
+        const verbe = (ent.action && ent.action[lgn === 'ht' ? 'ht' : 'fr']) || (lgn === 'ht' ? 'Rezève' : 'Réserver');
+        const cible = (ent.produits || []).length ? '#carteBoutique'
+                    : ((ent.chambres || []).length ? '#carteChambres' : '#carteResa');
+        return `<a class="btn btn-primaire" href="${cible}" style="background:var(--marque)">${ech(verbe)}</a>`;
+      })()}
       ${ent.whatsapp ? `<a class="btn btn-succes" target="_blank" rel="noopener" href="https://wa.me/${ech(ent.whatsapp)}">💬 WhatsApp</a>` : ''}
       <div class="flex" style="gap:6px;justify-content:center" aria-label="Partager cette page">
         <button class="btn btn-fantome btn-petit" onclick="partager('whatsapp')" title="Partager sur WhatsApp"><img src="/logos/whatsapp.png" alt="WhatsApp" class="ico-partage"></button>
@@ -435,13 +446,25 @@ function refEquip(cle){
       o.classList.toggle('on', o.querySelector('input').checked));
     majTotalPanier();
   };
+  window.majSurPlace = () => {
+    const coche = document.getElementById('pnSurPlace').checked;
+    document.getElementById('blocNumChambre').style.display = coche ? '' : 'none';
+    // Un client logé sur place ne renseigne ni zone ni adresse
+    document.getElementById('blocLivraisonClient').style.display =
+      (modeRemise === 'livraison' && !coche) ? '' : 'none';
+    majTotalPanier();
+  };
+
   window.majTotalPanier = () => {
     const v = ent.vente || {}, lg = L();
-    document.getElementById('blocLivraisonClient').style.display = modeRemise==='livraison' ? '' : 'none';
-    document.getElementById('blocCueilletteClient').style.display = modeRemise==='cueillette' ? '' : 'none';
+    const surPlace = document.getElementById('pnSurPlace').checked;
+    // La case « client de l'hôtel » n'a de sens que si l'établissement loge des clients
+    document.getElementById('blocSurPlace').style.display = (ent.chambres || []).length ? '' : 'none';
+    document.getElementById('blocLivraisonClient').style.display = (modeRemise==='livraison' && !surPlace) ? '' : 'none';
+    document.getElementById('blocCueilletteClient').style.display = (modeRemise==='cueillette' && !surPlace) ? '' : 'none';
     const sousTotal = panier.reduce((s,l) => s + l.prix*l.q, 0);
     let frais = 0;
-    if (modeRemise === 'livraison') {
+    if (modeRemise === 'livraison' && !surPlace) {
       const nom = document.getElementById('pnZone').value;
       const zone = (v.zones||[]).find(z => z.nom === nom);
       frais = zone ? zone.frais : (v.fraisBase || 0);
@@ -460,13 +483,18 @@ function refEquip(cle){
     const tel = document.getElementById('pnTel').value.trim();
     if (!nom || !tel) { err.textContent = lg==='ht'?'Non ak telefòn obligatwa.':'Nom et téléphone obligatoires.'; return; }
     const adresse = document.getElementById('pnAdresse').value.trim();
-    if (modeRemise === 'livraison' && !adresse) { err.textContent = lg==='ht'?'Mete adrès la.':"Indiquez l'adresse de livraison."; return; }
+    const surPlace = document.getElementById('pnSurPlace').checked;
+    const numCh = document.getElementById('pnNumChambre').value.trim();
+    if (surPlace && !numCh) { err.textContent = lg==='ht'?'Mete nimewo chanm ou.':'Indiquez votre numéro de chambre.'; return; }
+    if (modeRemise === 'livraison' && !surPlace && !adresse) { err.textContent = lg==='ht'?'Mete adrès la.':"Indiquez l'adresse de livraison."; return; }
     err.textContent = '';
     try {
       const r = await api('/api/commandes','POST',{
         slug, mode: modeRemise, zone: document.getElementById('pnZone').value,
         adresse, repere: document.getElementById('pnRepere').value.trim(),
         clientNom: nom, clientTel: tel, paiement: modePaiement,
+        surPlace: document.getElementById('pnSurPlace').checked,
+        numeroChambre: document.getElementById('pnNumChambre').value.trim(),
         message: document.getElementById('pnMessage').value.trim(),
         lignes: panier.map(l => ({ produitId: l.id, quantite: l.q }))
       });
@@ -545,6 +573,15 @@ function refEquip(cle){
     }).join('');
   }
   window.filtrerRayon = (r) => { rayonActif = r; dessinerBoutique(); };
+
+  // Agrandissement d'une photo de chambre
+  window.agrandirPhoto = (_, el) => {
+    const v = document.createElement('div');
+    v.className = 'voile ouvert'; v.style.alignItems = 'center';
+    v.onclick = () => v.remove();
+    v.innerHTML = `<img src="${el.src}" style="max-width:94vw;max-height:88vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)">`;
+    document.body.appendChild(v);
+  };
 
   // ---- Service d'urgence ----
   // Priorité absolue : mettre le numéro à portée immédiate. Aucun tri,
@@ -800,6 +837,8 @@ function refEquip(cle){
           <div class="flex entre"><strong>${ech(c.nom)}</strong><strong style="color:var(--marque)">${(+c.prixNuit).toLocaleString('fr-HT')} HTG<span class="muet petit">/nuit</span></strong></div>
           <p class="petit muet">${ech(c.description || '')}</p>
           <p class="petit muet">👥 ${c.capacite} pers. max • ${c.quantite} chambre${c.quantite > 1 ? 's' : ''} de ce type</p>
+          ${(c.photos || []).length > 1 ? `<div class="galerie-pub">${c.photos.map((ph,i)=>`
+            <img src="${ph}" alt="${ech(c.nom)}" loading="lazy" class="${i===0?'on':''}" onclick="agrandirPhoto('${ph.slice(0,30)}',this)">`).join('')}</div>` : ''}
           ${(c.equipements || []).length ? `<div class="puces-equip">${c.equipements.map(k => refEquip(k)).filter(Boolean).join('')}</div>` : ''}
         </div>
       </div>`).join('');
@@ -1204,6 +1243,17 @@ charger();
     <hr style="border:none;border-top:1px solid var(--bordure);margin:16px 0 4px">
     <label data-i18n="panier.mode">Comment souhaitez-vous recevoir votre commande ?</label>
     <div id="choixMode" class="choix-formule mt"></div>
+    <div id="blocSurPlace" style="display:none">
+      <label class="opt-formule" style="margin-top:10px">
+        <input type="checkbox" id="pnSurPlace" onchange="majSurPlace()">
+        <span><strong>🏨 <span data-i18n="panier.chambre.titre">Je suis client de l'hôtel</span></strong><br>
+        <span class="petit muet" data-i18n="panier.chambre.aide">Livraison directement dans votre chambre, sans frais.</span></span>
+      </label>
+      <div id="blocNumChambre" style="display:none">
+        <label data-i18n="panier.chambre.num">Numéro de chambre *</label>
+        <input id="pnNumChambre" placeholder="Ex : 204">
+      </div>
+    </div>
     <div id="blocLivraisonClient" style="display:none">
       <label data-i18n="panier.zone">Zone de livraison</label>
       <select id="pnZone" onchange="majTotalPanier()"></select>

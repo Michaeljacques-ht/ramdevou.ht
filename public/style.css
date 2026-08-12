@@ -170,7 +170,29 @@ input::placeholder, textarea::placeholder { color: #A7B0BE; }
   color: var(--marine); background: var(--bleu-clair); text-decoration: none;
 }
 .nav-droite { margin-left: auto; display: flex; gap: 10px; align-items: center; }
-@media (max-width: 820px) { .nav-liens { display: none; } }
+/* Navigation mobile : les liens passent dans un panneau déroulant.
+   Sans cela, ils disparaissaient purement et simplement sous 820 px. */
+.burger { display: none; width: 42px; height: 42px; border: 1.5px solid var(--bordure); background: #fff;
+  border-radius: var(--r-champ); font-size: 20px; line-height: 1; cursor: pointer; color: var(--marine); }
+.burger:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+@media (max-width: 820px) {
+  .burger { display: grid; place-items: center; }
+  .nav-int { gap: 12px; }
+  .nav-liens {
+    position: absolute; top: 70px; left: 0; right: 0;
+    flex-direction: column; gap: 2px; margin: 0; padding: 10px 16px 16px;
+    background: #fff; border-bottom: 1px solid var(--bordure);
+    box-shadow: 0 12px 24px rgba(11,44,107,.10);
+    display: none;
+  }
+  .nav-liens.ouvert { display: flex; }
+  .nav-liens a { padding: 12px 14px; border-radius: var(--r-champ); font-size: 15px; }
+  /* Les boutons d'action rejoignent le panneau : ils débordaient de la barre */
+  .nav-droite { gap: 6px; }
+  .nav-droite .btn-contour, .nav-droite .btn-primaire { display: none; }
+  .nav-liens .btn-contour, .nav-liens .btn-primaire { display: inline-flex; width: 100%; margin-top: 6px; }
+}
+@media (min-width: 821px) { .nav-liens .lien-mobile { display: none; } }
 
 /* ---------- Tableaux ---------- */
 table { width: 100%; border-collapse: collapse; font-size: 14px; }

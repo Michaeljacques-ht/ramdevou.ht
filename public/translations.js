@@ -1,6 +1,9 @@
 // 🌐 Traductions Français / Kreyòl Ayisyen
 const translations = {
   fr: {
+    'panier.chambre.titre': "Je suis client de l'hôtel",
+    'panier.chambre.aide': 'Livraison directement dans votre chambre, sans frais.',
+    'panier.chambre.num': 'Numéro de chambre *',
     'bq.nav': 'Boutique',
     'bq.eyebrow': 'Boutique en ligne',
     'bq.titre1': 'Achetez auprès des ',
@@ -279,6 +282,9 @@ const translations = {
   },
   
   ht: {
+    'panier.chambre.titre': 'Mwen se kliyan otèl la',
+    'panier.chambre.aide': 'Livrezon dirèk nan chanm ou, san frè.',
+    'panier.chambre.num': 'Nimewo chanm ou *',
     'bq.nav': 'Boutik',
     'bq.eyebrow': 'Boutik an liy',
     'bq.titre1': 'Achte lakay ',

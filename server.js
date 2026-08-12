@@ -77,6 +77,20 @@ function nettoyerInclus(v) {
   return [...new Set(v.filter((k) => CLES_INCLUS.includes(k)))];
 }
 
+// Galerie d'une chambre : plusieurs photos, la première sert de vignette.
+const MAX_PHOTOS_CHAMBRE = 8;
+function nettoyerPhotos(v, existant) {
+  if (v === undefined) return existant || [];
+  const liste = Array.isArray(v) ? v : [v];
+  const ok = [];
+  for (const ph of liste.slice(0, MAX_PHOTOS_CHAMBRE)) {
+    const s = String(ph || '');
+    if (s.startsWith('data:image/') && s.length <= 900000) ok.push(s);
+    else if (s.startsWith('data:image/')) return null;   // trop lourde
+  }
+  return ok;
+}
+
 // ---- Équipements de chambre (catalogue fermé, clés stables) ----
 const EQUIPEMENTS = {
   clim: { fr: 'Climatiseur', ht: 'Èkondisyone', ico: '❄️' },
@@ -283,6 +297,7 @@ function publicEntreprise(e) {
   return { slug: e.slug, nom: e.nom, categorie: e.categorie, description: e.description, adresse: e.adresse, telephone: e.telephone, whatsapp: e.whatsapp, couleur: e.couleur, couleur2: e.couleur2, logoTexte: e.logoTexte, logoImage: e.logoImage || '', photoFond: e.photoFond || '', horaires: e.horaires, plan: e.plan, latitude: e.latitude ?? null, longitude: e.longitude ?? null,
     formule: e.formule || 'standard', inclus: e.inclus || [], noteFormule: e.noteFormule || '',
     metier: e.metier || 'autre', champs: e.champs || {}, urgence: urgencePublique(e),
+    action: { fr: metiers.actionDe(e, 'fr'), ht: metiers.actionDe(e, 'ht') },
     note, totalAvis: total };
 }
 
@@ -492,7 +507,7 @@ async function api(req, res, url) {
     return json(res, 200, {
       ...publicEntreprise(e),
       services: db.services.filter((s) => s.entrepriseId === e.id && s.actif),
-      chambres: db.chambres.filter((c) => c.entrepriseId === e.id && c.actif).map((c) => ({ id: c.id, nom: c.nom, description: c.description, prixNuit: c.prixNuit, capacite: c.capacite, quantite: c.quantite, photo: c.photo || '', equipements: c.equipements || [],
+      chambres: db.chambres.filter((c) => c.entrepriseId === e.id && c.actif).map((c) => ({ id: c.id, nom: c.nom, description: c.description, prixNuit: c.prixNuit, capacite: c.capacite, quantite: c.quantite, photo: c.photo || '', photos: c.photos || (c.photo ? [c.photo] : []), equipements: c.equipements || [],
                        adultes: c.adultes ?? c.capacite, enfants: c.enfants ?? 0 })),
       carte: db.carte.filter((a) => a.entrepriseId === e.id && a.disponible).map((a) => ({ id: a.id, nom: a.nom, description: a.description, categorie: a.categorie, prix: a.prix, volume: a.volume || '', photo: a.photo || '' })),
       equipementsRef: EQUIPEMENTS,
@@ -832,7 +847,11 @@ async function api(req, res, url) {
     const mode = corps.mode === 'livraison' ? 'livraison' : 'cueillette';
     if (mode === 'livraison' && !v.livraison) return json(res, 400, { erreur: 'La livraison n\'est pas proposée.' });
     if (mode === 'cueillette' && !v.cueillette) return json(res, 400, { erreur: 'Le retrait sur place n\'est pas proposé.' });
-    if (mode === 'livraison' && !corps.adresse) return json(res, 400, { erreur: 'Indiquez l\'adresse de livraison.' });
+    // Service en chambre : le numéro remplace l'adresse
+    if (corps.surPlace && !String(corps.numeroChambre || '').trim())
+      return json(res, 400, { erreur: 'Indiquez votre numéro de chambre.' });
+    if (mode === 'livraison' && !corps.surPlace && !corps.adresse)
+      return json(res, 400, { erreur: 'Indiquez l\'adresse de livraison.' });
 
     // Les prix et le stock sont revérifiés ici : ceux envoyés par le
     // navigateur ne sont jamais utilisés pour le calcul.
@@ -852,7 +871,7 @@ async function api(req, res, url) {
 
     // Frais de livraison : zone choisie, sinon frais de base ; gratuit au-delà du seuil
     let frais = 0, zoneNom = '';
-    if (mode === 'livraison') {
+    if (mode === 'livraison' && !corps.surPlace) {
       const zone = (v.zones || []).find((z) => z.nom === corps.zone);
       frais = zone ? zone.frais : (v.fraisBase || 0);
       zoneNom = zone ? zone.nom : '';
@@ -871,7 +890,10 @@ async function api(req, res, url) {
       reference: 'C' + Date.now().toString(36).toUpperCase().slice(-6),
       lignes, sousTotal, frais, total: sousTotal + frais,
       mode, zone: zoneNom,
-      adresse: mode === 'livraison' ? String(corps.adresse).slice(0, 200) : '',
+      // Commande passée depuis une chambre de l'hôtel : le service sait où livrer
+      surPlace: !!corps.surPlace,
+      numeroChambre: String(corps.numeroChambre || '').slice(0, 20),
+      adresse: corps.surPlace ? '' : (mode === 'livraison' ? String(corps.adresse).slice(0, 200) : ''),
       repere: String(corps.repere || '').slice(0, 140),
       creneau: String(corps.creneau || '').slice(0, 60),
       clientNom: String(corps.clientNom).slice(0, 90),
@@ -887,7 +909,7 @@ async function api(req, res, url) {
     notifier(e.id, 'nouvelle_commande', `Commande ${cmd.reference} — ${cmd.total.toLocaleString('fr-HT')} HTG (${mode})`);
     envoyerWhatsApp(cmd.clientTel, 'commande_recue',
       [cmd.clientNom, e.nom, cmd.reference, cmd.total.toLocaleString('fr-HT') + ' HTG',
-       mode === 'livraison' ? 'livraison' : 'retrait sur place']);
+       cmd.surPlace ? ('chambre ' + cmd.numeroChambre) : (mode === 'livraison' ? 'livraison' : 'retrait sur place')]);
     return json(res, 200, {
       ok: true, reference: cmd.reference, sousTotal, frais, total: cmd.total,
       mode, paiement: modePaie, commandeId: cmd.id, boutique: e.nom, whatsapp: e.whatsapp,
@@ -911,7 +933,8 @@ async function api(req, res, url) {
       etapes: etapes.map((k) => { const s = STATUTS_COMMANDE.find((x) => x.cle === k); return { cle: k, fr: s.fr, ht: s.ht }; }),
       etapeIndex: etapes.indexOf(c.statut),
       mode: c.mode, lignes: c.lignes, sousTotal: c.sousTotal, frais: c.frais, total: c.total,
-      adresse: c.adresse, creneau: c.creneau, paye: !!c.paye, paiement: c.paiement || 'remise',
+      adresse: c.adresse, surPlace: !!c.surPlace, numeroChambre: c.numeroChambre || '',
+      creneau: c.creneau, paye: !!c.paye, paiement: c.paiement || 'remise',
       passeeLe: c.creeLe.slice(0, 10), majLe: c.majLe.slice(0, 10)
     });
   }
@@ -1633,13 +1656,14 @@ async function api(req, res, url) {
       return json(res, 200, db.chambres.filter((c) => c.entrepriseId === e.id));
     if (p === '/api/mon-entreprise/chambres' && req.method === 'POST') {
       if (!corps.nom || !(+corps.prixNuit > 0)) return json(res, 400, { erreur: 'Nom et prix par nuit obligatoires.' });
-      if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
-        return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
+      const galerie = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, []);
+      if (galerie === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
       const c = {
         id: store.uid(), entrepriseId: e.id, nom: String(corps.nom).slice(0, 60),
         description: String(corps.description || '').slice(0, 300),
         prixNuit: Math.max(1, +corps.prixNuit), capacite: Math.max(1, Math.min(+corps.capacite || 2, 20)),
-        quantite: Math.max(1, Math.min(+corps.quantite || 1, 200)), photo: corps.photo || '',
+        quantite: Math.max(1, Math.min(+corps.quantite || 1, 200)),
+        photos: galerie, photo: galerie[0] || '',
         equipements: nettoyerEquipements(corps.equipements), actif: true
       };
       db.chambres.push(c); store.save(); return json(res, 200, c);
@@ -1654,10 +1678,11 @@ async function api(req, res, url) {
         if (corps.prixNuit) c.prixNuit = Math.max(1, +corps.prixNuit);
         if (corps.capacite) c.capacite = Math.max(1, Math.min(+corps.capacite, 20));
         if (corps.quantite) c.quantite = Math.max(1, Math.min(+corps.quantite, 200));
-        if (corps.photo !== undefined) {
-          if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
-            return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
-          c.photo = corps.photo;
+        if (corps.photos !== undefined || corps.photo !== undefined) {
+          const g = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, c.photos);
+          if (g === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
+          c.photos = g;
+          c.photo = g[0] || '';   // vignette : toujours la première
         }
         if (corps.equipements !== undefined) c.equipements = nettoyerEquipements(corps.equipements);
         if (corps.actif !== undefined) c.actif = !!corps.actif;

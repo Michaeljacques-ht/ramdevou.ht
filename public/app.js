@@ -70,6 +70,23 @@ const ICONES_CAT = { 'Santé': '🩺', 'Beauté': '💇', 'Formation': '🎓', '
   }
 })();
 
+// Menu de navigation sur mobile
+function basculerMenu(btn){
+  const liens = document.querySelector('.nav-liens');
+  if (!liens) return;
+  const ouvert = liens.classList.toggle('ouvert');
+  if (btn) { btn.textContent = ouvert ? '✕' : '☰'; btn.setAttribute('aria-expanded', ouvert); }
+}
+// Refermer après un clic sur un lien, sinon le panneau masque la page
+document.addEventListener('click', (ev) => {
+  const a = ev.target.closest('.nav-liens a');
+  if (!a) return;
+  const liens = document.querySelector('.nav-liens');
+  const btn = document.querySelector('.burger');
+  if (liens) liens.classList.remove('ouvert');
+  if (btn) { btn.textContent = '☰'; btn.setAttribute('aria-expanded', 'false'); }
+});
+
 // 🌐 Gestion des langues (sans effet si translations.js n'est pas chargé)
 function basculerLangue() {
   if (typeof changerLangue !== 'function') return;

@@ -38,9 +38,12 @@
 <nav class="nav">
   <div class="conteneur nav-int">
     <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Biznis Konekte</a>
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
     <div class="nav-liens">
       <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
       <a href="/boutique.html" class="actif" data-i18n="bq.nav">Boutique</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
     </div>
     <div class="nav-droite">
       <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>

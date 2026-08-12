@@ -8,16 +8,26 @@
 <link rel="stylesheet" href="/style.css">
 <style>
 /* Héros : carte blanche à barre dégradée — signature EDUCA */
-.hero { padding: 30px 0 8px; position: relative; }
-/* Bannière en arrière-plan : volontairement discrète pour que le texte
-   de la page, lui traduisible, reste parfaitement lisible. */
-.hero::before {
-  content: ''; position: absolute; inset: 0;
-  background: url('/banniere-accueil.jpg') center / cover no-repeat;
-  opacity: .16; pointer-events: none;
-}
-.hero > * { position: relative; z-index: 1; }
-@media (max-width: 760px) { .hero::before { opacity: .09; } }
+.hero { padding: 22px 0 8px; position: relative; }
+
+/* ---- Bannière de marque : au premier plan, cliquable ----
+   Les zones actives sont positionnées en pourcentages, elles suivent
+   donc l'image quelle que soit la largeur de l'écran. */
+.banniere-marque { position: relative; display: block; border-radius: 20px; overflow: hidden;
+  box-shadow: var(--ombre); margin-bottom: 24px; line-height: 0; }
+.banniere-marque img { width: 100%; height: auto; display: block; }
+.zone-b { position: absolute; display: block; border-radius: 12px; transition: background .15s, box-shadow .15s; }
+.zone-b:hover { background: rgba(255,255,255,.18); box-shadow: 0 0 0 2px rgba(242,107,33,.6) inset; }
+.zone-b:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.z-cta { left: 6%;    top: 62%; width: 23.5%; height: 9%; border-radius: 99px; }
+.z-p1  { left: 38.2%; top: 53%; width: 9%;    height: 21%; }
+.z-p2  { left: 48.4%; top: 53%; width: 9%;    height: 21%; }
+.z-p3  { left: 58.4%; top: 53%; width: 9%;    height: 21%; }
+.z-c1  { left: 3.5%;  top: 78%; width: 23%;   height: 19%; }
+.z-c2  { left: 28%;   top: 78%; width: 23%;   height: 19%; }
+.z-c3  { left: 52.5%; top: 78%; width: 23%;   height: 19%; }
+.z-c4  { left: 75.5%; top: 78%; width: 23%;   height: 19%; }
+@media (max-width: 620px) { .banniere-marque { border-radius: 14px; margin-bottom: 18px; } }
 .hero-int {
   display: grid; grid-template-columns: 1.2fr .8fr; gap: 34px; align-items: center;
   background: #fff; border: 1px solid var(--bordure); border-radius: 24px;
@@ -142,12 +152,15 @@
 <nav class="nav">
   <div class="conteneur nav-int">
     <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Biznis Konekte</a>
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
     <div class="nav-liens">
       <a href="/" class="actif" data-i18n="acc.nav.accueil">Accueil</a>
       <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
         <a href="#comment" data-i18n="acc.nav.comment">Comment ça marche</a>
       <a href="#categories" data-i18n="acc.nav.categories">Catégories</a>
       <a href="#apropos" data-i18n="acc.nav.apropos">À propos</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
     </div>
     <div class="nav-droite">
       <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
@@ -158,6 +171,20 @@
 </nav>
 
 <header class="hero">
+  <div class="conteneur">
+    <div class="banniere-marque">
+      <img src="/banniere-accueil.jpg" width="1774" height="887"
+           alt="Biznis Konekte — platfòm ki konekte kliyan ak biznis yo">
+      <a class="zone-b z-cta" href="#categories" title="Dekouvri solisyon nou yo" aria-label="Découvrir nos solutions"></a>
+      <a class="zone-b z-p1" href="#comment" title="Randevou senp e rapid" aria-label="Rendez-vous simples et rapides"></a>
+      <a class="zone-b z-p2" href="/inscription.html" title="Ogmante pwodiktivite" aria-label="Augmenter la productivité"></a>
+      <a class="zone-b z-p3" href="#categories-resultats" title="Pi bon eksperyans kliyan" aria-label="Meilleure expérience client"></a>
+      <a class="zone-b z-c1" href="#categories" title="Platfòm total" aria-label="Plateforme complète"></a>
+      <a class="zone-b z-c2" href="/boutique.html" title="Tan ak resous" aria-label="Temps et ressources"></a>
+      <a class="zone-b z-c3" href="#apropos" title="Sekirite" aria-label="Sécurité"></a>
+      <a class="zone-b z-c4" href="https://wa.me/50948245566" target="_blank" rel="noopener" title="Sipò dedye" aria-label="Support dédié"></a>
+    </div>
+  </div>
   <div class="bulle bulle-1"></div>
   <div class="bulle bulle-2"></div>
   <div class="conteneur hero-int">
@@ -374,7 +401,7 @@ async function charger() {
         ${e.urgence ? `<span class="badge badge-urgence" style="margin-top:6px">🚨 ${e.urgence.permanence ? t('cat.urgence24') : t('cat.urgence')}</span>` : ''}
         <div class="flex entre mt" style="margin-top:12px">
           <span class="petit"><span class="etoiles">${etoiles(e.note)}</span> <strong>${e.note || '—'}</strong> <span class="muet">(${e.totalAvis} avis)</span></span>
-          <span class="btn btn-primaire btn-petit">Réserver</span>
+          <span class="btn btn-primaire btn-petit">${ech((e.action && e.action[localStorage.getItem('langue')==='ht'?'ht':'fr']) || 'Réserver')}</span>
         </div>
       </div>
     </a>`;
