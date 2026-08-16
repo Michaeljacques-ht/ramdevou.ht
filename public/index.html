@@ -1,4 +1,45 @@
-<!DOCTYPE html>
+<div class="banniere-marque">
+      <div class="bm-texte">
+        <img src="/logo.png" alt="Biznis Konekte" class="bm-logo">
+        <h2 class="bm-titre">
+          <span data-i18n="bm.titre1">La plateforme qui connecte</span>
+          <span class="bm-accent" data-i18n="bm.titre2">clients et entreprises,</span>
+          <span class="bm-accent" data-i18n="bm.titre3">simple, rapide, efficace.</span>
+        </h2>
+        <p class="bm-intro" data-i18n="bm.intro">Biznis Konekte aide les entreprises haïtiennes à gagner en visibilité, à gérer leurs rendez-vous et à offrir une meilleure expérience à leurs clients.</p>
+        <a class="btn bm-cta" href="#categories"><span data-i18n="bm.cta">Découvrir nos solutions</span> →</a>
+        <div class="bm-atouts">
+          <a class="bm-atout" href="#categories-resultats">
+            <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>
+          <a class="bm-atout" href="/inscription.html">
+            <span class="bm-rond">📈</span><span data-i18n="bm.a2">Productivité accrue</span></a>
+          <a class="bm-atout" href="/boutique.html">
+            <span class="bm-rond">⭐</span><span data-i18n="bm.a3">Meilleure expérience client</span></a>
+        </div>
+      </div>
+      <div class="bm-photo">
+        <img src="/banniere-photo.jpg" alt="" width="774" height="500">
+        <div class="bm-notif"><span class="bm-check">✓</span><span data-i18n="bm.notif">Rendez-vous confirmé !</span></div>
+      </div>
+      <div class="bm-bandeau">
+        <a class="bm-carte" href="#categories">
+          <span class="bm-ico">🌐</span>
+          <span><strong data-i18n="bm.c1t">Plateforme complète</strong>
+          <em data-i18n="bm.c1d">Tout ce dont votre entreprise a besoin, au même endroit.</em></span></a>
+        <a class="bm-carte" href="/boutique.html">
+          <span class="bm-ico">💻</span>
+          <span><strong data-i18n="bm.c2t">Temps et ressources</strong>
+          <em data-i18n="bm.c2d">Gérez rendez-vous, équipe et opérations sans effort.</em></span></a>
+        <a class="bm-carte" href="#apropos">
+          <span class="bm-ico">🔒</span>
+          <span><strong data-i18n="bm.c3t">Sécurité</strong>
+          <em data-i18n="bm.c3d">Vos données sont protégées, votre confiance garantie.</em></span></a>
+        <a class="bm-carte" href="https://wa.me/50948245566" target="_blank" rel="noopener">
+          <span class="bm-ico">🎧</span>
+          <span><strong data-i18n="bm.c4t">Support dédié</strong>
+          <em data-i18n="bm.c4d">Une équipe professionnelle toujours là pour vous aider.</em></span></a>
+      </div>
+    </div><!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -10,24 +51,57 @@
 /* Héros : carte blanche à barre dégradée — signature EDUCA */
 .hero { padding: 22px 0 8px; position: relative; }
 
-/* ---- Bannière de marque : au premier plan, cliquable ----
-   Les zones actives sont positionnées en pourcentages, elles suivent
-   donc l'image quelle que soit la largeur de l'écran. */
-.banniere-marque { position: relative; display: block; border-radius: 20px; overflow: hidden;
-  box-shadow: var(--ombre); margin-bottom: 24px; line-height: 0; }
-.banniere-marque img { width: 100%; height: auto; display: block; }
-.zone-b { position: absolute; display: block; border-radius: 12px; transition: background .15s, box-shadow .15s; }
-.zone-b:hover { background: rgba(255,255,255,.18); box-shadow: 0 0 0 2px rgba(242,107,33,.6) inset; }
-.zone-b:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-.z-cta { left: 6%;    top: 62%; width: 23.5%; height: 9%; border-radius: 99px; }
-.z-p1  { left: 38.2%; top: 53%; width: 9%;    height: 21%; }
-.z-p2  { left: 48.4%; top: 53%; width: 9%;    height: 21%; }
-.z-p3  { left: 58.4%; top: 53%; width: 9%;    height: 21%; }
-.z-c1  { left: 3.5%;  top: 78%; width: 23%;   height: 19%; }
-.z-c2  { left: 28%;   top: 78%; width: 23%;   height: 19%; }
-.z-c3  { left: 52.5%; top: 78%; width: 23%;   height: 19%; }
-.z-c4  { left: 75.5%; top: 78%; width: 23%;   height: 19%; }
-@media (max-width: 620px) { .banniere-marque { border-radius: 14px; margin-bottom: 18px; } }
+/* ---- Bannière de marque, entièrement en HTML pour rester traduisible ---- */
+.banniere-marque { position: relative; display: grid; grid-template-columns: 1.05fr .95fr;
+  background: linear-gradient(120deg, #F7F9FC 0%, #EEF3FE 58%, #E6EDFA 100%);
+  border: 1px solid var(--bordure); border-radius: 20px; overflow: hidden;
+  box-shadow: var(--ombre); margin-bottom: 24px; }
+.bm-texte { padding: 30px 28px 24px; align-self: center; }
+.bm-logo { height: 52px; width: auto; margin-bottom: 16px; }
+.bm-titre { font-size: clamp(21px, 2.5vw, 31px); line-height: 1.16; letter-spacing: -.02em; color: var(--marine); }
+.bm-titre span { display: block; }
+.bm-accent { color: var(--orange); }
+.bm-intro { color: var(--gris); font-size: 14.5px; margin: 12px 0 18px; max-width: 46ch; }
+.bm-cta { background: linear-gradient(90deg, #F26B21, #FF8A3D); color: #fff; border-radius: 99px;
+  padding: 12px 26px; font-weight: 800; box-shadow: 0 8px 20px rgba(242,107,33,.32); }
+.bm-cta:hover { transform: translateY(-1px); color: #fff; text-decoration: none; }
+.bm-atouts { display: flex; gap: 18px; margin-top: 22px; flex-wrap: wrap; }
+.bm-atout { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 108px;
+  text-align: center; font-size: 12px; font-weight: 700; color: var(--marine); }
+.bm-atout:hover { text-decoration: none; }
+.bm-atout:hover .bm-rond { border-color: var(--orange); transform: translateY(-2px); }
+.bm-rond { width: 54px; height: 54px; border-radius: 50%; background: #fff; border: 2px solid var(--bordure);
+  display: grid; place-items: center; font-size: 23px; transition: .15s; box-shadow: var(--ombre); }
+.bm-photo { position: relative; }
+.bm-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bm-notif { position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
+  background: rgba(255,255,255,.94); border-radius: 12px; padding: 9px 14px; text-align: center;
+  font-size: 12.5px; font-weight: 800; color: var(--marine); box-shadow: 0 8px 22px rgba(11,44,107,.22); max-width: 62%; }
+.bm-check { display: block; width: 24px; height: 24px; margin: 0 auto 5px; border-radius: 50%;
+  background: var(--vert); color: #fff; line-height: 24px; }
+.bm-bandeau { grid-column: 1 / -1; background: var(--marine); display: grid;
+  grid-template-columns: repeat(4, 1fr); gap: 0; }
+.bm-carte { display: flex; align-items: flex-start; gap: 11px; padding: 17px 16px; color: #fff;
+  border-right: 1px solid rgba(255,255,255,.12); }
+.bm-carte:last-child { border-right: 0; }
+.bm-carte:hover { background: rgba(255,255,255,.07); text-decoration: none; color: #fff; }
+.bm-ico { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--orange);
+  display: grid; place-items: center; font-size: 17px; flex: none; }
+.bm-carte strong { display: block; font-size: 13.5px; }
+.bm-carte em { font-style: normal; font-size: 12px; opacity: .78; line-height: 1.4; }
+@media (max-width: 900px) {
+  .banniere-marque { grid-template-columns: 1fr; }
+  .bm-photo { order: -1; max-height: 230px; }
+  .bm-bandeau { grid-template-columns: 1fr 1fr; }
+  .bm-carte { border-bottom: 1px solid rgba(255,255,255,.12); }
+}
+@media (max-width: 560px) {
+  .banniere-marque { border-radius: 14px; }
+  .bm-texte { padding: 22px 18px 18px; }
+  .bm-bandeau { grid-template-columns: 1fr; }
+  .bm-atouts { gap: 10px; }
+  .bm-atout { width: 92px; font-size: 11.5px; }
+}
 .hero-int {
   display: grid; grid-template-columns: 1.2fr .8fr; gap: 34px; align-items: center;
   background: #fff; border: 1px solid var(--bordure); border-radius: 24px;
