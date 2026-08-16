@@ -1,45 +1,4 @@
-<div class="banniere-marque">
-      <div class="bm-texte">
-        <img src="/logo.png" alt="Biznis Konekte" class="bm-logo">
-        <h2 class="bm-titre">
-          <span data-i18n="bm.titre1">La plateforme qui connecte</span>
-          <span class="bm-accent" data-i18n="bm.titre2">clients et entreprises,</span>
-          <span class="bm-accent" data-i18n="bm.titre3">simple, rapide, efficace.</span>
-        </h2>
-        <p class="bm-intro" data-i18n="bm.intro">Biznis Konekte aide les entreprises haïtiennes à gagner en visibilité, à gérer leurs rendez-vous et à offrir une meilleure expérience à leurs clients.</p>
-        <a class="btn bm-cta" href="#categories"><span data-i18n="bm.cta">Découvrir nos solutions</span> →</a>
-        <div class="bm-atouts">
-          <a class="bm-atout" href="#categories-resultats">
-            <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>
-          <a class="bm-atout" href="/inscription.html">
-            <span class="bm-rond">📈</span><span data-i18n="bm.a2">Productivité accrue</span></a>
-          <a class="bm-atout" href="/boutique.html">
-            <span class="bm-rond">⭐</span><span data-i18n="bm.a3">Meilleure expérience client</span></a>
-        </div>
-      </div>
-      <div class="bm-photo">
-        <img src="/banniere-photo.jpg" alt="" width="774" height="500">
-        <div class="bm-notif"><span class="bm-check">✓</span><span data-i18n="bm.notif">Rendez-vous confirmé !</span></div>
-      </div>
-      <div class="bm-bandeau">
-        <a class="bm-carte" href="#categories">
-          <span class="bm-ico">🌐</span>
-          <span><strong data-i18n="bm.c1t">Plateforme complète</strong>
-          <em data-i18n="bm.c1d">Tout ce dont votre entreprise a besoin, au même endroit.</em></span></a>
-        <a class="bm-carte" href="/boutique.html">
-          <span class="bm-ico">💻</span>
-          <span><strong data-i18n="bm.c2t">Temps et ressources</strong>
-          <em data-i18n="bm.c2d">Gérez rendez-vous, équipe et opérations sans effort.</em></span></a>
-        <a class="bm-carte" href="#apropos">
-          <span class="bm-ico">🔒</span>
-          <span><strong data-i18n="bm.c3t">Sécurité</strong>
-          <em data-i18n="bm.c3d">Vos données sont protégées, votre confiance garantie.</em></span></a>
-        <a class="bm-carte" href="https://wa.me/50948245566" target="_blank" rel="noopener">
-          <span class="bm-ico">🎧</span>
-          <span><strong data-i18n="bm.c4t">Support dédié</strong>
-          <em data-i18n="bm.c4d">Une équipe professionnelle toujours là pour vous aider.</em></span></a>
-      </div>
-    </div><!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -49,7 +8,7 @@
 <link rel="stylesheet" href="/style.css">
 <style>
 /* Héros : carte blanche à barre dégradée — signature EDUCA */
-.hero { padding: 22px 0 8px; position: relative; }
+.hero { padding: 22px 0 8px; position: relative; z-index: 0; }
 
 /* ---- Bannière de marque, entièrement en HTML pour rester traduisible ---- */
 .banniere-marque { position: relative; display: grid; grid-template-columns: 1.05fr .95fr;
@@ -72,9 +31,10 @@
 .bm-atout:hover .bm-rond { border-color: var(--orange); transform: translateY(-2px); }
 .bm-rond { width: 54px; height: 54px; border-radius: 50%; background: #fff; border: 2px solid var(--bordure);
   display: grid; place-items: center; font-size: 23px; transition: .15s; box-shadow: var(--ombre); }
-.bm-photo { position: relative; }
-.bm-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.bm-notif { position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
+/* Hauteur bornée : sans cela la photo étirait la bannière sur toute la page */
+.bm-photo { position: relative; min-height: 300px; max-height: 420px; overflow: hidden; }
+.bm-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 32%; display: block; }
+.bm-notif { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%);
   background: rgba(255,255,255,.94); border-radius: 12px; padding: 9px 14px; text-align: center;
   font-size: 12.5px; font-weight: 800; color: var(--marine); box-shadow: 0 8px 22px rgba(11,44,107,.22); max-width: 62%; }
 .bm-check { display: block; width: 24px; height: 24px; margin: 0 auto 5px; border-radius: 50%;
@@ -91,7 +51,7 @@
 .bm-carte em { font-style: normal; font-size: 12px; opacity: .78; line-height: 1.4; }
 @media (max-width: 900px) {
   .banniere-marque { grid-template-columns: 1fr; }
-  .bm-photo { order: -1; max-height: 230px; }
+  .bm-photo { order: -1; min-height: 0; max-height: 210px; }
   .bm-bandeau { grid-template-columns: 1fr 1fr; }
   .bm-carte { border-bottom: 1px solid rgba(255,255,255,.12); }
 }
@@ -246,17 +206,47 @@
 <header class="hero">
   <div class="conteneur">
     <div class="banniere-marque">
-      <img src="/banniere-accueil.jpg" width="1774" height="887"
-           alt="Biznis Konekte — platfòm ki konekte kliyan ak biznis yo">
-      <a class="zone-b z-cta" href="#categories" title="Dekouvri solisyon nou yo" aria-label="Découvrir nos solutions"></a>
-      <a class="zone-b z-p1" href="#comment" title="Randevou senp e rapid" aria-label="Rendez-vous simples et rapides"></a>
-      <a class="zone-b z-p2" href="/inscription.html" title="Ogmante pwodiktivite" aria-label="Augmenter la productivité"></a>
-      <a class="zone-b z-p3" href="#categories-resultats" title="Pi bon eksperyans kliyan" aria-label="Meilleure expérience client"></a>
-      <a class="zone-b z-c1" href="#categories" title="Platfòm total" aria-label="Plateforme complète"></a>
-      <a class="zone-b z-c2" href="/boutique.html" title="Tan ak resous" aria-label="Temps et ressources"></a>
-      <a class="zone-b z-c3" href="#apropos" title="Sekirite" aria-label="Sécurité"></a>
-      <a class="zone-b z-c4" href="https://wa.me/50948245566" target="_blank" rel="noopener" title="Sipò dedye" aria-label="Support dédié"></a>
-    </div>
+      <div class="bm-texte">
+        <img src="/logo.png" alt="Biznis Konekte" class="bm-logo">
+        <h2 class="bm-titre">
+          <span data-i18n="bm.titre1">La plateforme qui connecte</span>
+          <span class="bm-accent" data-i18n="bm.titre2">clients et entreprises,</span>
+          <span class="bm-accent" data-i18n="bm.titre3">simple, rapide, efficace.</span>
+        </h2>
+        <p class="bm-intro" data-i18n="bm.intro">Biznis Konekte aide les entreprises haïtiennes à gagner en visibilité, à gérer leurs rendez-vous et à offrir une meilleure expérience à leurs clients.</p>
+        <a class="btn bm-cta" href="#categories"><span data-i18n="bm.cta">Découvrir nos solutions</span> →</a>
+        <div class="bm-atouts">
+          <a class="bm-atout" href="#categories-resultats">
+            <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>
+          <a class="bm-atout" href="/inscription.html">
+            <span class="bm-rond">📈</span><span data-i18n="bm.a2">Productivité accrue</span></a>
+          <a class="bm-atout" href="/boutique.html">
+            <span class="bm-rond">⭐</span><span data-i18n="bm.a3">Meilleure expérience client</span></a>
+        </div>
+      </div>
+      <div class="bm-photo">
+        <img src="/banniere-photo.jpg" alt="" width="774" height="500">
+        <div class="bm-notif"><span class="bm-check">✓</span><span data-i18n="bm.notif">Rendez-vous confirmé !</span></div>
+      </div>
+      <div class="bm-bandeau">
+        <a class="bm-carte" href="#categories">
+          <span class="bm-ico">🌐</span>
+          <span><strong data-i18n="bm.c1t">Plateforme complète</strong>
+          <em data-i18n="bm.c1d">Tout ce dont votre entreprise a besoin, au même endroit.</em></span></a>
+        <a class="bm-carte" href="/boutique.html">
+          <span class="bm-ico">💻</span>
+          <span><strong data-i18n="bm.c2t">Temps et ressources</strong>
+          <em data-i18n="bm.c2d">Gérez rendez-vous, équipe et opérations sans effort.</em></span></a>
+        <a class="bm-carte" href="#apropos">
+          <span class="bm-ico">🔒</span>
+          <span><strong data-i18n="bm.c3t">Sécurité</strong>
+          <em data-i18n="bm.c3d">Vos données sont protégées, votre confiance garantie.</em></span></a>
+        <a class="bm-carte" href="https://wa.me/50948245566" target="_blank" rel="noopener">
+          <span class="bm-ico">🎧</span>
+          <span><strong data-i18n="bm.c4t">Support dédié</strong>
+          <em data-i18n="bm.c4d">Une équipe professionnelle toujours là pour vous aider.</em></span></a>
+      </div>
+    </div><!DOCTYPE html>
   </div>
   <div class="bulle bulle-1"></div>
   <div class="bulle bulle-2"></div>
