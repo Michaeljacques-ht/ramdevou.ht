@@ -10,57 +10,55 @@
 /* Héros : carte blanche à barre dégradée — signature EDUCA */
 .hero { padding: 22px 0 8px; position: relative; z-index: 0; }
 
-/* ---- Bannière de marque, entièrement en HTML pour rester traduisible ---- */
-.banniere-marque { position: relative; display: grid; grid-template-columns: 1.05fr .95fr;
-  background: linear-gradient(120deg, #F7F9FC 0%, #EEF3FE 58%, #E6EDFA 100%);
-  border: 1px solid var(--bordure); border-radius: 20px; overflow: hidden;
+/* ---- Bannière de marque : image en fond, textes en HTML traduisibles ---- */
+.banniere-marque { position: relative; border-radius: 20px; overflow: hidden;
   box-shadow: var(--ombre); margin-bottom: 24px; }
-.bm-texte { padding: 30px 28px 24px; align-self: center; }
-.bm-logo { height: 52px; width: auto; margin-bottom: 16px; }
-.bm-titre { font-size: clamp(21px, 2.5vw, 31px); line-height: 1.16; letter-spacing: -.02em; color: var(--marine); }
+/* La photo passe derrière, assombrie côté texte pour garder la lisibilité */
+.banniere-marque::before {
+  content: ''; position: absolute; inset: 0;
+  background: url('/banniere-fond.jpg') center 40% / cover no-repeat;
+}
+.banniere-marque::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.90) 38%, rgba(255,255,255,.45) 62%, rgba(255,255,255,.18) 100%);
+}
+.bm-texte { position: relative; z-index: 1; padding: 52px 40px 44px; max-width: 62%; }
+.bm-titre { font-size: clamp(28px, 3.5vw, 44px); line-height: 1.12; letter-spacing: -.025em; color: var(--marine); }
 .bm-titre span { display: block; }
 .bm-accent { color: var(--orange); }
-.bm-intro { color: var(--gris); font-size: 14.5px; margin: 12px 0 18px; max-width: 46ch; }
+.bm-intro { color: var(--texte); font-size: clamp(15px, 1.35vw, 18px); margin: 16px 0 22px; max-width: 48ch; font-weight: 500; }
 .bm-cta { background: linear-gradient(90deg, #F26B21, #FF8A3D); color: #fff; border-radius: 99px;
-  padding: 12px 26px; font-weight: 800; box-shadow: 0 8px 20px rgba(242,107,33,.32); }
+  padding: 14px 30px; font-weight: 800; font-size: 16px; box-shadow: 0 8px 20px rgba(242,107,33,.34); }
 .bm-cta:hover { transform: translateY(-1px); color: #fff; text-decoration: none; }
-.bm-atouts { display: flex; gap: 18px; margin-top: 22px; flex-wrap: wrap; }
-.bm-atout { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 108px;
-  text-align: center; font-size: 12px; font-weight: 700; color: var(--marine); }
+.bm-atouts { display: flex; gap: 22px; margin-top: 28px; flex-wrap: wrap; }
+.bm-atout { display: flex; flex-direction: column; align-items: center; gap: 9px; width: 124px;
+  text-align: center; font-size: 13px; font-weight: 700; color: var(--marine); }
 .bm-atout:hover { text-decoration: none; }
-.bm-atout:hover .bm-rond { border-color: var(--orange); transform: translateY(-2px); }
-.bm-rond { width: 54px; height: 54px; border-radius: 50%; background: #fff; border: 2px solid var(--bordure);
-  display: grid; place-items: center; font-size: 23px; transition: .15s; box-shadow: var(--ombre); }
-/* Hauteur bornée : sans cela la photo étirait la bannière sur toute la page */
-.bm-photo { position: relative; min-height: 300px; max-height: 420px; overflow: hidden; }
-.bm-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 32%; display: block; }
-.bm-notif { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%);
-  background: rgba(255,255,255,.94); border-radius: 12px; padding: 9px 14px; text-align: center;
-  font-size: 12.5px; font-weight: 800; color: var(--marine); box-shadow: 0 8px 22px rgba(11,44,107,.22); max-width: 62%; }
-.bm-check { display: block; width: 24px; height: 24px; margin: 0 auto 5px; border-radius: 50%;
-  background: var(--vert); color: #fff; line-height: 24px; }
-.bm-bandeau { grid-column: 1 / -1; background: var(--marine); display: grid;
-  grid-template-columns: repeat(4, 1fr); gap: 0; }
-.bm-carte { display: flex; align-items: flex-start; gap: 11px; padding: 17px 16px; color: #fff;
+.bm-atout:hover .bm-rond { border-color: var(--orange); transform: translateY(-3px); }
+.bm-rond { width: 60px; height: 60px; border-radius: 50%; background: #fff; border: 2px solid var(--bordure);
+  display: grid; place-items: center; font-size: 26px; transition: .15s; box-shadow: var(--ombre); }
+.bm-bandeau { position: relative; z-index: 1; background: var(--marine); display: grid;
+  grid-template-columns: repeat(4, 1fr); }
+.bm-carte { display: flex; align-items: flex-start; gap: 12px; padding: 18px 16px; color: #fff;
   border-right: 1px solid rgba(255,255,255,.12); }
 .bm-carte:last-child { border-right: 0; }
 .bm-carte:hover { background: rgba(255,255,255,.07); text-decoration: none; color: #fff; }
-.bm-ico { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--orange);
-  display: grid; place-items: center; font-size: 17px; flex: none; }
-.bm-carte strong { display: block; font-size: 13.5px; }
-.bm-carte em { font-style: normal; font-size: 12px; opacity: .78; line-height: 1.4; }
+.bm-ico { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--orange);
+  display: grid; place-items: center; font-size: 18px; flex: none; }
+.bm-carte strong { display: block; font-size: 14.5px; }
+.bm-carte em { font-style: normal; font-size: 12.5px; opacity: .8; line-height: 1.45; }
 @media (max-width: 900px) {
-  .banniere-marque { grid-template-columns: 1fr; }
-  .bm-photo { order: -1; min-height: 0; max-height: 210px; }
+  .bm-texte { max-width: 100%; padding: 34px 24px 30px; }
+  .banniere-marque::after { background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.88) 62%, rgba(255,255,255,.72) 100%); }
   .bm-bandeau { grid-template-columns: 1fr 1fr; }
   .bm-carte { border-bottom: 1px solid rgba(255,255,255,.12); }
 }
 @media (max-width: 560px) {
   .banniere-marque { border-radius: 14px; }
-  .bm-texte { padding: 22px 18px 18px; }
+  .bm-texte { padding: 26px 18px 22px; }
   .bm-bandeau { grid-template-columns: 1fr; }
-  .bm-atouts { gap: 10px; }
-  .bm-atout { width: 92px; font-size: 11.5px; }
+  .bm-atouts { gap: 12px; justify-content: center; }
+  .bm-atout { width: 46%; font-size: 12px; }
 }
 .hero-int {
   display: grid; grid-template-columns: 1.2fr .8fr; gap: 34px; align-items: center;
@@ -207,7 +205,6 @@
   <div class="conteneur">
     <div class="banniere-marque">
       <div class="bm-texte">
-        <img src="/logo.png" alt="Biznis Konekte" class="bm-logo">
         <h2 class="bm-titre">
           <span data-i18n="bm.titre1">La plateforme qui connecte</span>
           <span class="bm-accent" data-i18n="bm.titre2">clients et entreprises,</span>
@@ -218,15 +215,13 @@
         <div class="bm-atouts">
           <a class="bm-atout" href="#categories-resultats">
             <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>
+          <a class="bm-atout" href="/boutique.html">
+            <span class="bm-rond">🛒</span><span data-i18n="bm.a4">Acheter en ligne plus facilement</span></a>
           <a class="bm-atout" href="/inscription.html">
             <span class="bm-rond">📈</span><span data-i18n="bm.a2">Productivité accrue</span></a>
-          <a class="bm-atout" href="/boutique.html">
+          <a class="bm-atout" href="#apropos">
             <span class="bm-rond">⭐</span><span data-i18n="bm.a3">Meilleure expérience client</span></a>
         </div>
-      </div>
-      <div class="bm-photo">
-        <img src="/banniere-photo.jpg" alt="" width="774" height="500">
-        <div class="bm-notif"><span class="bm-check">✓</span><span data-i18n="bm.notif">Rendez-vous confirmé !</span></div>
       </div>
       <div class="bm-bandeau">
         <a class="bm-carte" href="#categories">
@@ -246,7 +241,7 @@
           <span><strong data-i18n="bm.c4t">Support dédié</strong>
           <em data-i18n="bm.c4d">Une équipe professionnelle toujours là pour vous aider.</em></span></a>
       </div>
-    </div><!DOCTYPE html>
+    </div>
   </div>
   <div class="bulle bulle-1"></div>
   <div class="bulle bulle-2"></div>
