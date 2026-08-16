@@ -176,8 +176,11 @@ input::placeholder, textarea::placeholder { color: #A7B0BE; }
   border-radius: var(--r-champ); font-size: 20px; line-height: 1; cursor: pointer; color: var(--marine); }
 .burger:hover { border-color: var(--bleu); background: var(--bleu-clair); }
 @media (max-width: 820px) {
-  .burger { display: grid; place-items: center; }
-  .nav-int { gap: 12px; }
+  /* Bouton en tête de barre, à gauche du logo */
+  .burger { display: grid; place-items: center; order: -1; flex: none; }
+  .nav-int { gap: 10px; }
+  .nav-int .logo { font-size: 18px; gap: 7px; min-width: 0; }
+  .nav-int .logo img { height: 30px !important; }
   .nav-liens {
     position: absolute; top: 70px; left: 0; right: 0;
     flex-direction: column; gap: 2px; margin: 0; padding: 10px 16px 16px;
