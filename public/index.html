@@ -27,6 +27,7 @@
 .bm-titre span { display: block; }
 .bm-accent { color: var(--orange); }
 .bm-intro { color: var(--texte); font-size: clamp(15px, 1.35vw, 18px); margin: 16px 0 22px; max-width: 48ch; font-weight: 500; }
+.bm-recherche { margin: 20px 0 18px; max-width: 620px; }
 .bm-cta { background: linear-gradient(90deg, #F26B21, #FF8A3D); color: #fff; border-radius: 99px;
   padding: 14px 30px; font-weight: 800; font-size: 16px; box-shadow: 0 8px 20px rgba(242,107,33,.34); }
 .bm-cta:hover { transform: translateY(-1px); color: #fff; text-decoration: none; }
@@ -60,12 +61,6 @@
   .bm-atouts { gap: 12px; justify-content: center; }
   .bm-atout { width: 46%; font-size: 12px; }
 }
-.hero-int {
-  display: grid; grid-template-columns: 1.2fr .8fr; gap: 34px; align-items: center;
-  background: #fff; border: 1px solid var(--bordure); border-radius: 24px;
-  padding: 46px 42px; box-shadow: var(--ombre); position: relative; overflow: hidden;
-}
-.hero-int::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: var(--degrade-accent); }
 .hero h1 { font-size: clamp(30px, 4.2vw, 42px); line-height: 1.1; letter-spacing: -.03em; }
 .hero h1 .accent {
   background: linear-gradient(90deg, #1E5FE0, #6D4AC4);
@@ -77,9 +72,6 @@
 .barre-recherche input:focus { outline: none; }
 .barre-recherche .sep { width: 1px; background: var(--bordure); }
 .barre-recherche button { border-radius: 0; }
-.hero-visuel { position: relative; min-height: 400px; }
-.hero-photo { display: none; }
-.carte-confirmation { position: absolute; right: -8px; bottom: -20px; background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(16,24,40,.16); padding: 18px 20px; width: 240px; }
 .pastille-verte { width: 40px; height: 40px; border-radius: 50%; background: var(--vert); color: #fff; display: grid; place-items: center; font-size: 20px; margin-bottom: 10px; }
 .categories { display: flex; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
 .cat { display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; border: none; background: none; font: inherit; }
@@ -104,8 +96,6 @@
 .pied a { color: #CBD5E1; }
 .pied .logo { color: #fff; }
 @media (max-width: 900px) {
-  .hero-int { grid-template-columns: 1fr; }
-  .hero-visuel { display: none; }
   .bande-atouts, .etapes { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) { .bande-atouts, .etapes { grid-template-columns: 1fr; } .barre-recherche { flex-direction: column; } .barre-recherche .sep { display: none; } }
@@ -116,18 +106,10 @@
 @keyframes flotte2 { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-14px) rotate(2deg); } }
 @keyframes derive { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(26px,-20px) scale(1.12); } }
 @keyframes pulsation { 0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.35); } 60% { box-shadow: 0 0 0 14px rgba(37,99,235,0); } }
-.hero-int > div:first-child > * { animation: montee .6s cubic-bezier(.2,.8,.2,1) both; }
-.hero-int > div:first-child > *:nth-child(2) { animation-delay: .1s; }
-.hero-int > div:first-child > *:nth-child(3) { animation-delay: .2s; }
-.hero-int > div:first-child > *:nth-child(4) { animation-delay: .3s; }
-.hero-int > div:first-child > *:nth-child(5) { animation-delay: .38s; }
 .hero { position: relative; overflow: hidden; }
 .bulle { position: absolute; border-radius: 50%; filter: blur(46px); opacity: .5; pointer-events: none; animation: derive 11s ease-in-out infinite; }
 .bulle-1 { width: 320px; height: 320px; background: #C7DBFF; top: -90px; right: 8%; }
 .bulle-2 { width: 240px; height: 240px; background: #DCE9FF; bottom: -70px; left: 4%; animation-delay: 3s; }
-.hero-visuel { animation: montee .7s .25s cubic-bezier(.2,.8,.2,1) both; }
-.carte-confirmation { animation: flotte 5.5s ease-in-out infinite; }
-.carte-rappel { position: absolute; top: 18px; left: -14px; background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: var(--ombre); padding: 10px 14px; font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: center; animation: flotte2 6.5s .8s ease-in-out infinite; }
 .barre-recherche:focus-within { box-shadow: 0 0 0 4px rgba(37,99,235,.14); border-color: var(--bleu); }
 .cat { transition: transform .18s, box-shadow .18s; }
 .cat:hover { transform: translateY(-3px); }
@@ -138,7 +120,6 @@
 .bande-chiffres { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; text-align: center; margin: 44px 0 8px; }
 .chiffre strong { font-size: clamp(26px,3.4vw,38px); color: var(--bleu); display: block; font-variant-numeric: tabular-nums; }
 .chiffre span { font-size: 13px; color: var(--gris); font-weight: 600; }
-@media (max-width: 700px) { .bande-chiffres { grid-template-columns: 1fr 1fr; } .carte-rappel { display: none; } }
 .carte-ent { position: relative; }
 .carte-ent .banniere { position: relative; background-size: cover; background-position: center; transition: transform .35s; overflow: hidden; }
 .carte-ent:hover .banniere { transform: scale(1.04); }
@@ -188,7 +169,7 @@
     <div class="nav-liens">
       <a href="/" class="actif" data-i18n="acc.nav.accueil">Accueil</a>
       <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
-      <a href="#categories" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
       <a href="#apropos" data-i18n="acc.nav.apropos">À propos</a>
       <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
       <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
@@ -211,9 +192,15 @@
           <span class="bm-accent" data-i18n="bm.titre3">simple, rapide, efficace.</span>
         </h2>
         <p class="bm-intro" data-i18n="bm.intro">Biznis Konekte aide les entreprises haïtiennes à gagner en visibilité, à gérer leurs rendez-vous et à offrir une meilleure expérience à leurs clients.</p>
-        <a class="btn bm-cta" href="#categories"><span data-i18n="bm.cta">Découvrir nos solutions</span> →</a>
+        <form class="barre-recherche bm-recherche" id="formRecherche">
+          <input type="text" id="champQ" placeholder="Que cherchez-vous ?" data-i18n-placeholder="acc.rech.q" aria-label="Recherche">
+          <div class="sep"></div>
+          <input type="text" id="champLieu" placeholder="Localisation" data-i18n-placeholder="acc.rech.lieu" aria-label="Localisation">
+          <button class="btn btn-primaire" type="submit" data-i18n="acc.rech.bouton">Rechercher</button>
+        </form>
+        <a class="btn bm-cta" href="/categories.html"><span data-i18n="bm.cta">Découvrir nos solutions</span> →</a>
         <div class="bm-atouts">
-          <a class="bm-atout" href="#categories-resultats">
+          <a class="bm-atout" href="/categories.html">
             <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>
           <a class="bm-atout" href="/boutique.html">
             <span class="bm-rond">🛒</span><span data-i18n="bm.a4">Acheter en ligne plus facilement</span></a>
@@ -245,38 +232,6 @@
   </div>
   <div class="bulle bulle-1"></div>
   <div class="bulle bulle-2"></div>
-  <div class="conteneur hero-int">
-    <div>
-      <span class="eyebrow" data-i18n="acc.eyebrow">Plateforme haïtienne</span>
-      <h1><span data-i18n="acc.hero.titre1">Réservez facilement vos rendez-vous avec </span><span class="accent" data-i18n="acc.hero.accent">les meilleures entreprises</span></h1>
-      <p class="intro" data-i18n="acc.hero.intro">Biznis Konekte est la plateforme numéro 1 en Haïti pour trouver et réserver des services de qualité.</p>
-      <form class="barre-recherche" id="formRecherche">
-        <input type="text" id="champQ" placeholder="Que cherchez-vous ?" data-i18n-placeholder="acc.rech.q" aria-label="Recherche">
-        <div class="sep"></div>
-        <input type="text" id="champLieu" placeholder="Localisation" data-i18n-placeholder="acc.rech.lieu" aria-label="Localisation">
-        <button class="btn btn-primaire" type="submit" data-i18n="acc.rech.bouton">Rechercher</button>
-      </form>
-      <p class="petit muet" style="margin-top:18px;font-weight:600" data-i18n="acc.cat.populaires">Catégories populaires :</p>
-      <div class="categories" id="categories">
-        <button class="cat" data-cat="Santé"><span class="rond">🩺</span><span data-i18n="cat.sante">Santé</span></button>
-        <button class="cat" data-cat="Beauté"><span class="rond">💇</span><span data-i18n="cat.beaute">Beauté</span></button>
-        <button class="cat" data-cat="Formation"><span class="rond">🎓</span><span data-i18n="cat.formation">Formation</span></button>
-        <button class="cat" data-cat="Auto"><span class="rond">🚗</span><span data-i18n="cat.auto">Auto</span></button>
-        <button class="cat" data-cat="Maison"><span class="rond">🏠</span><span data-i18n="cat.maison">Maison</span></button>
-        <button class="cat" data-cat="Hôtels &amp; Restaurants"><span class="rond">🏨</span><span data-i18n="cat.hotels">Hôtels &amp; Restos</span></button>
-        <button class="cat cat-urgence" data-cat="__urgence"><span class="rond">🚨</span><span data-i18n="cat.urgence">Urgences</span></button>
-        <button class="cat" data-cat="Tout"><span class="rond">⊞</span><span data-i18n="cat.tout">Tout</span></button>
-      </div>
-    </div>
-    <div class="hero-visuel">
-      <div class="carte-rappel">🔔 <span data-i18n="acc.visu.rappel">Rappel envoyé au client</span></div>
-      <div class="carte-confirmation">
-        <div class="pastille-verte">✓</div>
-        <strong data-i18n="acc.visu.confirme">Réservation confirmée !</strong>
-        <p class="petit" style="margin-top:6px"><strong data-i18n="acc.visu.etab">Votre établissement</strong><br><span class="muet" data-i18n="acc.visu.detail">Aujourd'hui — service confirmé</span></p>
-      </div>
-    </div>
-  </div>
 </header>
 
 <main class="conteneur">
@@ -332,11 +287,59 @@
   </section>
 
   <section class="section" id="apropos">
-    <div class="carte" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none">
-      <div class="carte-corps centre" style="padding:44px 24px;color:#fff">
-        <h2 style="color:#fff">Vous gérez une entreprise ?</h2>
-        <p style="color:#B9C6E4;max-width:52ch;margin:10px auto 22px">Salon, clinique, garage, école, cabinet… Offrez à vos clients la réservation en ligne, gérez votre calendrier et développez votre activité avec Biznis Konekte.</p>
-        <a class="btn btn-primaire btn-large" href="/inscription.html">Inscrire mon entreprise gratuitement</a>
+    <span class="eyebrow" data-i18n="ap.eyebrow">À propos</span>
+    <h2 data-i18n="ap.titre">Une plateforme née en Haïti, pour les entreprises haïtiennes</h2>
+    <p class="muet" style="max-width:64ch;margin-top:8px" data-i18n="ap.intro">Biznis Konekte est née d'un constat simple : trop d'entreprises haïtiennes perdent des clients faute d'un moyen simple d'être trouvées, jointes et réservées. Nous réunissons sur un même espace la prise de rendez-vous, la réservation d'hébergement, la vente en ligne et le suivi de dossiers.</p>
+
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:28px">🎯</div>
+        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m1t">Notre mission</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m1d">Donner à chaque entreprise haïtienne, quelle que soit sa taille, les outils numériques que seules les grandes structures pouvaient s'offrir.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:28px">🇭🇹</div>
+        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m2t">Pensée pour le pays</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m2d">Français et créole, paiement par MonCash, NatCash et Kashpaw, notifications WhatsApp, fonctionnement sur connexion lente. Rien n'est importé sans adaptation.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:28px">🤝</div>
+        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m3t">Un modèle équitable</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m3d">Six mois gratuits pour toute nouvelle entreprise, puis un forfait clair sans engagement. Nous ne gagnons que si votre activité tourne.</p>
+      </div></div>
+    </div>
+
+    <h3 style="margin-top:34px" data-i18n="ap.quoi">Ce que la plateforme sait faire</h3>
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
+      <div class="panneau"><strong>🗓 <span data-i18n="ap.f1t">Rendez-vous</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f1d">Créneaux, calendrier, équipe et rappels automatiques.</p></div>
+      <div class="panneau"><strong>🛏️ <span data-i18n="ap.f2t">Hôtellerie</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f2d">Chambres, séjours, plans tarifaires, saisons et planning d'occupation.</p></div>
+      <div class="panneau"><strong>🛒 <span data-i18n="ap.f3t">Vente en ligne</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f3d">Catalogue, panier, commandes, livraison ou retrait sur place.</p></div>
+      <div class="panneau"><strong>🎓 <span data-i18n="ap.f4t">Écoles</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f4d">Programmes, inscriptions en ligne et contrôle des places.</p></div>
+      <div class="panneau"><strong>📁 <span data-i18n="ap.f5t">Dossiers</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f5d">Notaires, arpenteurs, avocats et comptables : suivi étape par étape.</p></div>
+      <div class="panneau"><strong>🚨 <span data-i18n="ap.f6t">Urgences</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f6d">Cliniques et pharmacies joignables immédiatement, avec leur état d'affluence.</p></div>
+    </div>
+
+    <h3 style="margin-top:34px" data-i18n="ap.conf">Confiance et sécurité</h3>
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+      <div class="panneau"><strong data-i18n="ap.s1t">Vos données vous appartiennent</strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s1d">Les coordonnées de vos clients ne sont ni revendues, ni cédées à des tiers.</p></div>
+      <div class="panneau"><strong data-i18n="ap.s2t">Paiements encadrés</strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s2d">Les encaissements passent par une passerelle agréée. Votre part est créditée sur votre portefeuille, commission déduite.</p></div>
+      <div class="panneau"><strong data-i18n="ap.s3t">Entreprises vérifiées</strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s3d">Chaque inscription est examinée avant publication sur la plateforme.</p></div>
+    </div>
+
+    <div class="carte mt" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none">
+      <div class="carte-corps centre" style="padding:40px 24px;color:#fff">
+        <h2 style="color:#fff" data-i18n="ap.cta.titre">Vous gérez une entreprise ?</h2>
+        <p style="color:#B9C6E4;max-width:54ch;margin:10px auto 22px" data-i18n="ap.cta.texte">Salon, clinique, garage, école, hôtel, boutique ou cabinet : ouvrez votre espace et profitez de six mois gratuits.</p>
+        <a class="btn btn-primaire btn-large" href="/inscription.html" data-i18n="ap.cta.bouton">Inscrire mon entreprise — 6 mois gratuits</a>
       </div>
     </div>
   </section>
@@ -364,7 +367,7 @@
       <div class="pied-col">
         <h4 data-i18n="pied.produit">PRODUIT</h4>
         <a href="#comment" data-i18n="pied.fonctionnalites">Fonctionnalités</a>
-        <a href="#categories" data-i18n="pied.categories">Catégories</a>
+        <a href="/categories.html" data-i18n="pied.categories">Catégories</a>
         <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
         <a href="/inscription.html" data-i18n="pied.inscrire">Inscrire mon entreprise</a>
         <a href="/connexion.html" data-i18n="pied.connexion">Connexion</a>
