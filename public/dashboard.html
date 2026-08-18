@@ -111,6 +111,7 @@ body { background: var(--gris-clair); }
     <button class="lien-lat" data-sec="employes">👥 Employés</button>
     <button class="lien-lat" data-sec="avis">⭐ Avis &amp; Notes</button>
     <button class="lien-lat" data-sec="perso">🎨 Personnalisation</button>
+    <button class="lien-lat" data-sec="abonnement">💳 Mon abonnement</button>
     <button class="lien-lat" data-sec="param">⚙️ Paramètres &amp; horaires</button>
     <div class="bloc-user">
       <span class="avatar" id="avatarUser">–</span>
@@ -487,6 +488,23 @@ body { background: var(--gris-clair); }
         </div></div>
       </section>
 
+      <!-- ===== Abonnement ===== -->
+      <section id="sec-abonnement" class="section-cache">
+        <div class="carte carte-signature"><div class="carte-corps">
+          <h2 style="font-size:16px">💳 Votre abonnement</h2>
+          <div id="etatAbonnement" class="mt"></div>
+        </div></div>
+        <div class="carte mt"><div class="carte-corps">
+          <h2 style="font-size:16px">Changer de forfait</h2>
+          <p class="petit muet mt">Le changement prend effet immédiatement. Il ne modifie pas votre date de fin d'essai.</p>
+          <div id="choixForfaits" class="mt"></div>
+        </div></div>
+        <div class="carte mt" id="carteHistoAb" style="display:none"><div class="carte-corps">
+          <h2 style="font-size:16px">Règlements</h2>
+          <div id="histoAbonnement" class="mt"></div>
+        </div></div>
+      </section>
+
       <!-- ===== Portefeuille & Paiements ===== -->
       <section id="sec-portefeuille" class="section-cache">
         <div class="carte"><div class="carte-corps">
@@ -854,7 +872,7 @@ body { background: var(--gris-clair); }
 let moi = null, ent = null, tousRdv = [], tousSejours = [], semaineOffset = 0, serviceEnCours = null;
 const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
-const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres, séjours & services', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', param:'Paramètres & horaires' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres, séjours & services', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', perso:'Personnalisation', abonnement:'Mon abonnement', param:'Paramètres & horaires' };
 
 function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
 async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
@@ -1250,6 +1268,75 @@ async function statutSejour(id, statut){
 
 
 
+
+// ===== Abonnement =====
+async function chargerAbonnement(){
+  const a = await api('/api/mon-entreprise/abonnement');
+  const cat = a.catalogue;
+  const enEssai = a.statut === 'essai';
+  const z = document.getElementById('etatAbonnement');
+  z.innerHTML = `
+    <div class="flex entre" style="gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <strong style="font-size:19px">${ech(a.nom.fr)}</strong>
+        <span class="badge ${enEssai?'badge-vert':(a.statut==='a_regler'?'badge-orange':'badge-bleu')}" style="margin-left:8px">
+          ${enEssai ? 'Essai gratuit' : (a.statut === 'a_regler' ? 'À régler' : 'Actif')}</span>
+        <p class="petit muet mt">${a.prixMois ? (+a.prixMois).toLocaleString('fr-HT')+' HTG par mois' : 'Forfait gratuit'}
+          · commission ${Math.round(a.commission*100)} %${a.plafondCommission?` (plafonnée à ${a.plafondCommission} HTG)`:''}</p>
+      </div>
+      ${a.prixMois ? `<button class="btn btn-primaire" onclick="payerAbonnement()">${enEssai?'Payer par avance':'Régler mon abonnement'}</button>` : ''}
+    </div>
+    ${enEssai ? `<div style="background:var(--vert-fond);border-radius:12px;padding:14px 16px;margin-top:14px">
+        🎁 <strong style="color:#07684A">${a.joursRestants} jours gratuits restants</strong>
+        <p class="petit" style="margin-top:4px">Gratuit jusqu'au <strong>${ech(a.essaiFin)}</strong>. Premier prélèvement le ${ech(a.prochainPaiement)}.</p>
+      </div>`
+    : (a.statut === 'a_regler' ? `<div style="background:var(--orange-fond);border-radius:12px;padding:14px 16px;margin-top:14px">
+        <strong style="color:#C4520E">Votre période gratuite est terminée.</strong>
+        <p class="petit" style="margin-top:4px">Réglez votre abonnement pour continuer à profiter de votre forfait.</p>
+      </div>`
+    : `<p class="petit muet mt">Prochaine échéance : <strong>${ech(a.prochainPaiement)}</strong></p>`)}
+    ${a.contratSigne ? '<p class="petit muet mt">📄 Contrat signé.</p>' : ''}`;
+
+  document.getElementById('choixForfaits').innerHTML = cat.forfaits.map(f => `
+    <div class="panneau" style="${f.cle===a.forfait?'border-color:var(--bleu)':''}">
+      <div class="flex entre" style="gap:10px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:190px">
+          <strong>${ech(f.nom.fr)}</strong>
+          ${f.cle===a.forfait?'<span class="badge badge-bleu" style="margin-left:6px">Votre forfait</span>':''}
+          <p class="petit muet">${ech(f.resume.fr)}</p>
+          <p class="petit muet" style="margin-top:4px">${f.avantages.fr.map(ech).join(' · ')}</p>
+        </div>
+        <div style="text-align:right">
+          <strong>${f.prixMois ? (+f.prixMois).toLocaleString('fr-HT')+' HTG' : 'Gratuit'}</strong>
+          ${f.prixMois?'<span class="petit muet"><br>par mois</span>':''}
+          ${f.cle!==a.forfait?`<br><button class="btn btn-contour btn-petit" style="margin-top:8px" onclick="changerForfait('${f.cle}')">Choisir</button>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+
+  const h = a.historique || [];
+  document.getElementById('carteHistoAb').style.display = h.length ? '' : 'none';
+  if (h.length) document.getElementById('histoAbonnement').innerHTML = `<table>
+    <tr><th>Date</th><th>Mois</th><th>Montant</th><th>Couvert jusqu'au</th></tr>
+    ${h.slice().reverse().map(x => `<tr><td class="petit">${x.le.slice(0,10)}</td><td class="petit">${x.mois}</td>
+      <td class="petit">${(+x.montant).toLocaleString('fr-HT')} HTG</td><td class="petit">${ech(x.jusquau)}</td></tr>`).join('')}
+  </table>`;
+}
+async function changerForfait(cle){
+  if (!confirm('Changer de forfait ? Votre période gratuite reste inchangée.')) return;
+  try { await api('/api/mon-entreprise/abonnement','PUT',{forfait:cle}); toast('Forfait mis à jour.'); chargerAbonnement(); }
+  catch(e){ toast(e.message); }
+}
+async function payerAbonnement(){
+  const mois = prompt('Combien de mois souhaitez-vous régler ?', '1');
+  if (!mois) return;
+  try {
+    const r = await api('/api/mon-entreprise/abonnement/payer','POST',{ mois: +mois || 1 });
+    if (r.urlPaiement) { location.href = r.urlPaiement; return; }
+    toast('Paiement indisponible.');
+  } catch(e){ toast(e.message); }
+}
+
 // ===== Modules choisis par l'entreprise =====
 const LIB_MODULES = {
   rdv:{lib:'Rendez-vous et calendrier',ico:'🗓'}, equipe:{lib:'Équipe',ico:'👥'},
@@ -1327,6 +1414,7 @@ function appliquerMetier(){
   // 3) Champs propres au métier
   dessinerChampsMetier();
   dessinerModules();
+  chargerAbonnement();
   const tr = document.getElementById('titreRecents');
   if (tr) tr.textContent = aModule('hotellerie') ? 'Réservations récentes' : 'Rendez-vous récents';
 }

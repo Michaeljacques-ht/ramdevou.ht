@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const store = require('./lib/db');
 const plopplop = require('./plopplop.js');
 const metiers = require('./lib/metiers.js');
+const forfaits = require('./lib/forfaits.js');
 const taksi = require('./lib/taksi.js');
 
 // ---- Paramètres commerciaux ----
@@ -191,7 +192,14 @@ function creerPaiement(entrepriseId, commandeType, commandeId, montant, methodeP
   const reference = `${commandeType[0].toUpperCase()}${commandeId.slice(0, 8)}${Date.now().toString(36).toUpperCase()}`;
   const paiement = {
     id: store.uid(), entrepriseId, reference, commandeType, commandeId, montantBrut: montant,
-    commission: Math.round(montant * COMMISSION_RANDEVOU), montantNet: Math.round(montant * (1 - COMMISSION_RANDEVOU)),
+    commission: (() => {
+      const ent = db.entreprises.find((x) => x.id === entrepriseId);
+      return forfaits.commissionPour(ent, montant);
+    })(),
+    montantNet: (() => {
+      const ent = db.entreprises.find((x) => x.id === entrepriseId);
+      return montant - forfaits.commissionPour(ent, montant);
+    })(),
     methodePaiement: methodePaiement || 'all', clientEmail, clientNom,
     statut: 'en_attente', transactionId: null, creeLe: new Date().toISOString()
   };
@@ -436,6 +444,20 @@ async function api(req, res, url) {
       adresse: adresse || '', telephone: telephone || '', whatsapp: (telephone || '').replace(/\D/g, ''),
       email, statut: 'en_attente', plan: 'gratuit', couleur: '#2563EB', couleur2: '#F59E0B',
       metier: metiers.CLES_METIERS.includes(corps.metier) ? corps.metier : 'autre',
+      abonnement: (() => {
+        const ab = forfaits.nouvelAbonnement(corps.forfait, new Date());
+        // Traces des étapes légales : conservées telles qu'acceptées
+        ab.politique = corps.politiqueAcceptee ? { acceptee: true, le: new Date().toISOString() } : null;
+        if (corps.signature) {
+          ab.contrat = {
+            signature: String(corps.signature).slice(0, 90),
+            qualite: String(corps.qualiteSignataire || '').slice(0, 60),
+            le: new Date().toISOString(),
+            version: '1.0'
+          };
+        }
+        return ab;
+      })(),
       champs: {},
       logoTexte: nomEntreprise.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
       horaires: { lun: { ouvert: true, debut: '08:00', fin: '17:00' }, mar: { ouvert: true, debut: '08:00', fin: '17:00' }, mer: { ouvert: true, debut: '08:00', fin: '17:00' }, jeu: { ouvert: true, debut: '08:00', fin: '17:00' }, ven: { ouvert: true, debut: '08:00', fin: '17:00' }, sam: { ouvert: true, debut: '09:00', fin: '13:00' }, dim: { ouvert: false, debut: '09:00', fin: '13:00' } },
@@ -471,6 +493,9 @@ async function api(req, res, url) {
   }
 
   // ---- Public : annuaire ----
+  // Catalogue des forfaits et durée de la période d'essai
+  if (p === '/api/forfaits' && req.method === 'GET') return json(res, 200, forfaits.catalogueForfaits());
+
   // Référentiel des métiers (vocabulaire, modules, champs)
   if (p === '/api/metiers' && req.method === 'GET') return json(res, 200, metiers.referentiel());
 
@@ -1015,7 +1040,8 @@ async function api(req, res, url) {
       return json(res, 200, Object.assign({}, e, {
         modulesDisponibles: metiers.MODULES,
         modulesMetier: metiers.metierDe(e).modules,
-        modulesActifs: metiers.modulesActifs(e)
+        modulesActifs: metiers.modulesActifs(e),
+        abonnementEtat: forfaits.etatAbonnement(e)
       }));
     if (p === '/api/mon-entreprise' && req.method === 'PUT') {
       ['nom', 'description', 'adresse', 'telephone', 'whatsapp', 'email', 'categorie', 'couleur', 'couleur2', 'logoTexte', 'horaires'].forEach((k) => {
@@ -1086,6 +1112,80 @@ async function api(req, res, url) {
       return json(res, 403, { erreur: 'Le module Restaurant & Bar n\'est pas disponible pour votre type d\'activité.' });
     if (p.startsWith('/api/mon-entreprise/chambres') && !metiers.aModule(e, 'hotellerie'))
       return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
+
+    // ================= Abonnement de l'entreprise =================
+    if (p === '/api/mon-entreprise/abonnement' && req.method === 'GET')
+      return json(res, 200, Object.assign(forfaits.etatAbonnement(e), {
+        catalogue: forfaits.catalogueForfaits(),
+        historique: (e.abonnement && e.abonnement.paiements) || [],
+        contrat: (e.abonnement && e.abonnement.contrat) || null
+      }));
+
+    // Changement de forfait : sans effet sur la date de fin d'essai
+    if (p === '/api/mon-entreprise/abonnement' && req.method === 'PUT') {
+      if (!e.abonnement) e.abonnement = forfaits.nouvelAbonnement('decouverte', new Date());
+      if (corps.forfait !== undefined) {
+        if (!forfaits.CLES_FORFAITS.includes(corps.forfait))
+          return json(res, 400, { erreur: 'Forfait inconnu.' });
+        e.abonnement.forfait = corps.forfait;
+      }
+      if (corps.signature !== undefined && String(corps.signature).trim()) {
+        e.abonnement.contrat = {
+          signature: String(corps.signature).slice(0, 90),
+          qualite: String(corps.qualiteSignataire || '').slice(0, 60),
+          le: new Date().toISOString(), version: '1.0'
+        };
+      }
+      store.save();
+      return json(res, 200, forfaits.etatAbonnement(e));
+    }
+
+    // Règlement de l'abonnement : par anticipation pendant l'essai, ou à échéance
+    if (p === '/api/mon-entreprise/abonnement/payer' && req.method === 'POST') {
+      const etat = forfaits.etatAbonnement(e);
+      const f = forfaits.FORFAITS[etat.forfait];
+      if (!f || f.prixMois <= 0)
+        return json(res, 400, { erreur: 'Ce forfait est gratuit, aucun règlement n\'est nécessaire.' });
+      const mois = Math.max(1, Math.min(+corps.mois || 1, 12));
+      const montant = f.prixMois * mois;
+      const reference = 'AB' + e.id.slice(0, 6).toUpperCase() + Date.now().toString(36).toUpperCase();
+      let r;
+      try {
+        r = await plopplop.initierPaiement({ reference, montant, methode: 'all' });
+      } catch (err) {
+        return json(res, 503, { erreur: 'Passerelle de paiement indisponible.' });
+      }
+      if (!r.ok) return json(res, 402, { erreur: r.error || 'La passerelle a refusé la transaction.' });
+      e.abonnement.paiementEnCours = { reference, montant, mois, ouvertLe: new Date().toISOString() };
+      store.save();
+      return json(res, 200, { ok: true, reference, montant, mois, urlPaiement: r.urlPaiement });
+    }
+
+    if (p === '/api/mon-entreprise/abonnement/verifier' && req.method === 'POST') {
+      const enCours = e.abonnement && e.abonnement.paiementEnCours;
+      if (!enCours) return json(res, 400, { erreur: 'Aucun règlement en attente.' });
+      let v;
+      try { v = await plopplop.verifierPaiement(enCours.reference); }
+      catch (err) { return json(res, 503, { erreur: 'Vérification impossible.' }); }
+      if (!(v.ok && v.paye))
+        return json(res, 402, { ok: false, message: v.message || 'Règlement non encore confirmé.' });
+
+      // Les mois réglés repoussent la prochaine échéance
+      const base = e.abonnement.prochainPaiement > new Date().toISOString().slice(0, 10)
+        ? new Date(e.abonnement.prochainPaiement + 'T00:00:00Z') : new Date();
+      e.abonnement.prochainPaiement = forfaits.ajouterMois(base, enCours.mois).toISOString().slice(0, 10);
+      e.abonnement.statut = 'actif';
+      e.abonnement.paiements.push({
+        reference: enCours.reference, montant: enCours.montant, mois: enCours.mois,
+        le: new Date().toISOString(), jusquau: e.abonnement.prochainPaiement
+      });
+      delete e.abonnement.paiementEnCours;
+      store.save();
+      envoyerWhatsApp(e.telephone, 'abonnement_regle',
+        [e.nom, forfaits.FORFAITS[e.abonnement.forfait].nom.fr,
+         enCours.montant.toLocaleString('fr-HT') + ' HTG', e.abonnement.prochainPaiement]);
+      return json(res, 200, { ok: true, etat: forfaits.etatAbonnement(e) });
+    }
 
     // ================= Gestion hôtelière =================
     if ((p.startsWith('/api/mon-entreprise/tarifs') || p.startsWith('/api/mon-entreprise/saisons')
