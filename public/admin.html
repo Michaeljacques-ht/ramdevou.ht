@@ -39,9 +39,67 @@ body { background: var(--gris-clair); }
     </div>
     <div style="overflow:auto" class="mt"><table id="tableEnt"></table></div>
   </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre">
+      <h2 style="font-size:16px">📨 Messages reçus</h2>
+      <select id="filtreMsg" style="width:auto" onchange="chargerMessages()">
+        <option value="">Tous</option>
+        <option value="nouveau">Nouveaux</option>
+        <option value="contact">Contact</option>
+        <option value="partenaire">Partenariat</option>
+        <option value="question">Questions</option>
+      </select>
+    </div>
+    <div id="listeMessages" class="mt"></div>
+  </div></div>
 </main>
 
-<script src="/app.js"></script>
+<script src="/app.js">
+// ===== Messages reçus =====
+const LIB_TYPE = { contact:'Contact', partenaire:'Partenariat', question:'Question' };
+async function chargerMessages(){
+  let liste = [];
+  try { liste = await api('/api/admin/messages'); } catch(e){ return; }
+  const f = document.getElementById('filtreMsg').value;
+  if (f === 'nouveau') liste = liste.filter(m => m.statut === 'nouveau');
+  else if (f) liste = liste.filter(m => m.type === f);
+  const z = document.getElementById('listeMessages');
+  if (!liste.length) { z.innerHTML = '<p class="muet petit">Aucun message.</p>'; return; }
+  z.innerHTML = liste.map(m => `
+    <div class="panneau" style="${m.statut==='nouveau'?'border-color:var(--orange)':''}">
+      <div class="flex entre" style="gap:10px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:220px">
+          <strong>${ech(m.nom)}</strong>
+          <span class="badge badge-bleu" style="margin-left:6px">${LIB_TYPE[m.type]||m.type}</span>
+          ${m.statut==='nouveau'?'<span class="badge badge-orange" style="margin-left:4px">Nouveau</span>':''}
+          <p class="petit muet" style="margin-top:4px">
+            ${m.entreprise?ech(m.entreprise)+' · ':''}${m.sujet?ech(m.sujet):''}
+            ${m.activite?' · '+ech(m.activite):''}${m.ville?' · '+ech(m.ville):''}</p>
+          <p class="petit muet">
+            ${m.email?`<a href="mailto:${ech(m.email)}">${ech(m.email)}</a>`:''}
+            ${m.telephone?` · <a target="_blank" rel="noopener" href="https://wa.me/${String(m.telephone).replace(/\D/g,'')}">${ech(m.telephone)}</a>`:''}</p>
+          <p class="petit" style="margin-top:8px;white-space:pre-wrap">${ech(m.message)}</p>
+        </div>
+        <div style="text-align:right">
+          <p class="petit muet">${m.reference}<br>${m.creeLe.slice(0,10)}</p>
+          <div class="flex" style="gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:flex-end">
+            ${m.statut!=='traite'?`<button class="btn btn-succes btn-petit" onclick="statutMsg('${m.id}','traite')">Traité</button>`:''}
+            <button class="btn btn-fantome btn-petit" onclick="supprimerMsg('${m.id}')">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+async function statutMsg(id, statut){
+  await api('/api/admin/messages/'+id,'PUT',{statut}); chargerMessages();
+}
+async function supprimerMsg(id){
+  if (!confirm('Supprimer ce message ?')) return;
+  await api('/api/admin/messages/'+id,'DELETE'); chargerMessages();
+}
+chargerMessages();
+</script>
 <script>
 let entreprises = [];
 const BADGE_ENT = {

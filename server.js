@@ -23,6 +23,10 @@ const db = store.load();
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml; charset=utf-8', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json; charset=utf-8' };
 
 // ---------------- Utilitaires ----------------
+function ipDe(req) {
+  return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+}
+
 function json(res, code, data) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(data));
@@ -1132,6 +1136,62 @@ async function api(req, res, url) {
     envoyerWhatsApp(ins.parentTel, 'inscription_recue', [ins.parentNom, e.nom, ins.eleveNom, pr.nom]);
     return json(res, 200, { ok: true, reference: ins.id, etablissement: e.nom, programme: pr.nom,
                             fraisInscription: pr.fraisInscription, whatsapp: e.whatsapp });
+  }
+
+  // ---- Messages du public : contact, partenariat, question ----
+  if (p === '/api/messages' && req.method === 'POST') {
+    const TYPES = ['contact', 'partenaire', 'question'];
+    const type = TYPES.includes(corps.type) ? corps.type : 'contact';
+    if (!corps.nom || !corps.message)
+      return json(res, 400, { erreur: 'Votre nom et votre message sont obligatoires.' });
+    if (!corps.email && !corps.telephone)
+      return json(res, 400, { erreur: 'Laissez au moins un email ou un téléphone pour la réponse.' });
+    // Garde-fou simple contre les envois répétés depuis la même adresse
+    const recents = db.messages.filter((m) => m.ip === ipDe(req) && Date.now() - new Date(m.creeLe).getTime() < 3600000);
+    if (recents.length >= 5) return json(res, 429, { erreur: 'Trop de messages envoyés. Réessayez dans une heure.' });
+
+    const m = {
+      id: store.uid(),
+      reference: 'M' + Date.now().toString(36).toUpperCase().slice(-6),
+      type,
+      nom: String(corps.nom).slice(0, 90),
+      email: String(corps.email || '').slice(0, 120),
+      telephone: String(corps.telephone || '').slice(0, 20),
+      entreprise: String(corps.entreprise || '').slice(0, 90),
+      sujet: String(corps.sujet || '').slice(0, 120),
+      message: String(corps.message).slice(0, 2000),
+      // Champs propres au partenariat
+      activite: String(corps.activite || '').slice(0, 90),
+      ville: String(corps.ville || '').slice(0, 90),
+      statut: 'nouveau',
+      ip: ipDe(req),
+      creeLe: new Date().toISOString()
+    };
+    db.messages.push(m); store.save();
+    if (m.telephone) {
+      const libelle = { contact: 'message', partenaire: 'demande de partenariat', question: 'question' }[type];
+      envoyerWhatsApp(m.telephone, 'message_recu', [m.nom, libelle, m.reference]);
+    }
+    return json(res, 200, { ok: true, reference: m.reference });
+  }
+
+  // ---- Administration des messages ----
+  if (p === '/api/admin/messages' && req.method === 'GET') {
+    if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
+    return json(res, 200, db.messages.slice().reverse());
+  }
+  const mMsg = p.match(/^\/api\/admin\/messages\/(\w+)$/);
+  if (mMsg && req.method === 'PUT') {
+    if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
+    const m = db.messages.find((x) => x.id === mMsg[1]);
+    if (!m) return json(res, 404, { erreur: 'Message introuvable' });
+    if (corps.statut && ['nouveau', 'traite', 'archive'].includes(corps.statut)) m.statut = corps.statut;
+    store.save(); return json(res, 200, m);
+  }
+  if (mMsg && req.method === 'DELETE') {
+    if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
+    db.messages = db.messages.filter((x) => x.id !== mMsg[1]);
+    store.save(); return json(res, 200, { ok: true });
   }
 
   // ---- Avis client ----

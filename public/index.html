@@ -78,10 +78,10 @@
 .cat .rond { width: 52px; height: 52px; border-radius: var(--r-pilule); background: #fff; border: 1px solid var(--bordure); display: grid; place-items: center; font-size: 22px; transition: .15s; }
 .cat:hover .rond, .cat.actif .rond { border-color: var(--bleu); background: var(--bleu-clair); }
 .cat span { font-size: 12.5px; font-weight: 600; color: var(--texte); }
-.bande-atouts { background: #fff; border: 1px solid var(--bordure); box-shadow: var(--ombre); border-radius: var(--r-carte); padding: 28px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin: 40px 0; }
-.atout .ico { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; font-size: 20px; margin-bottom: 10px; }
-.atout h3 { font-size: 15px; margin-bottom: 4px; }
-.atout p { font-size: 13px; color: var(--gris); }
+
+
+
+
 .section { padding: 44px 0; }
 .section h2 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
 .grille-entreprises { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-top: 22px; }
@@ -96,9 +96,9 @@
 .pied a { color: #CBD5E1; }
 .pied .logo { color: #fff; }
 @media (max-width: 900px) {
-  .bande-atouts, .etapes { grid-template-columns: 1fr 1fr; }
+  .etapes { grid-template-columns: 1fr 1fr; }
 }
-@media (max-width: 560px) { .bande-atouts, .etapes { grid-template-columns: 1fr; } .barre-recherche { flex-direction: column; } .barre-recherche .sep { display: none; } }
+@media (max-width: 560px) { .etapes { grid-template-columns: 1fr; } .barre-recherche { flex-direction: column; } .barre-recherche .sep { display: none; } }
 
 /* ===== Animations & interactivité ===== */
 @keyframes montee { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
@@ -171,6 +171,7 @@
       <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
       <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
       <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
       <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
       <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
     </div>
@@ -223,7 +224,7 @@
           <span class="bm-ico">🔒</span>
           <span><strong data-i18n="bm.c3t">Sécurité</strong>
           <em data-i18n="bm.c3d">Vos données sont protégées, votre confiance garantie.</em></span></a>
-        <a class="bm-carte" href="https://wa.me/50948245566" target="_blank" rel="noopener">
+        <a class="bm-carte" href="https://wa.me/50944901724" target="_blank" rel="noopener">
           <span class="bm-ico">🎧</span>
           <span><strong data-i18n="bm.c4t">Support dédié</strong>
           <em data-i18n="bm.c4d">Une équipe professionnelle toujours là pour vous aider.</em></span></a>
@@ -242,29 +243,6 @@
     <div class="chiffre"><strong>0 HTG</strong><span data-i18n="acc.chiffre.gratuit">Pour commencer</span></div>
   </div>
 
-  <div class="bande-atouts reveler">
-    <div class="atout">
-      <div class="ico" style="background:var(--bleu-clair)">💼</div>
-      <h3 data-i18n="acc.atout.ent.titre">Pour les entreprises</h3>
-      <p data-i18n="acc.atout.ent.desc">Créez votre espace, gérez vos services et recevez plus de clients.</p>
-      <a class="petit" href="/inscription.html" style="font-weight:600" data-i18n="acc.atout.ent.lien">Inscrire mon entreprise →</a>
-    </div>
-    <div class="atout">
-      <div class="ico" style="background:var(--vert-fond)">📅</div>
-      <h3 data-i18n="acc.atout.rapide.titre">Réservation rapide</h3>
-      <p data-i18n="acc.atout.rapide.desc">Trouvez un service, choisissez l'horaire qui vous convient et réservez en quelques clics.</p>
-    </div>
-    <div class="atout">
-      <div class="ico" style="background:#F4EBFF">🔔</div>
-      <h3 data-i18n="acc.atout.notif.titre">Notifications automatiques</h3>
-      <p data-i18n="acc.atout.notif.desc">Recevez des rappels et des notifications par WhatsApp.</p>
-    </div>
-    <div class="atout">
-      <div class="ico" style="background:var(--orange-fond)">📊</div>
-      <h3 data-i18n="acc.atout.gestion.titre">Gestion efficace</h3>
-      <p data-i18n="acc.atout.gestion.desc">Gérez vos rendez-vous, votre équipe et développez votre entreprise facilement.</p>
-    </div>
-  </div>
 
   <section class="section" id="categories-resultats">
     <div class="flex entre">
@@ -361,8 +339,8 @@
           <li><span>👥</span><span data-i18n="pied.atout3">Plus de clients satisfaits</span></li>
         </ul>
         <div class="pied-contact">
-          <a href="tel:+50948245566">📞 +509 48 24 55 66</a>
-          <a href="mailto:info@randevou.ht">✉️ info@randevou.ht</a>
+          <a href="tel:+50944901724">📞 +509 4490 1724</a>
+          <a href="mailto:info@bizniskonekte.com">✉️ info@bizniskonekte.com</a>
           <span>📍 Haïti</span>
         </div>
       </div>
@@ -379,20 +357,20 @@
       <div class="pied-col">
         <h4 data-i18n="pied.entreprise">ENTREPRISE</h4>
         <a href="/apropos.html" data-i18n="pied.apropos">À propos de nous</a>
-        <a href="mailto:info@randevou.ht?subject=Devenir%20partenaire" data-i18n="pied.partenaire">Devenir partenaire</a>
-        <a href="mailto:info@randevou.ht" data-i18n="pied.contact">Contact</a>
+        <a href="/partenaire.html" data-i18n="pied.partenaire">Devenir partenaire</a>
+        <a href="/contact.html" data-i18n="pied.contact">Contact</a>
       </div>
 
       <div class="pied-col">
         <h4 data-i18n="pied.aide">AIDE</h4>
-        <a href="https://wa.me/50948245566" target="_blank" rel="noopener" data-i18n="pied.support">Support WhatsApp</a>
-        <a href="mailto:info@randevou.ht?subject=Question" data-i18n="pied.question">Poser une question</a>
+        <a href="https://wa.me/50944901724" target="_blank" rel="noopener" data-i18n="pied.support">Support WhatsApp</a>
+        <a href="/question.html" data-i18n="pied.question">Poser une question</a>
       </div>
 
       <div class="pied-col pied-suivi">
         <h4 data-i18n="pied.suivez">SUIVEZ-NOUS</h4>
         <div class="pied-reseaux">
-          <a href="https://wa.me/50948245566" target="_blank" rel="noopener" title="WhatsApp"><img src="/logos/whatsapp.png" alt="WhatsApp"></a>
+          <a href="https://wa.me/50944901724" target="_blank" rel="noopener" title="WhatsApp"><img src="/logos/whatsapp.png" alt="WhatsApp"></a>
           <a href="https://www.facebook.com/" target="_blank" rel="noopener" title="Facebook"><img src="/logos/facebook.png" alt="Facebook"></a>
           <a href="https://www.instagram.com/" target="_blank" rel="noopener" title="Instagram"><img src="/logos/instagram.png" alt="Instagram"></a>
           <a href="https://t.me/" target="_blank" rel="noopener" title="Telegram"><img src="/logos/telegram.png" alt="Telegram"></a>
@@ -503,7 +481,7 @@ const observateur = new IntersectionObserver((entrees) => {
 function observerReveles(){
   document.querySelectorAll('.reveler:not(.vu)').forEach(el => observateur.observe(el));
 }
-document.querySelectorAll('.etape, .atout, #comment h2, #pro .carte').forEach(el => el.classList.add('reveler'));
+document.querySelectorAll('.etape, #comment h2, #pro .carte').forEach(el => el.classList.add('reveler'));
 observerReveles();
 
 document.getElementById('formRecherche').addEventListener('submit', (ev) => {
