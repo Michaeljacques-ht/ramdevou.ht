@@ -120,6 +120,36 @@ function nettoyerEquipements(v) {
 // ---- Carte restaurant & bar ----
 const CATEGORIES_CARTE = ['entree', 'plat', 'accompagnement', 'dessert', 'boisson', 'cocktail', 'biere', 'vin', 'spiritueux'];
 
+// ================= Authentification à deux facteurs =================
+// Le code est envoyé par WhatsApp, moyen déjà utilisé par la plateforme.
+// Les défis vivent en mémoire : ils expirent vite et n'ont pas à survivre
+// à un redémarrage, ce qui évite de stocker des codes valides sur disque.
+const DEFIS_A2F = new Map();
+const A2F_VALIDITE_MS = 10 * 60 * 1000;
+const A2F_TENTATIVES_MAX = 5;
+
+function nettoyerDefis() {
+  const t = Date.now();
+  for (const [id, d] of DEFIS_A2F) if (d.expireLe < t) DEFIS_A2F.delete(id);
+}
+function codeA2F() {
+  // 6 chiffres tirés au sort de façon cryptographique
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+function creerDefi(userId, tel) {
+  nettoyerDefis();
+  const id = crypto.randomBytes(18).toString('hex');
+  const code = codeA2F();
+  DEFIS_A2F.set(id, { userId, code, tel, tentatives: 0, expireLe: Date.now() + A2F_VALIDITE_MS });
+  return { id, code };
+}
+/** Masque un numéro pour l'afficher sans le divulguer : 509 •••• 45 67 */
+function telMasque(tel) {
+  const n = String(tel || '').replace(/\D/g, '');
+  if (n.length < 4) return '••••';
+  return '•••• ' + n.slice(-4);
+}
+
 // ---- Vente en ligne : modes de remise et statuts de commande ----
 const MODES_REMISE = [
   { cle: 'cueillette', fr: 'Retrait sur place',  ht: 'Vin chèche',    ico: '🏪' },
@@ -435,6 +465,11 @@ async function api(req, res, url) {
     const { nomResponsable, email, motdepasse, nomEntreprise, categorie, telephone, adresse } = corps;
     if (!nomResponsable || !email || !motdepasse || !nomEntreprise || !categorie)
       return json(res, 400, { erreur: 'Tous les champs obligatoires doivent être remplis.' });
+    // Contrôles du mot de passe avant toute création
+    if (String(motdepasse).length < 6)
+      return json(res, 400, { erreur: 'Le mot de passe doit contenir au moins 6 caractères.' });
+    if (corps.motdepasse2 !== undefined && motdepasse !== corps.motdepasse2)
+      return json(res, 400, { erreur: 'Les deux mots de passe ne correspondent pas.' });
     if (db.users.find((u) => u.email.toLowerCase() === email.toLowerCase()))
       return json(res, 400, { erreur: 'Un compte existe déjà avec cet email.' });
     let slug = slugifier(nomEntreprise); let i = 1;
@@ -474,10 +509,89 @@ async function api(req, res, url) {
   if (p === '/api/connexion' && req.method === 'POST') {
     const u = db.users.find((x) => x.email.toLowerCase() === (corps.email || '').toLowerCase() && x.motdepasse === corps.motdepasse);
     if (!u) return json(res, 401, { erreur: 'Email ou mot de passe incorrect.' });
+
+    // Deuxième facteur : le mot de passe seul ne suffit plus
+    if (u.a2f && u.a2f.actif) {
+      const tel = u.a2f.telephone || '';
+      const { id, code } = creerDefi(u.id, tel);
+      envoyerWhatsApp(tel, 'code_connexion', [u.nom || '', code]);
+      if (!process.env.WHATSAPP_TOKEN) console.log(`[A2F simulation → ${tel}] code : ${code}`);
+      return json(res, 200, { a2f: true, defi: id, telMasque: telMasque(tel) });
+    }
+
     const token = crypto.randomBytes(24).toString('hex');
     db.sessions[token] = u.id; store.save();
     res.setHeader('Set-Cookie', `rdv_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
     return json(res, 200, { ok: true, role: u.role });
+  }
+
+  // Validation du code reçu
+  if (p === '/api/connexion/code' && req.method === 'POST') {
+    nettoyerDefis();
+    const d = DEFIS_A2F.get(String(corps.defi || ''));
+    if (!d) return json(res, 401, { erreur: 'Code expiré. Reconnectez-vous.' });
+    d.tentatives++;
+    if (d.tentatives > A2F_TENTATIVES_MAX) {
+      DEFIS_A2F.delete(corps.defi);
+      return json(res, 429, { erreur: 'Trop de tentatives. Reconnectez-vous.' });
+    }
+    const saisi = String(corps.code || '').replace(/\D/g, '');
+    // Comparaison à durée constante : ne révèle pas où le code diffère
+    const ok = saisi.length === 6 &&
+      crypto.timingSafeEqual(Buffer.from(saisi), Buffer.from(d.code));
+    if (!ok) return json(res, 401, { erreur: `Code incorrect. ${A2F_TENTATIVES_MAX - d.tentatives} essai(s) restant(s).` });
+
+    DEFIS_A2F.delete(corps.defi);
+    const u = db.users.find((x) => x.id === d.userId);
+    if (!u) return json(res, 401, { erreur: 'Compte introuvable.' });
+    const token = crypto.randomBytes(24).toString('hex');
+    db.sessions[token] = u.id; store.save();
+    res.setHeader('Set-Cookie', `rdv_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+    return json(res, 200, { ok: true, role: u.role });
+  }
+
+  // ---- Réglage du deuxième facteur ----
+  if (p === '/api/moi/a2f' && req.method === 'GET') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    const a = user.a2f || {};
+    return json(res, 200, { actif: !!a.actif, telMasque: a.telephone ? telMasque(a.telephone) : '' });
+  }
+
+  // Demande d'activation : on envoie un code au numéro proposé
+  if (p === '/api/moi/a2f/demarrer' && req.method === 'POST') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    const tel = String(corps.telephone || '').replace(/[^\d+]/g, '');
+    if (tel.replace(/\D/g, '').length < 8)
+      return json(res, 400, { erreur: 'Numéro WhatsApp invalide.' });
+    const { id, code } = creerDefi(user.id, tel);
+    envoyerWhatsApp(tel, 'code_connexion', [user.nom || '', code]);
+    if (!process.env.WHATSAPP_TOKEN) console.log(`[A2F simulation → ${tel}] code : ${code}`);
+    return json(res, 200, { ok: true, defi: id, telMasque: telMasque(tel) });
+  }
+
+  // Confirmation : l'option ne s'active que si le code arrive vraiment
+  if (p === '/api/moi/a2f/activer' && req.method === 'POST') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    nettoyerDefis();
+    const d = DEFIS_A2F.get(String(corps.defi || ''));
+    if (!d || d.userId !== user.id) return json(res, 401, { erreur: 'Code expiré. Recommencez.' });
+    d.tentatives++;
+    if (d.tentatives > A2F_TENTATIVES_MAX) { DEFIS_A2F.delete(corps.defi); return json(res, 429, { erreur: 'Trop de tentatives.' }); }
+    const saisi = String(corps.code || '').replace(/\D/g, '');
+    const ok = saisi.length === 6 && crypto.timingSafeEqual(Buffer.from(saisi), Buffer.from(d.code));
+    if (!ok) return json(res, 401, { erreur: `Code incorrect. ${A2F_TENTATIVES_MAX - d.tentatives} essai(s) restant(s).` });
+    user.a2f = { actif: true, telephone: d.tel, methode: 'whatsapp', activeLe: new Date().toISOString() };
+    DEFIS_A2F.delete(corps.defi); store.save();
+    return json(res, 200, { ok: true, telMasque: telMasque(d.tel) });
+  }
+
+  // Désactivation : le mot de passe est redemandé
+  if (p === '/api/moi/a2f/desactiver' && req.method === 'POST') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    if (String(corps.motdepasse || '') !== user.motdepasse)
+      return json(res, 401, { erreur: 'Mot de passe incorrect.' });
+    user.a2f = { actif: false }; store.save();
+    return json(res, 200, { ok: true });
   }
 
   if (p === '/api/deconnexion' && req.method === 'POST') {

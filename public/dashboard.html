@@ -615,6 +615,11 @@ body { background: var(--gris-clair); }
             <p style="font-size:12px;color:var(--gris);margin:4px 0 0">Mettez <b>1</b> pour n'accepter qu'un seul rendez-vous à la fois. Laissez <b>0</b> (ou vide) pour le mode automatique : autant de rendez-vous simultanés que d'employés actifs.</p>
             <button class="btn btn-primaire mt" onclick="enregistrerInfos()">Enregistrer les informations</button>
           </div></div>
+          <div class="carte" id="carteSecurite"><div class="carte-corps">
+            <h2 style="font-size:16px">🔐 Sécurité du compte</h2>
+            <p class="petit muet" style="margin-top:6px">La vérification en deux étapes protège votre espace même si votre mot de passe est découvert : un code vous est envoyé par WhatsApp à chaque connexion.</p>
+            <div id="zoneA2F" class="mt"></div>
+          </div></div>
           <div class="carte" id="carteModules"><div class="carte-corps">
             <h2 style="font-size:16px">🧩 Fonctionnalités de votre espace</h2>
             <p class="petit muet" style="margin-top:6px">Décochez ce dont vous n'avez pas besoin : les sections correspondantes disparaissent de votre menu. Vous pouvez les réactiver à tout moment.</p>
@@ -1337,6 +1342,59 @@ async function payerAbonnement(){
   } catch(e){ toast(e.message); }
 }
 
+
+// ===== Vérification en deux étapes =====
+let defiA2F = null;
+async function chargerA2F(){
+  const z = document.getElementById('zoneA2F');
+  if (!z) return;
+  try {
+    const a = await api('/api/moi/a2f');
+    z.innerHTML = a.actif ? `
+      <div class="panneau" style="border-color:var(--vert)">
+        <strong>✅ Activée</strong>
+        <p class="petit muet" style="margin-top:4px">Codes envoyés au ${ech(a.telMasque)}</p>
+        <button class="btn btn-danger btn-petit mt" onclick="desactiverA2F()">Désactiver</button>
+      </div>`
+      : `<label>Numéro WhatsApp pour recevoir les codes</label>
+         <input id="telA2F" placeholder="Ex : 50937120000" value="${ech(ent.whatsapp || ent.telephone || '')}">
+         <button class="btn btn-primaire mt" onclick="demarrerA2F()">Activer la vérification</button>`;
+  } catch(e){ z.innerHTML = `<p class="petit muet">${ech(e.message)}</p>`; }
+}
+async function demarrerA2F(){
+  const tel = document.getElementById('telA2F').value.trim();
+  try {
+    const r = await api('/api/moi/a2f/demarrer','POST',{ telephone: tel });
+    defiA2F = r.defi;
+    document.getElementById('zoneA2F').innerHTML = `
+      <div class="panneau">
+        <p class="petit">Un code à 6 chiffres a été envoyé au ${ech(r.telMasque)}.</p>
+        <input id="codeA2F" inputmode="numeric" maxlength="6" placeholder="000000"
+               style="text-align:center;font-size:22px;letter-spacing:.3em;font-weight:800">
+        <div class="flex" style="gap:8px">
+          <button class="btn btn-primaire btn-petit" onclick="confirmerA2F()">Confirmer</button>
+          <button class="btn btn-fantome btn-petit" onclick="chargerA2F()">Annuler</button>
+        </div>
+      </div>`;
+    document.getElementById('codeA2F').focus();
+  } catch(e){ toast(e.message); }
+}
+async function confirmerA2F(){
+  const code = document.getElementById('codeA2F').value.trim();
+  try {
+    await api('/api/moi/a2f/activer','POST',{ defi: defiA2F, code });
+    toast('Vérification en deux étapes activée.');
+    chargerA2F();
+  } catch(e){ toast(e.message); }
+}
+async function desactiverA2F(){
+  const mdp = prompt('Saisissez votre mot de passe pour désactiver la vérification :');
+  if (!mdp) return;
+  try { await api('/api/moi/a2f/desactiver','POST',{ motdepasse: mdp });
+    toast('Vérification désactivée.'); chargerA2F();
+  } catch(e){ toast(e.message); }
+}
+
 // ===== Modules choisis par l'entreprise =====
 const LIB_MODULES = {
   rdv:{lib:'Rendez-vous et calendrier',ico:'🗓'}, equipe:{lib:'Équipe',ico:'👥'},
@@ -1415,6 +1473,7 @@ function appliquerMetier(){
   dessinerChampsMetier();
   dessinerModules();
   chargerAbonnement();
+  chargerA2F();
   const tr = document.getElementById('titreRecents');
   if (tr) tr.textContent = aModule('hotellerie') ? 'Réservations récentes' : 'Rendez-vous récents';
 }

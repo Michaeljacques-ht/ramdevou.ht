@@ -170,7 +170,7 @@
       <a href="/" class="actif" data-i18n="acc.nav.accueil">Accueil</a>
       <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
       <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
-      <a href="#apropos" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
       <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
       <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
     </div>
@@ -198,7 +198,7 @@
           <input type="text" id="champLieu" placeholder="Localisation" data-i18n-placeholder="acc.rech.lieu" aria-label="Localisation">
           <button class="btn btn-primaire" type="submit" data-i18n="acc.rech.bouton">Rechercher</button>
         </form>
-        <a class="btn bm-cta" href="/categories.html"><span data-i18n="bm.cta">Découvrir nos solutions</span> →</a>
+        <a class="btn bm-cta" href="/categories.html"><span data-i18n="bm.cta">Découvrir les entreprises</span> →</a>
         <div class="bm-atouts">
           <a class="bm-atout" href="/categories.html">
             <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>
@@ -206,7 +206,7 @@
             <span class="bm-rond">🛒</span><span data-i18n="bm.a4">Acheter en ligne plus facilement</span></a>
           <a class="bm-atout" href="/inscription.html">
             <span class="bm-rond">📈</span><span data-i18n="bm.a2">Productivité accrue</span></a>
-          <a class="bm-atout" href="#apropos">
+          <a class="bm-atout" href="/apropos.html">
             <span class="bm-rond">⭐</span><span data-i18n="bm.a3">Meilleure expérience client</span></a>
         </div>
       </div>
@@ -219,7 +219,7 @@
           <span class="bm-ico">💻</span>
           <span><strong data-i18n="bm.c2t">Temps et ressources</strong>
           <em data-i18n="bm.c2d">Gérez rendez-vous, équipe et opérations sans effort.</em></span></a>
-        <a class="bm-carte" href="#apropos">
+        <a class="bm-carte" href="/apropos.html">
           <span class="bm-ico">🔒</span>
           <span><strong data-i18n="bm.c3t">Sécurité</strong>
           <em data-i18n="bm.c3d">Vos données sont protégées, votre confiance garantie.</em></span></a>
@@ -277,72 +277,75 @@
   </section>
 
   <section class="section" id="comment">
-    <h2 data-i18n="acc.comment.titre">Comment ça marche</h2>
-    <p class="muet petit" data-i18n="acc.comment.sous">Trois étapes simples pour réserver votre prochain rendez-vous.</p>
-    <div class="etapes">
-      <div class="etape"><div class="num">1</div><h3 data-i18n="acc.comment.e1t">Recherchez</h3><p class="muet petit mt" style="margin-top:8px" data-i18n="acc.comment.e1d">Trouvez l'entreprise qu'il vous faut par nom, catégorie ou localisation.</p></div>
-      <div class="etape"><div class="num">2</div><h3 data-i18n="acc.comment.e2t">Réservez</h3><p class="muet petit" style="margin-top:8px" data-i18n="acc.comment.e2d">Choisissez un service, une date et un créneau disponible en temps réel.</p></div>
-      <div class="etape"><div class="num">3</div><h3 data-i18n="acc.comment.e3t">Recevez la confirmation</h3><p class="muet petit" style="margin-top:8px" data-i18n="acc.comment.e3d">L'entreprise confirme votre rendez-vous et vous recevez une notification.</p></div>
+    <h2 data-i18n="cm.titre">Comment ça marche</h2>
+    <p class="muet petit" data-i18n="cm.sous">Réserver, acheter, payer, recevoir : tout se fait depuis votre téléphone.</p>
+    <div class="etapes" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="etape"><div class="num">1</div>
+        <h3 data-i18n="cm.e1t">Trouvez</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e1d">Cherchez une entreprise par nom, activité ou ville. Parcourez la boutique en ligne pour comparer les produits de tous les vendeurs.</p></div>
+      <div class="etape"><div class="num">2</div>
+        <h3 data-i18n="cm.e2t">Réservez ou achetez</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e2d">Un rendez-vous sur un créneau libre, une chambre pour plusieurs nuits, ou un panier de produits : le prix s'affiche avant de valider.</p></div>
+      <div class="etape"><div class="num">3</div>
+        <h3 data-i18n="cm.e3t">Choisissez la remise</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e3d">Livraison à votre adresse, retrait sur place, ou directement dans votre chambre si vous êtes client de l'hôtel.</p></div>
+      <div class="etape"><div class="num">4</div>
+        <h3 data-i18n="cm.e4t">Payez comme vous voulez</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e4d">En ligne par MonCash, NatCash ou Kashpaw, ou en espèces à la livraison. C'est le commerçant qui décide de ce qu'il accepte.</p></div>
+      <div class="etape"><div class="num">5</div>
+        <h3 data-i18n="cm.e5t">Suivez jusqu'au bout</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e5d">Chaque étape déclenche un message WhatsApp : commande reçue, confirmée, en préparation, en route. Avec votre référence, vous suivez aussi votre dossier ou votre commande en ligne.</p></div>
     </div>
   </section>
 
-  <section class="section" id="apropos">
-    <span class="eyebrow" data-i18n="ap.eyebrow">À propos</span>
-    <h2 data-i18n="ap.titre">Une plateforme née en Haïti, pour les entreprises haïtiennes</h2>
-    <p class="muet" style="max-width:64ch;margin-top:8px" data-i18n="ap.intro">Biznis Konekte est née d'un constat simple : trop d'entreprises haïtiennes perdent des clients faute d'un moyen simple d'être trouvées, jointes et réservées. Nous réunissons sur un même espace la prise de rendez-vous, la réservation d'hébergement, la vente en ligne et le suivi de dossiers.</p>
+  <section class="section" id="pro">
+    <span class="eyebrow" data-i18n="pro.eyebrow">Pour les entreprises</span>
+    <h2 data-i18n="pro.titre">Un seul espace pour faire tourner votre activité</h2>
+    <p class="muet" style="max-width:62ch;margin-top:8px" data-i18n="pro.intro">Votre espace s'adapte à votre métier : vous n'obtenez que les fonctions dont vous avez besoin, et vous pouvez activer les autres à tout moment.</p>
 
-    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
       <div class="carte"><div class="carte-corps">
-        <div style="font-size:28px">🎯</div>
-        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m1t">Notre mission</h3>
-        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m1d">Donner à chaque entreprise haïtienne, quelle que soit sa taille, les outils numériques que seules les grandes structures pouvaient s'offrir.</p>
+        <div style="font-size:26px">🗓</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b1t">Rendez-vous et équipe</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b1d">Créneaux calculés automatiquement, calendrier de la semaine, membres d'équipe et rappels envoyés aux clients.</p>
       </div></div>
       <div class="carte"><div class="carte-corps">
-        <div style="font-size:28px">🇭🇹</div>
-        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m2t">Pensée pour le pays</h3>
-        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m2d">Français et créole, paiement par MonCash, NatCash et Kashpaw, notifications WhatsApp, fonctionnement sur connexion lente. Rien n'est importé sans adaptation.</p>
+        <div style="font-size:26px">🛒</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b2t">Vente en ligne</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b2d">Catalogue avec photos et stock, panier, commandes suivies étape par étape. Vos produits apparaissent aussi dans la boutique commune.</p>
       </div></div>
       <div class="carte"><div class="carte-corps">
-        <div style="font-size:28px">🤝</div>
-        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m3t">Un modèle équitable</h3>
-        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m3d">Six mois gratuits pour toute nouvelle entreprise, puis un forfait clair sans engagement. Nous ne gagnons que si votre activité tourne.</p>
+        <div style="font-size:26px">🛵</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b3t">Livraison et retrait</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b3d">Zones de livraison avec leur tarif, retrait sur place, service en chambre, et transmission de la course à Taksi Konekte.</p>
       </div></div>
-    </div>
-
-    <h3 style="margin-top:34px" data-i18n="ap.quoi">Ce que la plateforme sait faire</h3>
-    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
-      <div class="panneau"><strong>🗓 <span data-i18n="ap.f1t">Rendez-vous</span></strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f1d">Créneaux, calendrier, équipe et rappels automatiques.</p></div>
-      <div class="panneau"><strong>🛏️ <span data-i18n="ap.f2t">Hôtellerie</span></strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f2d">Chambres, séjours, plans tarifaires, saisons et planning d'occupation.</p></div>
-      <div class="panneau"><strong>🛒 <span data-i18n="ap.f3t">Vente en ligne</span></strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f3d">Catalogue, panier, commandes, livraison ou retrait sur place.</p></div>
-      <div class="panneau"><strong>🎓 <span data-i18n="ap.f4t">Écoles</span></strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f4d">Programmes, inscriptions en ligne et contrôle des places.</p></div>
-      <div class="panneau"><strong>📁 <span data-i18n="ap.f5t">Dossiers</span></strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f5d">Notaires, arpenteurs, avocats et comptables : suivi étape par étape.</p></div>
-      <div class="panneau"><strong>🚨 <span data-i18n="ap.f6t">Urgences</span></strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f6d">Cliniques et pharmacies joignables immédiatement, avec leur état d'affluence.</p></div>
-    </div>
-
-    <h3 style="margin-top:34px" data-i18n="ap.conf">Confiance et sécurité</h3>
-    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
-      <div class="panneau"><strong data-i18n="ap.s1t">Vos données vous appartiennent</strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s1d">Les coordonnées de vos clients ne sont ni revendues, ni cédées à des tiers.</p></div>
-      <div class="panneau"><strong data-i18n="ap.s2t">Paiements encadrés</strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s2d">Les encaissements passent par une passerelle agréée. Votre part est créditée sur votre portefeuille, commission déduite.</p></div>
-      <div class="panneau"><strong data-i18n="ap.s3t">Entreprises vérifiées</strong>
-        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s3d">Chaque inscription est examinée avant publication sur la plateforme.</p></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">💳</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b4t">Encaissement</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b4d">MonCash, NatCash et Kashpaw, ou paiement à la remise. Vos recettes arrivent sur votre portefeuille, retirables quand vous voulez.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">🛏️</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b5t">Hôtellerie complète</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b5d">Chambres avec galerie photo, plans tarifaires, saisons, taxes, acompte et planning d'occupation.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">📁</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b6t">Métiers spécialisés</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b6d">Inscriptions pour les écoles, suivi de dossiers pour les cabinets, service d'urgence pour les cliniques et pharmacies.</p>
+      </div></div>
     </div>
 
     <div class="carte mt" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none">
       <div class="carte-corps centre" style="padding:40px 24px;color:#fff">
-        <h2 style="color:#fff" data-i18n="ap.cta.titre">Vous gérez une entreprise ?</h2>
-        <p style="color:#B9C6E4;max-width:54ch;margin:10px auto 22px" data-i18n="ap.cta.texte">Salon, clinique, garage, école, hôtel, boutique ou cabinet : ouvrez votre espace et profitez de six mois gratuits.</p>
-        <a class="btn btn-primaire btn-large" href="/inscription.html" data-i18n="ap.cta.bouton">Inscrire mon entreprise — 6 mois gratuits</a>
+        <h2 style="color:#fff" data-i18n="pro.cta.titre">Six mois gratuits pour essayer</h2>
+        <p style="color:#B9C6E4;max-width:56ch;margin:10px auto 22px" data-i18n="pro.cta.texte">Aucun prélèvement pendant six mois, quel que soit le forfait. Vous changez de forfait ou vous arrêtez quand vous voulez, sans frais.</p>
+        <a class="btn btn-primaire btn-large" href="/inscription.html" data-i18n="pro.cta.bouton">Inscrire mon entreprise</a>
+        <p class="petit" style="color:#8FA3C9;margin-top:14px" data-i18n="pro.cta.note">Inscription en 5 étapes · Espace prêt en quelques minutes</p>
       </div>
     </div>
   </section>
+
 </main>
 
 <footer class="pied-riche">
@@ -375,7 +378,7 @@
 
       <div class="pied-col">
         <h4 data-i18n="pied.entreprise">ENTREPRISE</h4>
-        <a href="#apropos" data-i18n="pied.apropos">À propos de nous</a>
+        <a href="/apropos.html" data-i18n="pied.apropos">À propos de nous</a>
         <a href="mailto:info@randevou.ht?subject=Devenir%20partenaire" data-i18n="pied.partenaire">Devenir partenaire</a>
         <a href="mailto:info@randevou.ht" data-i18n="pied.contact">Contact</a>
       </div>
@@ -500,7 +503,7 @@ const observateur = new IntersectionObserver((entrees) => {
 function observerReveles(){
   document.querySelectorAll('.reveler:not(.vu)').forEach(el => observateur.observe(el));
 }
-document.querySelectorAll('.etape, .atout, #comment h2, #apropos .carte').forEach(el => el.classList.add('reveler'));
+document.querySelectorAll('.etape, .atout, #comment h2, #pro .carte').forEach(el => el.classList.add('reveler'));
 observerReveles();
 
 document.getElementById('formRecherche').addEventListener('submit', (ev) => {

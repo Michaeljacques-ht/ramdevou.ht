@@ -27,12 +27,47 @@ body { background: var(--gris-clair); min-height: 100vh; display: grid; place-it
 
   </div></div>
 </div>
-<script src="/app.js"></script>
+<script src="/app.js">
+function demanderCode(defi, masque){
+  const c = document.querySelector('.carte-corps') || document.body;
+  c.innerHTML = `
+    <div class="centre" style="padding:6px 0 2px">
+      <div style="font-size:36px">🔐</div>
+      <h1 style="font-size:20px;margin-top:8px">Vérification en deux étapes</h1>
+      <p class="petit muet" style="margin-top:6px">Un code à 6 chiffres vient d'être envoyé sur votre WhatsApp ${masque ? '(' + masque + ')' : ''}.</p>
+    </div>
+    <label>Code reçu</label>
+    <input id="codeA2F" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+           style="text-align:center;font-size:26px;letter-spacing:.35em;font-weight:800" placeholder="000000">
+    <p class="champ-erreur" id="errCode"></p>
+    <button class="btn btn-primaire" style="width:100%" onclick="validerCode('${defi}')">Valider</button>
+    <p class="petit centre mt"><a href="/connexion.html">← Revenir à la connexion</a></p>`;
+  const champ = document.getElementById('codeA2F');
+  champ.focus();
+  // Validation dès la saisie du sixième chiffre
+  champ.addEventListener('input', () => {
+    champ.value = champ.value.replace(/\D/g, '');
+    if (champ.value.length === 6) validerCode(defi);
+  });
+}
+async function validerCode(defi){
+  const err = document.getElementById('errCode');
+  const code = document.getElementById('codeA2F').value.trim();
+  if (code.length !== 6) { err.textContent = 'Saisissez les 6 chiffres.'; return; }
+  err.textContent = '';
+  try {
+    const r = await api('/api/connexion/code', 'POST', { defi, code });
+    location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
+  } catch(e) { err.textContent = e.message; document.getElementById('codeA2F').value = ''; }
+}
+</script>
 <script>
 document.getElementById('f').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   try {
     const r = await api('/api/connexion', 'POST', { email: email.value.trim(), motdepasse: mdp.value });
+    // Compte protégé par un second facteur : un code arrive sur WhatsApp
+    if (r.a2f) { demanderCode(r.defi, r.telMasque); return; }
     location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
   } catch (e) { document.getElementById('err').textContent = e.message; }
 });

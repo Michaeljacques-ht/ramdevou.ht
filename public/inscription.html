@@ -83,8 +83,11 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
       <label>Votre nom (responsable) *</label><input id="nomResp" placeholder="Ex : Marie Dorval">
       <div class="deux">
         <div><label>Email *</label><input id="email" type="email" placeholder="vous@entreprise.ht"></div>
-        <div><label>Mot de passe *</label><input id="mdp" type="password" minlength="6" placeholder="6 caractères min."></div>
+        <div><label>Mot de passe *</label><input id="mdp" type="password" minlength="6" placeholder="6 caractères min." oninput="verifierMdp()"></div>
       </div>
+      <label>Confirmer le mot de passe *</label>
+      <input id="mdp2" type="password" placeholder="Saisissez à nouveau le mot de passe" oninput="verifierMdp()">
+      <p class="aide" id="etatMdp"></p>
     </section>
 
     <section class="etape" data-pas="2">
@@ -220,6 +223,17 @@ function majAideMetier(){
 }
 document.getElementById('metier').addEventListener('change', majAideMetier);
 
+function verifierMdp(){
+  const a = document.getElementById('mdp').value, b = document.getElementById('mdp2').value;
+  const z = document.getElementById('etatMdp');
+  if (!a && !b) { z.textContent = ''; z.style.color = ''; return; }
+  if (a.length < 6) { z.textContent = 'Au moins 6 caractères.'; z.style.color = 'var(--gris)'; return; }
+  if (!b) { z.textContent = 'Confirmez votre mot de passe.'; z.style.color = 'var(--gris)'; return; }
+  const ok = a === b;
+  z.textContent = ok ? '✓ Les mots de passe correspondent.' : '✕ Les mots de passe ne correspondent pas.';
+  z.style.color = ok ? 'var(--vert)' : 'var(--rouge)';
+}
+
 function verifierLecture(el){
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
     document.getElementById('accPolitique').disabled = false;
@@ -305,6 +319,8 @@ async function suivant(){
     const manque = ['nomEnt','nomResp','email','mdp'].filter(id => !document.getElementById(id).value.trim());
     if (manque.length) { err.textContent = "Le nom de l'entreprise, votre nom, l'email et le mot de passe sont obligatoires."; return; }
     if (document.getElementById('mdp').value.length < 6) { err.textContent = 'Le mot de passe doit contenir au moins 6 caractères.'; return; }
+    if (document.getElementById('mdp').value !== document.getElementById('mdp2').value) {
+      err.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
     return allerPas(2);
   }
   if (pas === 2) {
@@ -329,6 +345,7 @@ async function suivant(){
         nomResponsable: document.getElementById('nomResp').value.trim(),
         email: document.getElementById('email').value.trim(),
         motdepasse: document.getElementById('mdp').value,
+        motdepasse2: document.getElementById('mdp2').value,
         forfait: forfaitChoisi,
         politiqueAcceptee: true,
         signature: document.getElementById('signature').value.trim(),
