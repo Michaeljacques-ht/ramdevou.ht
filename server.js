@@ -10,6 +10,7 @@ const store = require('./lib/db');
 const plopplop = require('./plopplop.js');
 const metiers = require('./lib/metiers.js');
 const forfaits = require('./lib/forfaits.js');
+const qr = require('./lib/qr.js');
 const taksi = require('./lib/taksi.js');
 
 // ---- Paramètres commerciaux ----
@@ -20,7 +21,7 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const db = store.load();
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml; charset=utf-8', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json; charset=utf-8' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml; charset=utf-8', '.ico': 'image/x-icon', '.pdf': 'application/pdf', '.webmanifest': 'application/manifest+json; charset=utf-8' };
 
 // ---------------- Utilitaires ----------------
 function ipDe(req) {
@@ -1138,6 +1139,50 @@ async function api(req, res, url) {
                             fraisInscription: pr.fraisInscription, whatsapp: e.whatsapp });
   }
 
+  // ---- Sauvegarde et restauration (administrateur) ----
+  // Indispensable avant un changement d'hébergement : le dossier de
+  // l'application est effacé à chaque déploiement.
+  if (p === '/api/admin/sauvegarde' && req.method === 'GET') {
+    if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
+    const nom = 'biznis-konekte-' + new Date().toISOString().slice(0, 10) + '.json';
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${nom}"`
+    });
+    return res.end(JSON.stringify(db, null, 2));
+  }
+
+  if (p === '/api/admin/restaurer' && req.method === 'POST') {
+    if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
+    const sauvegarde = corps && corps.donnees;
+    if (!sauvegarde || typeof sauvegarde !== 'object' || !Array.isArray(sauvegarde.entreprises))
+      return json(res, 400, { erreur: 'Fichier de sauvegarde invalide.' });
+
+    // Copie de l'état actuel avant d'écraser, au cas où
+    try {
+      const fs2 = require('fs');
+      if (fs2.existsSync(store.DB_PATH))
+        fs2.copyFileSync(store.DB_PATH, store.DB_PATH + '.avant-restauration');
+    } catch { /* sans conséquence */ }
+
+    // Les sessions en cours ne sont pas restaurées : les jetons de l'ancien
+    // hébergement n'ont plus de sens, et cela évite de rouvrir de vieux accès.
+    const sessionsActuelles = db.sessions;
+    for (const cle of Object.keys(db)) delete db[cle];
+    Object.assign(db, sauvegarde);
+    db.sessions = sessionsActuelles;
+    store.save();
+
+    return json(res, 200, {
+      ok: true,
+      entreprises: (db.entreprises || []).length,
+      utilisateurs: (db.users || []).length,
+      rendezvous: (db.rendezvous || []).length,
+      sejours: (db.sejours || []).length,
+      commandes: (db.commandes || []).length
+    });
+  }
+
   // ---- Messages du public : contact, partenariat, question ----
   if (p === '/api/messages' && req.method === 'POST') {
     const TYPES = ['contact', 'partenaire', 'question'];
@@ -1286,6 +1331,19 @@ async function api(req, res, url) {
       return json(res, 403, { erreur: 'Le module Restaurant & Bar n\'est pas disponible pour votre type d\'activité.' });
     if (p.startsWith('/api/mon-entreprise/chambres') && !metiers.aModule(e, 'hotellerie'))
       return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
+
+    // ---- Code QR de la page publique ----
+    if (p === '/api/mon-entreprise/qr.svg' && req.method === 'GET') {
+      const base = (process.env.URL_PUBLIQUE || `https://${req.headers.host}`).replace(/\/$/, '');
+      try {
+        const image = qr.svg(`${base}/${e.slug}`, { taille: 600, couleur: e.couleur || '#0B2C6B' });
+        res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8',
+                             'Content-Disposition': `inline; filename="qr-${e.slug}.svg"` });
+        return res.end(image);
+      } catch (err) {
+        return json(res, 500, { erreur: err.message });
+      }
+    }
 
     // ================= Abonnement de l'entreprise =================
     if (p === '/api/mon-entreprise/abonnement' && req.method === 'GET')
@@ -2249,5 +2307,7 @@ server.listen(PORT, () => {
   console.log('  Connexions de démonstration :');
   console.log('   • Responsable : marie@salonelegance.ht / demo123');
   console.log('   • Admin       : admin@randevou.ht / admin123');
+  console.log('   • Données     : ' + store.DB_PATH +
+    (process.env.DATA_DIR ? '  (disque persistant)' : '  ⚠ dossier temporaire — effacé à chaque déploiement'));
   console.log('==================================================');
 });

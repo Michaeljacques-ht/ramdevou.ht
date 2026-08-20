@@ -41,6 +41,20 @@ body { background: var(--gris-clair); }
   </div></div>
 
   <div class="carte mt"><div class="carte-corps">
+    <h2 style="font-size:16px">💾 Sauvegarde des données</h2>
+    <p class="petit muet" style="margin-top:6px" id="infoStockage"></p>
+    <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+      <a class="btn btn-primaire btn-petit" href="/api/admin/sauvegarde">⬇ Télécharger une sauvegarde</a>
+      <label class="btn btn-contour btn-petit" style="cursor:pointer;margin:0">
+        ⬆ Restaurer un fichier
+        <input type="file" id="fichierRestaure" accept="application/json,.json" style="display:none" onchange="restaurer(this)">
+      </label>
+    </div>
+    <p class="aide mt">Téléchargez une sauvegarde <strong>avant chaque déploiement</strong> tant que le disque persistant n'est pas configuré. La restauration remplace toutes les données existantes.</p>
+    <p class="champ-erreur" id="errRestaure"></p>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
     <div class="flex entre">
       <h2 style="font-size:16px">📨 Messages reçus</h2>
       <select id="filtreMsg" style="width:auto" onchange="chargerMessages()">
@@ -99,6 +113,32 @@ async function supprimerMsg(id){
   await api('/api/admin/messages/'+id,'DELETE'); chargerMessages();
 }
 chargerMessages();
+
+// ===== Sauvegarde et restauration =====
+async function restaurer(input){
+  const f = input.files[0];
+  if (!f) return;
+  const err = document.getElementById('errRestaure');
+  err.textContent = '';
+  if (!confirm('Restaurer ce fichier ? Toutes les données actuelles seront remplacées.')) {
+    input.value = ''; return;
+  }
+  try {
+    const texte = await f.text();
+    const donnees = JSON.parse(texte);
+    const r = await api('/api/admin/restaurer','POST',{ donnees });
+    alert('Restauration terminée.\n\n'
+      + r.entreprises + ' entreprise(s)\n'
+      + r.utilisateurs + ' utilisateur(s)\n'
+      + r.rendezvous + ' rendez-vous\n'
+      + r.sejours + ' séjour(s)\n'
+      + r.commandes + ' commande(s)');
+    location.reload();
+  } catch(e){
+    err.textContent = e.message.includes('JSON') ? 'Fichier illisible : ce n\'est pas une sauvegarde valide.' : e.message;
+  }
+  input.value = '';
+}
 </script>
 <script>
 let entreprises = [];

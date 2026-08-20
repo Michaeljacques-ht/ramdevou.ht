@@ -56,6 +56,15 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
 .recap-ab { background: var(--gris-clair); border-radius: var(--r-champ); padding: 15px 17px; }
 .recap-ab div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; gap: 12px; }
 .recap-ab .fort { border-top: 1px solid var(--bordure); margin-top: 6px; padding-top: 9px; font-weight: 800; color: var(--marine); }
+.guides { display: grid; gap: 8px; margin-top: 12px; }
+.guide { display: flex; align-items: center; gap: 11px; padding: 11px 14px; background: #fff;
+  border: 1.5px solid var(--bordure); border-radius: var(--r-champ); text-decoration: none; }
+.guide:hover { border-color: var(--bleu); background: var(--bleu-clair); text-decoration: none; }
+.guide .ico { width: 34px; height: 34px; border-radius: 9px; background: var(--orange-fond);
+  display: grid; place-items: center; font-size: 17px; flex: none; }
+.guide strong { display: block; font-size: 13.5px; color: var(--marine); }
+.guide span.det { font-size: 12px; color: var(--gris); }
+.guide .fleche { margin-left: auto; color: var(--bleu); font-weight: 800; }
 .champ-signature { font-family: 'Segoe Script', 'Brush Script MT', cursive; font-size: 21px; }
 </style>
 </head>
@@ -126,6 +135,31 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
         <input type="checkbox" id="accVeracite" onchange="majCasesLegales()">
         <span>Je certifie être habilité(e) à engager cette entreprise et exact(e) dans les informations fournies.</span>
       </label>
+
+      <h2 style="font-size:14.5px;margin-top:22px">📘 Guides d'utilisation</h2>
+      <p class="petit muet" style="margin-top:3px">Téléchargez le guide qui vous convient. Vous pourrez le relire à tout moment, et le partager avec votre équipe.</p>
+      <div class="guides">
+        <a class="guide" href="/guides/guide-entreprises-fr.pdf" download>
+          <span class="ico">📄</span>
+          <span><strong>Guide de l'entreprise — Français</strong>
+          <span class="det">Ouvrir votre espace, recevoir des clients, encaisser · 7 pages</span></span>
+          <span class="fleche">⬇</span></a>
+        <a class="guide" href="/guides/gid-biznis-ht.pdf" download>
+          <span class="ico">📄</span>
+          <span><strong>Gid biznis lan — Kreyòl</strong>
+          <span class="det">Louvri espas ou, resevwa kliyan, ankese lajan ou · 7 paj</span></span>
+          <span class="fleche">⬇</span></a>
+        <a class="guide" href="/guides/guide-clients-fr.pdf" download>
+          <span class="ico">📗</span>
+          <span><strong>Guide du client — Français</strong>
+          <span class="det">À remettre à vos clients : réserver, acheter, payer · 6 pages</span></span>
+          <span class="fleche">⬇</span></a>
+        <a class="guide" href="/guides/gid-kliyan-ht.pdf" download>
+          <span class="ico">📗</span>
+          <span><strong>Gid kliyan an — Kreyòl</strong>
+          <span class="det">Pou kliyan ou yo : rezève, achte, peye · 6 paj</span></span>
+          <span class="fleche">⬇</span></a>
+      </div>
     </section>
 
     <section class="etape" data-pas="3">
@@ -160,6 +194,31 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
       <div class="encart-essai mt" id="encartActivation"></div>
       <div class="recap-ab mt" id="recapFinal"></div>
       <div id="zonePaiement"></div>
+
+      <h2 style="font-size:14.5px;margin-top:24px">📘 Vos guides</h2>
+      <p class="petit muet" style="margin-top:3px">Gardez-les sous la main pour vos premiers pas.</p>
+      <div class="guides">
+        <a class="guide" href="/guides/guide-entreprises-fr.pdf" download>
+          <span class="ico">📄</span>
+          <span><strong>Guide de l'entreprise — Français</strong>
+          <span class="det">Tout ce qu'il faut savoir pour démarrer</span></span>
+          <span class="fleche">⬇</span></a>
+        <a class="guide" href="/guides/gid-biznis-ht.pdf" download>
+          <span class="ico">📄</span>
+          <span><strong>Gid biznis lan — Kreyòl</strong>
+          <span class="det">Tout sa ou bezwen konnen pou kòmanse</span></span>
+          <span class="fleche">⬇</span></a>
+        <a class="guide" href="/guides/guide-clients-fr.pdf" download>
+          <span class="ico">📗</span>
+          <span><strong>Guide du client — Français</strong>
+          <span class="det">À imprimer ou partager avec vos clients</span></span>
+          <span class="fleche">⬇</span></a>
+        <a class="guide" href="/guides/gid-kliyan-ht.pdf" download>
+          <span class="ico">📗</span>
+          <span><strong>Gid kliyan an — Kreyòl</strong>
+          <span class="det">Pou enprime oswa pataje ak kliyan ou yo</span></span>
+          <span class="fleche">⬇</span></a>
+      </div>
     </section>
 
     <div class="champ-erreur" id="err"></div>

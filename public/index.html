@@ -28,6 +28,12 @@
 .bm-accent { color: var(--orange); }
 .bm-intro { color: var(--texte); font-size: clamp(15px, 1.35vw, 18px); margin: 16px 0 22px; max-width: 48ch; font-weight: 500; }
 .bm-recherche { margin: 20px 0 18px; max-width: 620px; }
+.bm-boutons { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Second bouton : même forme, traitement secondaire pour ne pas
+   concurrencer l'appel principal. */
+.bm-cta2 { background: #fff; color: var(--marine); border: 2px solid var(--marine);
+  border-radius: 99px; padding: 12px 26px; font-weight: 800; font-size: 15.5px; }
+.bm-cta2:hover { background: var(--marine); color: #fff; text-decoration: none; transform: translateY(-1px); }
 .bm-cta { background: linear-gradient(90deg, #F26B21, #FF8A3D); color: #fff; border-radius: 99px;
   padding: 14px 30px; font-weight: 800; font-size: 16px; box-shadow: 0 8px 20px rgba(242,107,33,.34); }
 .bm-cta:hover { transform: translateY(-1px); color: #fff; text-decoration: none; }
@@ -199,7 +205,10 @@
           <input type="text" id="champLieu" placeholder="Localisation" data-i18n-placeholder="acc.rech.lieu" aria-label="Localisation">
           <button class="btn btn-primaire" type="submit" data-i18n="acc.rech.bouton">Rechercher</button>
         </form>
-        <a class="btn bm-cta" href="/categories.html"><span data-i18n="bm.cta">Découvrir les entreprises</span> →</a>
+        <div class="bm-boutons">
+          <a class="btn bm-cta" href="#categories-resultats"><span data-i18n="bm.cta">Découvrir les entreprises</span> →</a>
+          <a class="btn bm-cta2" href="#pro"><span data-i18n="bm.cta2">Découvrir nos solutions</span> →</a>
+        </div>
         <div class="bm-atouts">
           <a class="bm-atout" href="/categories.html">
             <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>

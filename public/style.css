@@ -216,7 +216,17 @@ input::placeholder, textarea::placeholder { color: #A7B0BE; }
   /* Les boutons d'action rejoignent le panneau : ils débordaient de la barre */
   .nav-droite { gap: 6px; }
   .nav-droite .btn-contour, .nav-droite .btn-primaire { display: none; }
-  .nav-liens .btn-contour, .nav-liens .btn-primaire { display: inline-flex; width: 100%; margin-top: 6px; }
+  /* Dans le panneau déroulant, ces liens sont des boutons : ils doivent
+     garder leur propre couleur de texte, et non celle des liens du menu. */
+  .nav-liens .btn-contour, .nav-liens .btn-primaire {
+    display: inline-flex; width: 100%; margin-top: 6px; justify-content: center;
+  }
+  .nav-liens .btn-primaire, .nav-liens .btn-primaire:hover {
+    color: #fff !important; background: var(--degrade);
+  }
+  .nav-liens .btn-contour, .nav-liens .btn-contour:hover {
+    color: var(--marine) !important; background: #fff; border: 1.5px solid var(--bordure);
+  }
 }
 @media (min-width: 821px) { .nav-liens .lien-mobile { display: none; } }
 
