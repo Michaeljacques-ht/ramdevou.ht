@@ -1,6 +1,9 @@
 // 🌐 Traductions Français / Kreyòl Ayisyen
 const translations = {
   fr: {
+    'inst.titre': 'Installez Biznis Konekte',
+    'inst.sous': "Accès direct depuis votre écran d'accueil, sans passer par le navigateur.",
+    'inst.bouton': 'Installer',
     'nav.contact': 'Contact',
     'ct.eyebrow': 'Nous joindre', 'ct.titre1': 'Une question ? ', 'ct.titre2': 'Nous sommes là.',
     'ct.intro': 'Écrivez-nous par le formulaire, ou joignez-nous directement sur WhatsApp. Nous répondons sous 24 heures ouvrables.',
@@ -386,6 +389,9 @@ const translations = {
   },
   
   ht: {
+    'inst.titre': 'Enstale Biznis Konekte',
+    'inst.sous': 'Antre dirèk depi ekran dakèy ou, san pase nan navigatè a.',
+    'inst.bouton': 'Enstale',
     'nav.contact': 'Kontak',
     'ct.eyebrow': 'Kontakte nou', 'ct.titre1': 'Yon kesyon ? ', 'ct.titre2': 'Nou la pou ou.',
     'ct.intro': 'Ekri nou nan fòm nan, oswa jwenn nou dirèk sou WhatsApp. Nou reponn nan mwens pase 24 è ouvrab.',

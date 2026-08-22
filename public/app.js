@@ -70,6 +70,26 @@ const ICONES_CAT = { 'Santé': '🩺', 'Beauté': '💇', 'Formation': '🎓', '
   }
 })();
 
+// Mesure de fréquentation : une seule fois par page chargée
+(function mesurer(){
+  try {
+    const installee = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+    fetch('/api/visite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chemin: location.pathname,
+        referer: document.referrer || '',
+        langue: navigator.language || '',
+        fuseau: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+        installee
+      }),
+      keepalive: true
+    }).catch(() => {});
+  } catch { /* sans conséquence pour la navigation */ }
+})();
+
 // Menu de navigation sur mobile
 function basculerMenu(btn){
   const liens = document.querySelector('.nav-liens');
@@ -85,6 +105,49 @@ document.addEventListener('click', (ev) => {
   const btn = document.querySelector('.burger');
   if (liens) liens.classList.remove('ouvert');
   if (btn) { btn.textContent = '☰'; btn.setAttribute('aria-expanded', 'false'); }
+});
+
+/* Invitation à installer l'application.
+   Sur Android, le navigateur propose lui-même l'installation : on capte
+   l'événement pour l'offrir au bon moment. Sur iPhone, aucune interface
+   n'existe — il faut décrire le geste. */
+let invitationInstall = null;
+window.addEventListener('beforeinstallprompt', (ev) => {
+  ev.preventDefault();
+  invitationInstall = ev;
+  const b = document.getElementById('barreInstall');
+  if (b && !localStorage.getItem('installRefuse')) b.style.display = '';
+});
+
+function estInstallee(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function estIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+async function installerApp(){
+  if (invitationInstall) {
+    invitationInstall.prompt();
+    const choix = await invitationInstall.userChoice;
+    invitationInstall = null;
+    if (choix.outcome === 'accepted') fermerInstall();
+    return;
+  }
+  // iPhone : on montre la marche à suivre
+  const lg = localStorage.getItem('langue') || 'fr';
+  alert(lg === 'ht'
+    ? "Pou enstale sou iPhone :\n\n1. Touche bouton Pataje a (yon kare ak yon flèch anlè)\n2. Desann epi chwazi « Sou ekran dakèy »\n3. Touche « Ajoute »"
+    : "Pour installer sur iPhone :\n\n1. Touchez le bouton Partager (un carré avec une flèche vers le haut)\n2. Faites défiler et choisissez « Sur l'écran d'accueil »\n3. Touchez « Ajouter »");
+}
+function fermerInstall(){
+  const b = document.getElementById('barreInstall');
+  if (b) b.style.display = 'none';
+  localStorage.setItem('installRefuse', '1');
+}
+// Sur iPhone, aucun événement n'est émis : on affiche l'invitation nous-mêmes
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('barreInstall');
+  if (b && estIOS() && !estInstallee() && !localStorage.getItem('installRefuse')) b.style.display = '';
 });
 
 // 🌐 Gestion des langues (sans effet si translations.js n'est pas chargé)

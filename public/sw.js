@@ -1,11 +1,13 @@
 // Biznis Konekte — Service Worker (requis pour PWA / Play Store)
-const CACHE = 'biznis-v20';
+const CACHE = 'biznis-v23';
 const STATIQUES = [
   '/style.css',
   '/app.js',
   '/manifest.json',
   '/icone-192.png',
-  '/icone-512.png'
+  '/icone-512.png',
+  '/favicon.ico',
+  '/apple-touch-icon.png'
 ];
 
 // Installation : pré-cacher les fichiers statiques

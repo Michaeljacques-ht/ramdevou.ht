@@ -11,6 +11,7 @@ const plopplop = require('./plopplop.js');
 const metiers = require('./lib/metiers.js');
 const forfaits = require('./lib/forfaits.js');
 const qr = require('./lib/qr.js');
+const visites = require('./lib/visites.js');
 const taksi = require('./lib/taksi.js');
 
 // ---- Paramètres commerciaux ----
@@ -1183,6 +1184,28 @@ async function api(req, res, url) {
     });
   }
 
+  // ---- Enregistrement d'une visite (appelé par le navigateur) ----
+  if (p === '/api/visite' && req.method === 'POST') {
+    try {
+      visites.enregistrer(db, {
+        chemin: corps.chemin,
+        ip: ipDe(req),
+        agent: req.headers['user-agent'] || '',
+        referer: corps.referer || req.headers.referer || '',
+        hote: req.headers.host,
+        contexte: { langue: corps.langue, fuseau: corps.fuseau, installee: corps.installee }
+      });
+      store.save();
+    } catch { /* la mesure ne doit jamais gêner la navigation */ }
+    res.writeHead(204); return res.end();
+  }
+
+  // ---- Fréquentation, réservée à l'administrateur ----
+  if (p === '/api/admin/frequentation' && req.method === 'GET') {
+    if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
+    return json(res, 200, visites.statistiques(db, q.get('jours') || 30));
+  }
+
   // ---- Messages du public : contact, partenariat, question ----
   if (p === '/api/messages' && req.method === 'POST') {
     const TYPES = ['contact', 'partenaire', 'question'];
@@ -1331,6 +1354,10 @@ async function api(req, res, url) {
       return json(res, 403, { erreur: 'Le module Restaurant & Bar n\'est pas disponible pour votre type d\'activité.' });
     if (p.startsWith('/api/mon-entreprise/chambres') && !metiers.aModule(e, 'hotellerie'))
       return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
+
+    // ---- Fréquentation de ma page ----
+    if (p === '/api/mon-entreprise/frequentation' && req.method === 'GET')
+      return json(res, 200, visites.statistiques(db, q.get('jours') || 30, e.slug));
 
     // ---- Code QR de la page publique ----
     if (p === '/api/mon-entreprise/qr.svg' && req.method === 'GET') {

@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Catégories — Biznis Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
 <meta name="description" content="Parcourez toutes les catégories de Biznis Konekte : santé, beauté, formation, auto, maison, hôtels et restaurants, commerces et urgences.">
 <link rel="stylesheet" href="/style.css">
 <style>
@@ -35,6 +39,19 @@
   align-items: center; gap: 18px; flex-wrap: wrap; }
 .bande-aide h2 { font-size: 19px; }
 .bande-aide p { opacity: .82; font-size: 14px; margin-top: 5px; }
+.barre-install { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 80;
+  background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 12px 34px rgba(11,44,107,.20); display: flex; align-items: center; gap: 12px;
+  max-width: 520px; margin: 0 auto; }
+.barre-install .bi-ico { width: 42px; height: 42px; border-radius: 12px; background: var(--bleu-clair);
+  display: grid; place-items: center; flex: none; }
+.bi-txt { flex: 1; min-width: 0; }
+.bi-txt strong { display: block; font-size: 14px; color: var(--marine); }
+.bi-txt span { font-size: 12.3px; color: var(--gris); line-height: 1.35; display: block; }
+.bi-fermer { border: 0; background: none; color: var(--gris); font-size: 16px; cursor: pointer;
+  padding: 4px; line-height: 1; flex: none; }
+.bi-fermer:hover { color: var(--marine); }
+@media (max-width: 480px) { .bi-txt span { display: none; } }
 </style>
 <script src="/app.js"></script>
 <script src="/translations.js"></script>
@@ -106,6 +123,16 @@
     </div>
   </div>
 </footer>
+
+<div id="barreInstall" class="barre-install" style="display:none">
+  <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
+  <div class="bi-txt">
+    <strong data-i18n="inst.titre">Installez Biznis Konekte</strong>
+    <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
+  </div>
+  <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>
+  <button class="bi-fermer" onclick="fermerInstall()" aria-label="Fermer">✕</button>
+</div>
 
 <div id="toast"></div>
 <script>

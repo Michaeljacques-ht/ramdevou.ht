@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Administration — Biznis Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
 <link rel="stylesheet" href="/style.css">
 <style>
 body { background: var(--gris-clair); }
@@ -13,6 +17,11 @@ body { background: var(--gris-clair); }
 .stat { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 16px 18px; }
 .stat .valeur { font-size: 26px; font-weight: 800; }
 @media (max-width: 800px){ .cartes-stats { grid-template-columns: 1fr 1fr; } }
+.courbe { display: flex; align-items: flex-end; gap: 2px; height: 110px;
+  background: var(--gris-clair); border-radius: 10px; padding: 8px; }
+.courbe .col { flex: 1; display: flex; align-items: flex-end; height: 100%; }
+.courbe .barre { width: 100%; background: var(--degrade); border-radius: 3px 3px 0 0; min-height: 2px; }
+.courbe .col:hover .barre { background: var(--orange); }
 </style>
 </head>
 <body>
@@ -38,6 +47,22 @@ body { background: var(--gris-clair); }
       </select>
     </div>
     <div style="overflow:auto" class="mt"><table id="tableEnt"></table></div>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre">
+      <h2 style="font-size:16px">📊 Fréquentation</h2>
+      <select id="periodeFreq" style="width:auto" onchange="chargerFrequentation()">
+        <option value="7">7 derniers jours</option>
+        <option value="30" selected>30 derniers jours</option>
+        <option value="90">3 derniers mois</option>
+        <option value="365">12 derniers mois</option>
+      </select>
+    </div>
+    <div id="freqChiffres" class="cartes-stats mt"></div>
+    <div id="freqCourbe" class="mt"></div>
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px" id="freqDetails"></div>
+    <p class="aide mt">Les visiteurs ne sont pas identifiés : aucune adresse IP n'est conservée, et l'empreinte anonyme change chaque jour. La région est déduite du fuseau horaire du navigateur.</p>
   </div></div>
 
   <div class="carte mt"><div class="carte-corps">
@@ -107,6 +132,55 @@ async function chargerMessages(){
 }
 async function statutMsg(id, statut){
   await api('/api/admin/messages/'+id,'PUT',{statut}); chargerMessages();
+
+// ===== Fréquentation =====
+async function chargerFrequentation(){
+  const jours = document.getElementById('periodeFreq').value;
+  let s;
+  try { s = await api('/api/admin/frequentation?jours=' + jours); } catch(e){ return; }
+
+  document.getElementById('freqChiffres').innerHTML = `
+    <div class="stat"><span class="petit muet">Visites</span><div class="valeur">${s.total}</div></div>
+    <div class="stat"><span class="petit muet">Visiteurs uniques</span><div class="valeur">${s.visiteurs}</div></div>
+    <div class="stat"><span class="petit muet">Depuis l'écran d'accueil</span><div class="valeur">${s.installees}</div></div>
+    <div class="stat"><span class="petit muet">Moyenne par jour</span><div class="valeur">${Math.round(s.total / s.periode)}</div></div>`;
+
+  // Courbe simple en barres, sans bibliothèque
+  const max = Math.max(1, ...s.parJour.map(j => j.visites));
+  const derniers = s.parJour.slice(-30);
+  document.getElementById('freqCourbe').innerHTML = `
+    <div class="courbe">${derniers.map(j => `
+      <div class="col" title="${j.jour} — ${j.visites} visite(s), ${j.visiteurs} visiteur(s)">
+        <div class="barre" style="height:${Math.round(j.visites / max * 100)}%"></div>
+      </div>`).join('')}</div>
+    <div class="flex entre petit muet" style="margin-top:4px">
+      <span>${derniers.length ? derniers[0].jour : ''}</span>
+      <span>${derniers.length ? derniers[derniers.length-1].jour : ''}</span>
+    </div>`;
+
+  const liste = (titre, donnees, unite) => `
+    <div class="panneau">
+      <strong class="petit">${titre}</strong>
+      ${donnees.length ? donnees.map(([k, n]) => `
+        <div class="flex entre" style="padding:5px 0;border-bottom:1px solid var(--bordure)">
+          <span class="petit">${ech(k)}</span><strong class="petit">${n}${unite||''}</strong>
+        </div>`).join('') : '<p class="petit muet" style="margin-top:6px">Aucune donnée</p>'}
+    </div>`;
+
+  const heurePointe = s.parHeure.indexOf(Math.max(...s.parHeure));
+  document.getElementById('freqDetails').innerHTML =
+    liste('🌍 Régions', s.regions) +
+    liste('🔗 Provenance', s.sources) +
+    liste('📱 Appareils', s.appareils) +
+    liste('🗣 Langues', s.langues) +
+    liste('📄 Pages les plus vues', s.pages) +
+    liste('🏢 Entreprises les plus consultées', s.entreprises) +
+    `<div class="panneau"><strong class="petit">🕐 Heure de pointe</strong>
+      <p style="font-size:22px;font-weight:800;color:var(--marine);margin-top:6px">${heurePointe}h — ${heurePointe+1}h</p>
+      <p class="petit muet">${s.parHeure[heurePointe]} visite(s) sur cette tranche</p></div>`;
+}
+chargerFrequentation();
+
 }
 async function supprimerMsg(id){
   if (!confirm('Supprimer ce message ?')) return;
