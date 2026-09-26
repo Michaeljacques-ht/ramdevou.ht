@@ -825,8 +825,13 @@ body { background: var(--gris-clair); }
     <div><label>Seuil d'alerte</label><input id="prSeuil" type="number" min="0" value="5"></div>
   </div>
   <label>Référence interne</label><input id="prRef" placeholder="Code produit — facultatif">
-  <label>Photo</label><input type="file" id="prPhoto" accept="image/*">
+  <label>Photos du produit</label>
+  <input type="file" id="prPhoto" accept="image/*" multiple>
+  <p class="aide">Jusqu'à 6 photos. La première sert de vignette ; glissez « ★ » pour en choisir une autre.</p>
   <div id="prApercu" class="mt"></div>
+  <label>Vidéo — facultatif</label>
+  <input id="prVideo" placeholder="Lien YouTube, Facebook, TikTok ou Vimeo">
+  <p class="aide">Collez le lien d'une vidéo déjà en ligne. Les fichiers vidéo ne sont pas hébergés ici : ils alourdiraient trop votre espace.</p>
   <div class="flex mt" style="justify-content:flex-end">
     <button class="btn btn-fantome" onclick="fermer('voileProduit')">Annuler</button>
     <button class="btn btn-primaire" onclick="enregistrerProduit()">Enregistrer</button>
@@ -2053,7 +2058,7 @@ async function enregistrerVente(){
 }
 
 // ===== Module catalogue =====
-let prodEnCours = null, photoProduit = '', RAYONS = [];
+let prodEnCours = null, photosProduit = [], RAYONS = [];
 async function chargerCatalogue(){
   const r = await api('/api/mon-entreprise/produits');
   RAYONS = r.rayons;
@@ -2115,7 +2120,8 @@ async function chargerCatalogue(){
   </table></div>`;
 }
 function ouvrirProduit(p){
-  prodEnCours = p || null; photoProduit = p && p.photo || '';
+  prodEnCours = p || null;
+  photosProduit = p ? ((p.photos && p.photos.length) ? p.photos.slice() : (p.photo ? [p.photo] : [])) : [];
   document.getElementById('titreModaleProduit').textContent = p ? 'Modifier le produit' : 'Ajouter un produit';
   prNom.value = p?p.nom:''; prDesc.value = p?(p.description||''):'';
   prRayon.value = p?(p.rayon||''):''; prMarque.value = p?(p.marque||''):'';
@@ -2128,19 +2134,47 @@ function ouvrirProduit(p){
   prStock.value = p && p.stock !== null ? p.stock : 0;
   prSeuil.value = p?p.seuilAlerte:5;
   document.getElementById('prPhoto').value = '';
-  document.getElementById('prApercu').innerHTML = photoProduit ? `<img src="${photoProduit}" style="width:110px;height:80px;object-fit:cover;border-radius:10px">` : '';
+  prVideo.value = p ? (p.video || '') : '';
+  dessinerPhotosProduit();
   document.getElementById('voileProduit').classList.add('ouvert');
 }
+function dessinerPhotosProduit(){
+  const z = document.getElementById('prApercu');
+  if (!z) return;
+  z.innerHTML = photosProduit.length
+    ? `<div class="galerie-ch">${photosProduit.map((ph,i) => `
+        <div class="vignette-ch${i===0?' principale':''}">
+          <img src="${ph}" alt="">
+          ${i===0?'<span class="etiq-ch">Vignette</span>':''}
+          <div class="actions-ch">
+            ${i>0?`<button type="button" title="Mettre en vignette" onclick="promouvoirPhotoP(${i})">★</button>`:''}
+            <button type="button" title="Retirer" onclick="retirerPhotoP(${i})">✕</button>
+          </div>
+        </div>`).join('')}</div>
+       <p class="petit muet">${photosProduit.length} photo${photosProduit.length>1?'s':''} sur 6</p>`
+    : '<p class="petit muet">Aucune photo pour le moment.</p>';
+}
+function promouvoirPhotoP(i){ const [x] = photosProduit.splice(i,1); photosProduit.unshift(x); dessinerPhotosProduit(); }
+function retirerPhotoP(i){ photosProduit.splice(i,1); dessinerPhotosProduit(); }
+
 document.getElementById('prPhoto')?.addEventListener('change', async (ev) => {
-  const f = ev.target.files[0]; if (!f) return;
-  try { photoProduit = await compresserImage(f, 900, 0.78);
-    document.getElementById('prApercu').innerHTML = `<img src="${photoProduit}" style="width:110px;height:80px;object-fit:cover;border-radius:10px">`;
-  } catch { toast('Image illisible.'); }
+  const fichiers = [...ev.target.files];
+  if (!fichiers.length) return;
+  const place = 6 - photosProduit.length;
+  if (place <= 0) { toast('Maximum 6 photos par produit.'); ev.target.value=''; return; }
+  if (fichiers.length > place) toast(`Seules les ${place} premières photos ont été ajoutées.`);
+  for (const f of fichiers.slice(0, place)) {
+    try { photosProduit.push(await compresserImage(f, 900, 0.78)); }
+    catch { toast('Une image n\'a pas pu être lue.'); }
+  }
+  ev.target.value = '';
+  dessinerPhotosProduit();
 });
 async function enregistrerProduit(){
   const corps = { nom:prNom.value.trim(), description:prDesc.value.trim(), rayon:prRayon.value.trim(),
     marque:prMarque.value.trim(), prix:+prPrix.value||0, prixPromo:+prPromo.value||0,
-    unite:prUnite.value.trim(), reference:prRef.value.trim(), photo:photoProduit,
+    unite:prUnite.value.trim(), reference:prRef.value.trim(),
+    photos:photosProduit, video:prVideo.value.trim(),
     stock: prSuiviStock.checked ? (+prStock.value||0) : null,
     seuilAlerte: +prSeuil.value||0 };
   if (!corps.nom || !(corps.prix > 0)) { toast('Nom et prix obligatoires.'); return; }

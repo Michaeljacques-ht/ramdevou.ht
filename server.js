@@ -166,6 +166,21 @@ function nettoyerInclus(v) {
   return [...new Set(v.filter((k) => CLES_INCLUS.includes(k)))];
 }
 
+/* Vidéo d'un produit : un lien, pas un fichier.
+   Une vidéo stockée dans la base la ferait gonfler de plusieurs mégaoctets
+   par produit. On accepte donc les hébergeurs courants, et on en tire
+   l'adresse d'intégration. */
+function nettoyerVideo(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  try {
+    const u = new URL(s);
+    const h = u.hostname.replace(/^www\./, '');
+    if (!/^(youtube\.com|youtu\.be|m\.youtube\.com|facebook\.com|fb\.watch|tiktok\.com|vimeo\.com|instagram\.com)$/.test(h)) return '';
+    return s.slice(0, 300);
+  } catch { return ''; }
+}
+
 // Galerie d'une chambre : plusieurs photos, la première sert de vignette.
 const MAX_PHOTOS_CHAMBRE = 8;
 function nettoyerPhotos(v, existant) {
@@ -749,6 +764,7 @@ async function api(req, res, url) {
         ? db.produits.filter((x) => x.entrepriseId === e.id && x.disponible && (x.stock === null || x.stock > 0))
             .map((x) => ({ id: x.id, nom: x.nom, description: x.description, rayon: x.rayon, marque: x.marque,
                            prix: x.prix, prixPromo: x.prixPromo, unite: x.unite, photo: x.photo || '',
+                           photos: x.photos || (x.photo ? [x.photo] : []), video: x.video || '',
                            stockFaible: x.stock !== null && x.stock <= Math.max(x.seuilAlerte, 3) }))
         : [],
       vente: metiers.aModule(e, 'commandes') && e.vente && e.vente.commandesActives ? {
@@ -1773,8 +1789,8 @@ async function api(req, res, url) {
 
     if (p === '/api/mon-entreprise/produits' && req.method === 'POST') {
       if (!corps.nom || !(+corps.prix > 0)) return json(res, 400, { erreur: 'Nom et prix obligatoires.' });
-      if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
-        return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
+      const galeriePr = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, []);
+      if (galeriePr === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
       const pr = {
         id: store.uid(), entrepriseId: e.id,
         nom: String(corps.nom).slice(0, 90),
@@ -1788,7 +1804,8 @@ async function api(req, res, url) {
         // stock null = quantité non suivie
         stock: corps.stock === null || corps.stock === '' || corps.stock === undefined ? null : Math.max(0, Math.min(+corps.stock || 0, 1000000)),
         seuilAlerte: Math.max(0, Math.min(+corps.seuilAlerte || 0, 100000)),
-        photo: corps.photo || '',
+        photos: galeriePr, photo: galeriePr[0] || '',
+        video: nettoyerVideo(corps.video),
         disponible: corps.disponible === undefined ? true : !!corps.disponible,
         creeLe: new Date().toISOString()
       };
@@ -1811,11 +1828,13 @@ async function api(req, res, url) {
         if (corps.stock !== undefined)
           pr.stock = corps.stock === null || corps.stock === '' ? null : Math.max(0, Math.min(+corps.stock || 0, 1000000));
         if (corps.seuilAlerte !== undefined) pr.seuilAlerte = Math.max(0, Math.min(+corps.seuilAlerte || 0, 100000));
-        if (corps.photo !== undefined) {
-          if (corps.photo && !(String(corps.photo).startsWith('data:image/') && corps.photo.length <= 900000))
-            return json(res, 400, { erreur: 'Photo invalide ou trop lourde.' });
-          pr.photo = corps.photo;
+        if (corps.photos !== undefined || corps.photo !== undefined) {
+          const g = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, pr.photos);
+          if (g === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
+          pr.photos = g;
+          pr.photo = g[0] || '';
         }
+        if (corps.video !== undefined) pr.video = nettoyerVideo(corps.video);
         if (corps.disponible !== undefined) pr.disponible = !!corps.disponible;
         // Mouvement de stock rapide : +N ou -N
         if (corps.mouvement !== undefined && pr.stock !== null)
