@@ -112,6 +112,15 @@
   padding: 4px; line-height: 1; flex: none; }
 .bi-fermer:hover { color: var(--marine); }
 @media (max-width: 480px) { .bi-txt span { display: none; } }
+.carte-produit { position: relative; }
+.part-produit { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px;
+  border-radius: 9px; border: 0; background: rgba(255,255,255,.92); cursor: pointer;
+  font-size: 14px; line-height: 1; box-shadow: 0 2px 8px rgba(16,24,40,.14);
+  opacity: 0; transition: opacity .15s, transform .15s; z-index: 2; }
+.carte-produit:hover .part-produit { opacity: 1; }
+.part-produit:hover { transform: scale(1.08); background: #fff; }
+@media (hover: none) { .part-produit { opacity: 1; } }
+.carte-produit.mise-en-avant { border-color: var(--bleu); box-shadow: 0 0 0 3px rgba(37,99,235,.18); }
 </style>
 </head>
 <body>
@@ -566,6 +575,37 @@ function refEquip(cle){
     } catch(e){ err.textContent = e.message; }
   };
 
+
+  // ---- Partage d'un produit ----
+  window.partagerProduit = async (ev, id, nom) => {
+    ev.preventDefault(); ev.stopPropagation();
+    const lien = `${location.origin}/${slug}?produit=${id}`;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const texte = (lg === 'ht' ? 'Gade sa : ' : 'Regardez : ') + nom;
+    // Partage natif du téléphone quand il existe
+    if (navigator.share) {
+      try { await navigator.share({ title: nom, text: texte, url: lien }); return; }
+      catch { /* partage annulé */ }
+    }
+    try {
+      await navigator.clipboard.writeText(lien);
+      toast(lg === 'ht' ? 'Lyen kopye' : 'Lien copié');
+    } catch {
+      window.open('https://wa.me/?text=' + encodeURIComponent(texte + ' ' + lien), '_blank');
+    }
+  };
+
+  /* Produit partagé : on le met en évidence à l'ouverture, pour que
+     le visiteur retrouve exactement ce qu'il a vu dans l'aperçu. */
+  function ouvrirProduitPartage(){
+    const id = new URLSearchParams(location.search).get('produit');
+    if (!id) return;
+    const carte = document.querySelector(`[data-produit="${id}"]`);
+    if (!carte) return;
+    carte.classList.add('mise-en-avant');
+    carte.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   // ---- Catalogue public ----
   let rayonActif = '';
   function dessinerBoutique(){
@@ -583,7 +623,7 @@ function refEquip(cle){
       const msg = encodeURIComponent(
         (lg==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ') + p.nom +
         ' (' + ((p.prixPromo || p.prix)).toLocaleString('fr-HT') + ' HTG)');
-      return `<div class="carte-produit">
+      return `<div class="carte-produit" data-produit="${p.id}">
         ${p.photo ? `<div class="img-produit" style="background-image:url('${p.photo}')"></div>`
                   : `<div class="img-produit sans"><span>🛍️</span></div>`}
         <div class="corps-produit">
@@ -596,6 +636,7 @@ function refEquip(cle){
             ${p.unite?`<span class="petit muet">/${ech(p.unite)}</span>`:''}
           </p>
           ${p.stockFaible?`<p class="petit" style="color:var(--orange);font-weight:700">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`:''}
+          <button class="part-produit" title="${lg==='ht'?'Pataje':'Partager'}" onclick="partagerProduit(event,'${p.id}','${ech(p.nom).replace(/'/g,"&#39;")}')">🔗</button>
           ${peutCommander()
             ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="ajouterAuPanier('${p.id}')">${lg==='ht'?'Ajoute':'Ajouter'}</button>`
             : (ent.whatsapp ? `<a class="btn btn-succes btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
@@ -604,6 +645,7 @@ function refEquip(cle){
     }).join('');
   }
   window.filtrerRayon = (r) => { rayonActif = r; dessinerBoutique(); };
+
 
   // Agrandissement d'une photo de chambre
   window.agrandirPhoto = (_, el) => {
@@ -1061,6 +1103,7 @@ function refEquip(cle){
     const cr = document.getElementById('carteResa'); if (cr) cr.style.display = 'none';
   }
   dessinerBoutique();
+  ouvrirProduitPartage();
   dessinerUrgence();
   dessinerSuivi();
   dessinerProgrammes();

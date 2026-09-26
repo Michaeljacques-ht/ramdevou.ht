@@ -36,8 +36,16 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
 .lecture ul { margin: 4px 0 0 18px; }
 .case-legale { display: flex; gap: 11px; align-items: flex-start; padding: 13px 15px; margin-top: 12px;
   border: 1.5px solid var(--bordure); border-radius: var(--r-champ); background: #fff; cursor: pointer; font-size: 13.5px; }
-.case-legale.on { border-color: var(--bleu); background: var(--bleu-clair); }
-.case-legale input { width: auto; margin: 2px 0 0; accent-color: var(--bleu); flex: none; }
+.case-legale.on { border-color: var(--bleu); background: var(--bleu-clair);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+.case-legale input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 1px 0 0;
+  flex: none; border: 2px solid #C3CFE2; border-radius: 6px; background: #fff; cursor: pointer;
+  position: relative; transition: border-color .15s, background .15s; }
+.case-legale input[type="checkbox"]:checked { border-color: var(--bleu); background: var(--bleu); }
+.case-legale input[type="checkbox"]:checked::after { content: '✓'; position: absolute; inset: 0;
+  display: grid; place-items: center; color: #fff; font-size: 12.5px; font-weight: 800; }
+.case-legale input:disabled { background: #EEF2F7; border-color: #DDE5F0; cursor: not-allowed; }
 
 .grille-forfaits { display: grid; gap: 12px; }
 .forfait { position: relative; border: 2px solid var(--bordure); border-radius: var(--r-carte);

@@ -25,6 +25,88 @@ const db = store.load();
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml; charset=utf-8', '.ico': 'image/x-icon', '.pdf': 'application/pdf', '.webmanifest': 'application/manifest+json; charset=utf-8' };
 
 // ---------------- Utilitaires ----------------
+/* ============================================================
+   Aperçu de partage (Open Graph)
+   ------------------------------------------------------------
+   Facebook, WhatsApp et les autres lisent la page sans exécuter
+   le JavaScript. Les balises doivent donc être écrites par le
+   serveur, avant l'envoi.
+   ============================================================ */
+function echapperHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function baseUrl(req) {
+  const hote = req.headers.host;
+  const protocole = req.headers['x-forwarded-proto'] || (hote && hote.startsWith('localhost') ? 'http' : 'https');
+  return `${protocole}://${hote}`;
+}
+
+/** Balises d'aperçu pour une entreprise, ou pour l'un de ses produits. */
+function balisesPartage(req, e, produit) {
+  const base = baseUrl(req);
+  const url = produit ? `${base}/${e.slug}?produit=${produit.id}` : `${base}/${e.slug}`;
+
+  let titre, description, image;
+  if (produit) {
+    const prix = (produit.prixPromo > 0 ? produit.prixPromo : produit.prix);
+    titre = `${produit.nom} — ${prix.toLocaleString('fr-HT')} HTG`;
+    description = [produit.description, `Disponible chez ${e.nom}`, e.adresse]
+      .filter(Boolean).join(' · ').slice(0, 200);
+    image = produit.photo ? `${base}/img/produit/${produit.id}` : '';
+  } else {
+    titre = `${e.nom} — ${e.categorie || 'Biznis Konekte'}`;
+    const verbe = metiers.aModule(e, 'commandes') ? 'Commandez en ligne'
+      : (metiers.aModule(e, 'hotellerie') ? 'Réservez votre séjour' : 'Prenez rendez-vous en ligne');
+    description = [verbe, e.adresse, e.description].filter(Boolean).join(' · ').slice(0, 200);
+    image = '';
+  }
+  // Repli en cascade : photo du produit, bannière, logo, image de la marque
+  if (!image) {
+    if (e.photoFond) image = `${base}/img/fond/${e.id}`;
+    else if (e.logoImage) image = `${base}/img/logo/${e.id}`;
+    else image = `${base}/banniere-fond.jpg`;
+  }
+
+  const T = echapperHtml(titre), D = echapperHtml(description);
+  const I = echapperHtml(image), U = echapperHtml(url);
+  return `
+<title>${T} · Biznis Konekte</title>
+<meta name="description" content="${D}">
+<meta property="og:type" content="${produit ? 'product' : 'business.business'}">
+<meta property="og:site_name" content="Biznis Konekte">
+<meta property="og:locale" content="fr_HT">
+<meta property="og:title" content="${T}">
+<meta property="og:description" content="${D}">
+<meta property="og:image" content="${I}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="${U}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${T}">
+<meta name="twitter:description" content="${D}">
+<meta name="twitter:image" content="${I}">
+${produit ? `<meta property="product:price:amount" content="${produit.prixPromo > 0 ? produit.prixPromo : produit.prix}">
+<meta property="product:price:currency" content="HTG">` : ''}
+<link rel="canonical" href="${U}">`;
+}
+
+/** Sert la page d'une entreprise avec son aperçu de partage. */
+function pageEntreprise(res, req, e, produit) {
+  let html;
+  try {
+    html = fs.readFileSync(path.join(__dirname, 'public', 'entreprise.html'), 'utf8');
+  } catch {
+    res.writeHead(404); return res.end('Page introuvable');
+  }
+  // Le titre existant est remplacé, les balises insérées à sa place
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, balisesPartage(req, e, produit));
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  return res.end(html);
+}
+
 function ipDe(req) {
   return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 }
@@ -2268,9 +2350,53 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
+    /* ---- Images servies comme fichiers ----
+       Les réseaux sociaux ne savent pas lire une image encodée dans la page :
+       il leur faut une adresse. On expose donc les images stockées en base64
+       sous une vraie URL, mise en cache longuement. */
+    const mImg = url.pathname.match(/^\/img\/(produit|logo|fond|chambre)\/(\w+)(?:\/(\d+))?$/);
+    if (mImg && req.method === 'GET') {
+      const [, genre, id, indice] = mImg;
+      let source = '';
+      if (genre === 'produit') {
+        const pr = db.produits.find((x) => x.id === id);
+        source = pr && pr.photo;
+      } else if (genre === 'chambre') {
+        const c = db.chambres.find((x) => x.id === id);
+        const g = c && (c.photos || (c.photo ? [c.photo] : []));
+        source = g && g[Number(indice || 0)];
+      } else {
+        const e = db.entreprises.find((x) => x.id === id || x.slug === id);
+        source = e && (genre === 'logo' ? e.logoImage : e.photoFond);
+      }
+      if (!source || !String(source).startsWith('data:image/')) {
+        res.writeHead(404); return res.end('Image introuvable');
+      }
+      const sep = source.indexOf(',');
+      const type = source.slice(5, source.indexOf(';'));
+      const donnees = Buffer.from(source.slice(sep + 1), 'base64');
+      res.writeHead(200, {
+        'Content-Type': type,
+        'Content-Length': donnees.length,
+        'Cache-Control': 'public, max-age=604800'
+      });
+      return res.end(donnees);
+    }
+
+
     // URL personnalisée : randevou.ht/salon-elegance
     const m = url.pathname.match(/^\/([a-z0-9-]+)$/);
-    if (m && db.entreprises.find((e) => e.slug === m[1])) return statique(res, 'entreprise.html');
+    if (m) {
+      const ent = db.entreprises.find((e) => e.slug === m[1]);
+      if (ent) {
+        // Un produit précis peut être partagé : /slug?produit=ID
+        const idProduit = url.searchParams.get('produit');
+        const prod = idProduit
+          ? db.produits.find((x) => x.id === idProduit && x.entrepriseId === ent.id && x.disponible)
+          : null;
+        return pageEntreprise(res, req, ent, prod);
+      }
+    }
     if (url.pathname === '/') return statique(res, 'index.html');
     return statique(res, url.pathname.slice(1));
   } catch (err) {

@@ -282,3 +282,66 @@ tr:last-child td { border-bottom: none; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ============================================================
+   Choix à cocher : modes de remise, moyens de paiement
+   ------------------------------------------------------------
+   Chaque option est une carte cliquable entière. Le cercle est
+   aligné à gauche du texte, pas au-dessus : sans mise en forme,
+   les navigateurs empilent le bouton radio et son libellé.
+   ============================================================ */
+.choix-formule { display: grid; gap: 10px; margin-top: 8px; }
+
+.opt-formule {
+  display: flex; align-items: flex-start; gap: 13px;
+  padding: 14px 16px; margin: 0;
+  background: #fff; border: 1.5px solid var(--bordure);
+  border-radius: 14px; cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  position: relative; font-weight: 400;
+}
+.opt-formule:hover { border-color: #B9CDF0; background: #FBFCFE; }
+
+.opt-formule.on {
+  border-color: var(--bleu); background: var(--bleu-clair);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.10);
+}
+
+/* Le bouton natif est remplacé par un cercle dessiné, pour rester
+   identique d'un navigateur à l'autre. */
+.opt-formule input[type="radio"],
+.opt-formule input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 21px; height: 21px; margin: 1px 0 0; flex: none;
+  border: 2px solid #C3CFE2; border-radius: 50%;
+  background: #fff; cursor: pointer; position: relative;
+  transition: border-color .15s, background .15s;
+}
+.opt-formule input[type="checkbox"] { border-radius: 6px; }
+
+.opt-formule input:checked {
+  border-color: var(--bleu); background: var(--bleu);
+}
+.opt-formule input[type="radio"]:checked::after {
+  content: ''; position: absolute; inset: 0; margin: auto;
+  width: 8px; height: 8px; border-radius: 50%; background: #fff;
+}
+.opt-formule input[type="checkbox"]:checked::after {
+  content: '✓'; position: absolute; inset: 0;
+  display: grid; place-items: center;
+  color: #fff; font-size: 13px; font-weight: 800;
+}
+.opt-formule input:focus-visible { outline: 2px solid var(--bleu); outline-offset: 2px; }
+
+/* Contenu de l'option : titre en gras, détail en dessous */
+.opt-formule > span { flex: 1; min-width: 0; line-height: 1.4; }
+.opt-formule strong { display: block; font-size: 14.5px; color: var(--marine); font-weight: 700; }
+.opt-formule .petit, .opt-formule span span { font-size: 12.8px; color: var(--gris); }
+
+/* Prix ou mention à droite, quand il y en a un */
+.opt-formule .valeur-opt { font-weight: 800; color: var(--marine); font-size: 14px; white-space: nowrap; }
+
+@media (max-width: 420px) {
+  .opt-formule { padding: 12px 13px; gap: 11px; }
+  .opt-formule strong { font-size: 13.8px; }
+}
