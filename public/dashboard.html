@@ -715,6 +715,43 @@ body { background: var(--gris-clair); }
             <p style="font-size:12px;color:var(--gris);margin:4px 0 0">Mettez <b>1</b> pour n'accepter qu'un seul rendez-vous à la fois. Laissez <b>0</b> (ou vide) pour le mode automatique : autant de rendez-vous simultanés que d'employés actifs.</p>
             <button class="btn btn-primaire mt" onclick="enregistrerInfos()">Enregistrer les informations</button>
           </div></div>
+
+          <div class="carte mt" id="carteCreneaux"><div class="carte-corps">
+            <h2 style="font-size:16px">🕐 Rythme des rendez-vous</h2>
+            <p class="petit muet" style="margin-top:6px">Réglez l'espacement entre deux créneaux proposés à vos clients, et les moments où vous ne recevez pas.</p>
+
+            <label>Espacement des créneaux</label>
+            <select id="iPas">
+              <option value="0">Automatique — selon la durée du service</option>
+              <option value="15">Toutes les 15 minutes</option>
+              <option value="30">Toutes les 30 minutes</option>
+              <option value="60">Toutes les heures — 8h, 9h, 10h…</option>
+              <option value="90">Toutes les heures et demie</option>
+              <option value="120">Toutes les 2 heures — 8h, 10h, 12h…</option>
+              <option value="180">Toutes les 3 heures</option>
+              <option value="240">Toutes les 4 heures — matin et après-midi</option>
+            </select>
+            <p class="aide">Exemple : avec « toutes les heures » et une ouverture de 8h à 17h, vos clients verront 8h, 9h, 10h, et ainsi de suite. En automatique, un service de 2 heures propose 8h, 10h, 12h…</p>
+
+            <label style="margin-top:16px">Pauses dans la journée</label>
+            <p class="aide">Aucun créneau ne sera proposé pendant ces plages — déjeuner, fermeture de midi, ménage.</p>
+            <div id="listePauses"></div>
+            <button class="btn btn-contour btn-petit mt" onclick="ajouterPause()">+ Ajouter une pause</button>
+
+            <div id="apercuCreneaux" class="mt"></div>
+            <button class="btn btn-primaire mt" onclick="enregistrerCreneaux()">Enregistrer le rythme</button>
+          </div></div>
+
+          <div class="carte mt"><div class="carte-corps">
+            <h2 style="font-size:16px">🌐 Vos réseaux sociaux</h2>
+            <p class="petit muet" style="margin-top:6px">Ces liens apparaîtront sur votre page publique. Collez l'adresse complète de votre page ou de votre profil.</p>
+            <div id="listeReseaux" class="mt"></div>
+            <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+              <select id="nouveauReseau" style="max-width:190px"></select>
+              <button class="btn btn-contour btn-petit" onclick="ajouterReseau()">+ Ajouter</button>
+            </div>
+            <button class="btn btn-primaire mt" onclick="enregistrerReseaux()">Enregistrer les réseaux</button>
+          </div></div>
           <div class="carte" id="carteSecurite"><div class="carte-corps">
             <h2 style="font-size:16px">🔐 Sécurité du compte</h2>
             <p class="petit muet" style="margin-top:6px">La vérification en deux étapes protège votre espace même si votre mot de passe est découvert : un code vous est envoyé par WhatsApp à chaque connexion.</p>
@@ -1564,6 +1601,105 @@ async function ouvrirFlyer(){
   w.document.close();
 }
 
+
+// ===== Rythme des rendez-vous =====
+let PAUSES = [];
+function dessinerPauses(){
+  document.getElementById('listePauses').innerHTML = PAUSES.map((p,i) => `
+    <div class="ligne-zone">
+      <input type="time" value="${p.debut}" oninput="PAUSES[${i}].debut=this.value;apercuCreneaux()">
+      <input type="time" value="${p.fin}" oninput="PAUSES[${i}].fin=this.value;apercuCreneaux()">
+      <button class="btn btn-fantome btn-petit" onclick="PAUSES.splice(${i},1);dessinerPauses();apercuCreneaux()">🗑️</button>
+    </div>`).join('') || '<p class="petit muet">Aucune pause. Vous recevez sans interruption.</p>';
+}
+function ajouterPause(){ PAUSES.push({debut:'12:00',fin:'13:00'}); dessinerPauses(); apercuCreneaux(); }
+
+/* Aperçu calculé côté navigateur, avec la même règle que le serveur :
+   l'entreprise voit immédiatement ce que ses clients verront. */
+function apercuCreneaux(){
+  const z = document.getElementById('apercuCreneaux');
+  if (!z) return;
+  const pas = +document.getElementById('iPas').value || 0;
+  const h = (ent.horaires && ent.horaires.lundi) || { ouvert: true, debut: '08:00', fin: '17:00' };
+  if (!h.ouvert) { z.innerHTML = '<p class="petit muet">Lundi est fermé — aperçu indisponible.</p>'; return; }
+  const min = (s) => +s.slice(0,2)*60 + +s.slice(3,5);
+  const txt = (m) => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+  const duree = pas || 60;   // en automatique, on illustre avec un service d'une heure
+  const liste = [];
+  for (let m = min(h.debut); m + duree <= min(h.fin) && liste.length < 24; m += (pas || duree)) {
+    const enPause = PAUSES.some(p => p.debut && p.fin && m < min(p.fin) && m + duree > min(p.debut));
+    if (!enPause) liste.push(txt(m));
+  }
+  z.innerHTML = `<div class="panneau">
+    <strong class="petit">Aperçu — lundi, ${ech(h.debut)} à ${ech(h.fin)}${pas ? '' : ', avec un service d\'1 heure'}</strong>
+    <div class="flex mt" style="gap:5px;flex-wrap:wrap">
+      ${liste.map(x => `<span class="puce-equip">${x}</span>`).join('') || '<span class="petit muet">Aucun créneau</span>'}
+    </div>
+    <p class="petit muet" style="margin-top:6px">${liste.length} créneau(x) proposé(s)</p>
+  </div>`;
+}
+async function enregistrerCreneaux(){
+  const pauses = PAUSES.filter(p => p.debut && p.fin && p.fin > p.debut);
+  try {
+    await api('/api/mon-entreprise','PUT',{ pasCreneaux: +document.getElementById('iPas').value||0, pauses });
+    ent = await api('/api/mon-entreprise');
+    toast('Rythme enregistré.');
+  } catch(e){ toast(e.message); }
+}
+
+// ===== Réseaux sociaux =====
+const RESEAUX_DISPO = {
+  facebook:  { nom:'Facebook',  ico:'/logos/facebook.png', exemple:'https://facebook.com/votrepage' },
+  instagram: { nom:'Instagram', ico:'', exemple:'https://instagram.com/votrecompte' },
+  whatsapp:  { nom:'WhatsApp',  ico:'/logos/whatsapp.png', exemple:'https://wa.me/509…' },
+  tiktok:    { nom:'TikTok',    ico:'', exemple:'https://tiktok.com/@votrecompte' },
+  youtube:   { nom:'YouTube',   ico:'', exemple:'https://youtube.com/@votrechaine' },
+  x:         { nom:'X',         ico:'/logos/x.png', exemple:'https://x.com/votrecompte' },
+  linkedin:  { nom:'LinkedIn',  ico:'', exemple:'https://linkedin.com/company/…' },
+  threads:   { nom:'Threads',   ico:'', exemple:'https://threads.net/@votrecompte' },
+  site:      { nom:'Site web',  ico:'', exemple:'https://votresite.ht' }
+};
+const EMOJI_RESEAU = { facebook:'📘', instagram:'📸', whatsapp:'💬', tiktok:'🎵',
+  youtube:'▶️', x:'✖️', linkedin:'💼', threads:'🧵', site:'🌐' };
+let RESEAUX = [];
+
+function dessinerReseaux(){
+  document.getElementById('listeReseaux').innerHTML = RESEAUX.length ? RESEAUX.map((r,i) => {
+    const d = RESEAUX_DISPO[r.cle] || { nom: r.cle, exemple: '' };
+    return `<div class="ligne-zone" style="grid-template-columns:auto 1fr auto">
+      <span style="font-size:20px;width:30px;text-align:center">${EMOJI_RESEAU[r.cle] || '🔗'}</span>
+      <input value="${String(r.lien).replace(/"/g,'&quot;')}" placeholder="${d.exemple}"
+             oninput="RESEAUX[${i}].lien=this.value">
+      <button class="btn btn-fantome btn-petit" onclick="RESEAUX.splice(${i},1);dessinerReseaux();majChoixReseau()">🗑️</button>
+    </div>`;
+  }).join('') : '<p class="petit muet">Aucun réseau. Ajoutez vos pages pour que vos clients vous suivent.</p>';
+}
+function majChoixReseau(){
+  const sel = document.getElementById('nouveauReseau');
+  const restants = Object.entries(RESEAUX_DISPO).filter(([c]) => !RESEAUX.some(r => r.cle === c));
+  sel.innerHTML = restants.map(([c,d]) => `<option value="${c}">${EMOJI_RESEAU[c]} ${d.nom}</option>`).join('');
+  sel.disabled = !restants.length;
+}
+function ajouterReseau(){
+  const cle = document.getElementById('nouveauReseau').value;
+  if (!cle) return;
+  RESEAUX.push({ cle, lien: '' });
+  dessinerReseaux(); majChoixReseau();
+}
+async function enregistrerReseaux(){
+  const liste = RESEAUX.filter(r => String(r.lien).trim());
+  try {
+    const r = await api('/api/mon-entreprise','PUT',{ reseaux: liste });
+    ent = await api('/api/mon-entreprise');
+    RESEAUX = (ent.reseaux || []).map(x => ({...x}));
+    dessinerReseaux(); majChoixReseau();
+    const perdus = liste.length - RESEAUX.length;
+    toast(perdus > 0
+      ? `${RESEAUX.length} lien(s) enregistré(s). ${perdus} refusé(s) : vérifiez qu'ils correspondent bien au réseau choisi.`
+      : 'Réseaux enregistrés.');
+  } catch(e){ toast(e.message); }
+}
+
 // ===== Vérification en deux étapes =====
 let defiA2F = null;
 async function chargerA2F(){
@@ -1608,6 +1744,16 @@ async function confirmerA2F(){
     chargerA2F();
   chargerQR();
   chargerVues();
+  // Rythme et réseaux
+  const selPas = document.getElementById('iPas');
+  if (selPas) {
+    selPas.value = String(ent.pasCreneaux || 0);
+    selPas.onchange = apercuCreneaux;
+    PAUSES = (ent.pauses || []).map(x => ({...x}));
+    dessinerPauses(); apercuCreneaux();
+  }
+  RESEAUX = (ent.reseaux || []).map(x => ({...x}));
+  dessinerReseaux(); majChoixReseau();
   } catch(e){ toast(e.message); }
 }
 async function desactiverA2F(){

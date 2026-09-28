@@ -170,6 +170,40 @@ function nettoyerInclus(v) {
    Une vidéo stockée dans la base la ferait gonfler de plusieurs mégaoctets
    par produit. On accepte donc les hébergeurs courants, et on en tire
    l'adresse d'intégration. */
+/* ---- Réseaux sociaux de l'entreprise ----
+   Chaque réseau est reconnu par son domaine : cela évite qu'un lien
+   quelconque soit affiché sous le logo de Facebook. */
+const RESEAUX = {
+  facebook:  { nom: 'Facebook',  hotes: ['facebook.com', 'fb.com', 'm.facebook.com', 'fb.me'] },
+  instagram: { nom: 'Instagram', hotes: ['instagram.com'] },
+  whatsapp:  { nom: 'WhatsApp',  hotes: ['wa.me', 'whatsapp.com', 'api.whatsapp.com'] },
+  tiktok:    { nom: 'TikTok',    hotes: ['tiktok.com'] },
+  youtube:   { nom: 'YouTube',   hotes: ['youtube.com', 'youtu.be'] },
+  x:         { nom: 'X',         hotes: ['x.com', 'twitter.com'] },
+  linkedin:  { nom: 'LinkedIn',  hotes: ['linkedin.com'] },
+  threads:   { nom: 'Threads',   hotes: ['threads.net', 'threads.com'] },
+  site:      { nom: 'Site web',  hotes: [] }      // n'importe quel domaine
+};
+
+function nettoyerReseaux(v) {
+  if (!Array.isArray(v)) return [];
+  const sortie = [];
+  for (const r of v.slice(0, 10)) {
+    const cle = String(r && r.cle || '').toLowerCase();
+    const lien = String(r && r.lien || '').trim();
+    if (!RESEAUX[cle] || !lien) continue;
+    let u;
+    try { u = new URL(lien.startsWith('http') ? lien : 'https://' + lien); } catch { continue; }
+    const hote = u.hostname.replace(/^www\./, '');
+    const attendus = RESEAUX[cle].hotes;
+    // Le lien doit correspondre au réseau annoncé
+    if (attendus.length && !attendus.some((h) => hote === h || hote.endsWith('.' + h))) continue;
+    if (sortie.some((x) => x.cle === cle)) continue;   // un seul lien par réseau
+    sortie.push({ cle, lien: u.href.slice(0, 300) });
+  }
+  return sortie;
+}
+
 function nettoyerVideo(v) {
   const s = String(v || '').trim();
   if (!s) return '';
@@ -543,8 +577,18 @@ function creneauxDisponibles(entreprise, service, dateStr) {
   const creneaux = [];
   const aujourdhui = new Date().toISOString().slice(0, 10);
   const minMaintenant = new Date().getHours() * 60 + new Date().getMinutes();
-  for (let m = versMin(h.debut); m + service.duree <= versMin(h.fin); m += 30) {
+  /* Pas entre deux créneaux : réglage de l'entreprise, sinon la durée
+     du service, sinon 30 minutes. Un salon qui travaille par heure pose
+     60 ; un cabinet qui enchaîne des visites courtes pose 15. */
+  const pas = Math.max(5, Math.min(+entreprise.pasCreneaux || service.duree || 30, 480));
+  for (let m = versMin(h.debut); m + service.duree <= versMin(h.fin); m += pas) {
     if (dateStr === aujourdhui && m <= minMaintenant) continue;
+    // Pauses déclarées (déjeuner, fermeture de midi…)
+    const enPause = (entreprise.pauses || []).some((p) => {
+      const d = versMin(p.debut), f = versMin(p.fin);
+      return m < f && m + service.duree > d;
+    });
+    if (enPause) continue;
     const chevauche = pris.filter((r) => {
       const s = db.services.find((x) => x.id === r.serviceId);
       const debut = versMin(r.heure), fin = debut + (s ? s.duree : 30);
@@ -753,6 +797,7 @@ async function api(req, res, url) {
                        adultes: c.adultes ?? c.capacite, enfants: c.enfants ?? 0 })),
       carte: db.carte.filter((a) => a.entrepriseId === e.id && a.disponible).map((a) => ({ id: a.id, nom: a.nom, description: a.description, categorie: a.categorie, prix: a.prix, volume: a.volume || '', photo: a.photo || '' })),
       equipementsRef: EQUIPEMENTS,
+      reseaux: e.reseaux || [],
       hotel: metiers.aModule(e, 'hotellerie') ? (e.hotel || {}) : null,
       tarifs: metiers.aModule(e, 'hotellerie')
         ? db.tarifs.filter((x) => x.entrepriseId === e.id && x.actif)
@@ -1285,7 +1330,24 @@ async function api(req, res, url) {
   // ---- Enregistrement d'une visite (appelé par le navigateur) ----
   if (p === '/api/visite' && req.method === 'POST') {
     try {
+      /* Cookie de mesure : posé uniquement si le visiteur a accepté.
+         Il ne contient qu'un identifiant tiré au sort, aucune donnée
+         personnelle, et n'est lisible que par ce site. */
+      let idCookie = cookies(req).bk_mesure || '';
+      if (corps.consentement === true) {
+        if (!idCookie) {
+          idCookie = crypto.randomBytes(12).toString('hex');
+          res.setHeader('Set-Cookie',
+            `bk_mesure=${idCookie}; Path=/; Max-Age=15552000; SameSite=Lax; HttpOnly` +
+            (req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''));
+        }
+      } else if (corps.consentement === false) {
+        // Refus : on efface le cookie éventuellement posé auparavant
+        idCookie = '';
+        if (cookies(req).bk_mesure) res.setHeader('Set-Cookie', 'bk_mesure=; Path=/; Max-Age=0');
+      }
       visites.enregistrer(db, {
+        idCookie,
         chemin: corps.chemin,
         ip: ipDe(req),
         agent: req.headers['user-agent'] || '',
@@ -1418,6 +1480,15 @@ async function api(req, res, url) {
         }
       }
       if (corps.capaciteMax !== undefined) e.capaciteMax = Math.max(0, Math.min(50, +corps.capaciteMax || 0));
+      // Pas entre deux créneaux, en minutes. 0 = la durée du service.
+      if (corps.pasCreneaux !== undefined) e.pasCreneaux = Math.max(0, Math.min(+corps.pasCreneaux || 0, 480));
+      if (corps.pauses !== undefined && Array.isArray(corps.pauses)) {
+        e.pauses = corps.pauses
+          .map((x) => ({ debut: String(x.debut || '').slice(0, 5), fin: String(x.fin || '').slice(0, 5) }))
+          .filter((x) => /^\d{2}:\d{2}$/.test(x.debut) && /^\d{2}:\d{2}$/.test(x.fin) && x.fin > x.debut)
+          .slice(0, 5);
+      }
+      if (corps.reseaux !== undefined) e.reseaux = nettoyerReseaux(corps.reseaux);
       // Images (base64) : logo max ~350 Ko, photo de fond max ~1,5 Mo
       const imgValide = (v, max) => v === '' || (typeof v === 'string' && v.startsWith('data:image/') && v.length <= max);
       if (corps.logoImage !== undefined) {
@@ -2366,6 +2437,7 @@ function statique(res, fichier) {
 }
 
 const server = http.createServer(async (req, res) => {
+
   const url = new URL(req.url, 'http://localhost');
   try {
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);

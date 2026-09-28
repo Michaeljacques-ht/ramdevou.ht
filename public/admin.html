@@ -143,7 +143,10 @@ async function chargerFrequentation(){
     <div class="stat"><span class="petit muet">Visites</span><div class="valeur">${s.total}</div></div>
     <div class="stat"><span class="petit muet">Visiteurs uniques</span><div class="valeur">${s.visiteurs}</div></div>
     <div class="stat"><span class="petit muet">Depuis l'écran d'accueil</span><div class="valeur">${s.installees}</div></div>
-    <div class="stat"><span class="petit muet">Moyenne par jour</span><div class="valeur">${Math.round(s.total / s.periode)}</div></div>`;
+    <div class="stat"><span class="petit muet">Moyenne par jour</span><div class="valeur">${Math.round(s.total / s.periode)}</div></div>
+    ${s.fidelite && s.fidelite.mesurables ? `
+      <div class="stat"><span class="petit muet">Visiteurs qui reviennent</span><div class="valeur">${s.fidelite.habitues}</div>
+        <span class="petit muet">sur ${s.fidelite.mesurables} mesurables</span></div>` : ''}`;
 
   // Courbe simple en barres, sans bibliothèque
   const max = Math.max(1, ...s.parJour.map(j => j.visites));
@@ -180,6 +183,9 @@ async function chargerFrequentation(){
       <p class="petit muet">${s.parHeure[heurePointe]} visite(s) sur cette tranche</p></div>`;
 }
 chargerFrequentation();
+
+}
+
 
 }
 async function supprimerMsg(id){

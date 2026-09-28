@@ -163,6 +163,18 @@
 .part-produit:hover { transform: scale(1.08); background: #fff; }
 @media (hover: none) { .part-produit { opacity: 1; } }
 .carte-produit.mise-en-avant { border-color: var(--bleu); box-shadow: 0 0 0 3px rgba(37,99,235,.18); }
+/* Liens de l'entreprise, distincts des boutons de partage */
+.reseaux-ent { display: flex; gap: 8px; flex-wrap: wrap; width: 100%;
+  padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--bordure); }
+.lien-reseau { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-size: 19px; background: var(--gris-clair); text-decoration: none;
+  transition: transform .14s, background .14s; }
+.lien-reseau:hover { transform: translateY(-2px); text-decoration: none; }
+.lien-reseau.facebook:hover { background: #E7F0FE; }
+.lien-reseau.instagram:hover { background: #FDE9F3; }
+.lien-reseau.whatsapp:hover { background: var(--vert-fond); }
+.lien-reseau.youtube:hover, .lien-reseau.tiktok:hover { background: #FDEBEB; }
+.lien-reseau.site:hover, .lien-reseau.linkedin:hover { background: var(--bleu-clair); }
 </style>
 </head>
 <body>
@@ -349,6 +361,11 @@
 
 <script src="/app.js"></script>
 <script>
+// Réseaux sociaux : libellés et pictogrammes
+const NOM_RESEAU = { facebook:'Facebook', instagram:'Instagram', whatsapp:'WhatsApp',
+  tiktok:'TikTok', youtube:'YouTube', x:'X', linkedin:'LinkedIn', threads:'Threads', site:'Site web' };
+const ICO_RESEAU = { facebook:'📘', instagram:'📸', whatsapp:'💬', tiktok:'🎵',
+  youtube:'▶️', x:'✖️', linkedin:'💼', threads:'🧵', site:'🌐' };
 const slug = location.pathname.replace(/^\//, '').replace(/\.html$/, '') || new URLSearchParams(location.search).get('slug');
 let ent = null;
 let resa = { pas: 1, service: null, date: '', heure: '' };
@@ -390,6 +407,11 @@ async function charger() {
       })()}
       ${ent.whatsapp ? `<a class="btn btn-succes" target="_blank" rel="noopener" href="https://wa.me/${ech(ent.whatsapp)}">💬 WhatsApp</a>` : ''}
       <div class="flex" style="gap:6px;justify-content:center" aria-label="Partager cette page">
+        ${(ent.reseaux && ent.reseaux.length) ? `<div class="reseaux-ent">
+          ${ent.reseaux.map(r => `<a href="${ech(r.lien)}" target="_blank" rel="noopener"
+             class="lien-reseau ${ech(r.cle)}" title="${ech(NOM_RESEAU[r.cle] || r.cle)}">
+             ${ICO_RESEAU[r.cle] || '🔗'}</a>`).join('')}
+        </div>` : ''}
         <button class="btn btn-fantome btn-petit" onclick="partager('whatsapp')" title="Partager sur WhatsApp"><img src="/logos/whatsapp.png" alt="WhatsApp" class="ico-partage"></button>
         <button class="btn btn-fantome btn-petit" onclick="partager('facebook')" title="Partager sur Facebook"><img src="/logos/facebook.png" alt="Facebook" class="ico-partage"></button>
         <button class="btn btn-fantome btn-petit" onclick="partager('x')" title="Partager sur X"><img src="/logos/x.png" alt="X" class="ico-partage"></button>

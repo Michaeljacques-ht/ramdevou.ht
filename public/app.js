@@ -79,6 +79,9 @@ const ICONES_CAT = { 'Santé': '🩺', 'Beauté': '💇', 'Formation': '🎓', '
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        // Le consentement décide si un cookie de mesure est posé
+        consentement: localStorage.getItem('bkConsent') === 'oui' ? true
+                    : (localStorage.getItem('bkConsent') === 'non' ? false : null),
         chemin: location.pathname,
         referer: document.referrer || '',
         langue: navigator.language || '',
@@ -106,6 +109,44 @@ document.addEventListener('click', (ev) => {
   if (liens) liens.classList.remove('ouvert');
   if (btn) { btn.textContent = '☰'; btn.setAttribute('aria-expanded', 'false'); }
 });
+
+/* ---- Bandeau de consentement aux cookies ----
+   Le cookie de mesure n'est posé qu'après un choix explicite.
+   Tant que rien n'est décidé, la visite est comptée sans cookie. */
+function consentementCookies(){
+  if (localStorage.getItem('bkConsent')) return;
+  document.addEventListener('DOMContentLoaded', () => {
+    const lg = localStorage.getItem('langue') || 'fr';
+    const b = document.createElement('div');
+    b.className = 'bandeau-cookies';
+    b.innerHTML = `
+      <div class="bc-txt">
+        <strong>${lg==='ht' ? 'Nou itilize yon ti cookie' : 'Nous utilisons un petit cookie'}</strong>
+        <span>${lg==='ht'
+          ? "Sèlman pou konte vizit yo epi amelyore sit la. Pa gen piblisite, pa gen pataj ak lòt moun."
+          : "Uniquement pour compter les visites et améliorer le site. Aucune publicité, aucun partage avec des tiers."}
+          <a href="/confidentialite.html">${lg==='ht' ? 'Konnen plis' : 'En savoir plus'}</a></span>
+      </div>
+      <div class="bc-btns">
+        <button class="btn btn-contour btn-petit" id="bcRefus">${lg==='ht' ? 'Refize' : 'Refuser'}</button>
+        <button class="btn btn-primaire btn-petit" id="bcOui">${lg==='ht' ? 'Aksepte' : 'Accepter'}</button>
+      </div>`;
+    document.body.appendChild(b);
+    const repondre = (choix) => {
+      localStorage.setItem('bkConsent', choix);
+      b.remove();
+      // On informe le serveur du choix, pour poser ou effacer le cookie
+      fetch('/api/visite', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consentement: choix === 'oui', chemin: location.pathname,
+          langue: navigator.language || '', fuseau: Intl.DateTimeFormat().resolvedOptions().timeZone || '' })
+      }).catch(() => {});
+    };
+    b.querySelector('#bcOui').onclick = () => repondre('oui');
+    b.querySelector('#bcRefus').onclick = () => repondre('non');
+  });
+}
+consentementCookies();
 
 /* Invitation à installer l'application.
    Sur Android, le navigateur propose lui-même l'installation : on capte
