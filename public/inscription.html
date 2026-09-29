@@ -177,6 +177,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
     <section class="etape" data-pas="3">
       <h1 style="font-size:20px">Votre forfait</h1>
       <div class="encart-essai mt" id="encartEssai"></div>
+      <p class="petit muet" id="rappelChoix" style="display:none"></p>
       <div class="grille-forfaits" id="listeForfaits"></div>
     </section>
 
@@ -246,7 +247,10 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
 <div id="toast"></div>
 <script src="/app.js"></script>
 <script>
-let REF = null, CAT = null, pas = 1, forfaitChoisi = 'pro', compteCree = false;
+let REF = null, CAT = null, pas = 1, compteCree = false;
+/* Forfait présélectionné depuis la page des forfaits : le visiteur a
+   déjà choisi, on ne le lui redemande pas — il pourra toujours changer. */
+let forfaitChoisi = new URLSearchParams(location.search).get('forfait') || 'pro';
 const TOTAL = 5;
 const NOMS_PAS = ['Formulaire', 'Règlement', 'Forfait', 'Contrat', 'Activation'];
 
@@ -280,7 +284,11 @@ function allerPas(n){
     document.getElementById('metier').value = 'salon-beaute';
     majAideMetier();
   } catch { document.getElementById('metier').innerHTML = '<option value="autre">Autre activité</option>'; }
-  try { CAT = await api('/api/forfaits'); } catch { CAT = null; }
+  try {
+    CAT = await api('/api/forfaits');
+    // Un forfait inexistant dans l'adresse ne doit pas bloquer l'inscription
+    if (!CAT.forfaits.some(f => f.cle === forfaitChoisi)) forfaitChoisi = 'pro';
+  } catch { CAT = null; }
   dessinerFil();
 })();
 function majAideMetier(){
@@ -319,6 +327,15 @@ function majCasesLegales(){
 }
 
 function dessinerForfaits(){
+  const depuisPage = new URLSearchParams(location.search).get('forfait');
+  const rappel = document.getElementById('rappelChoix');
+  if (depuisPage && rappel && CAT) {
+    const f = CAT.forfaits.find(x => x.cle === depuisPage);
+    if (f) {
+      rappel.style.display = '';
+      rappel.innerHTML = `Vous avez choisi le forfait <strong>${ech(f.nom.fr)}</strong>. Vous pouvez encore en changer ci-dessous.`;
+    }
+  }
   if (!CAT) { document.getElementById('listeForfaits').innerHTML = '<p class="muet petit">Forfaits indisponibles.</p>'; return; }
   document.getElementById('encartEssai').innerHTML =
     `🎁 <strong>${CAT.moisEssai} mois gratuits</strong> — quel que soit le forfait choisi. Aucun prélèvement avant la fin de cette période, et vous pouvez changer d'avis à tout moment.`;

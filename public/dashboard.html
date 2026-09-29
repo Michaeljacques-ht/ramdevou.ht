@@ -752,7 +752,13 @@ body { background: var(--gris-clair); }
             </div>
             <button class="btn btn-primaire mt" onclick="enregistrerReseaux()">Enregistrer les réseaux</button>
           </div></div>
-          <div class="carte" id="carteSecurite"><div class="carte-corps">
+          <div class="carte"><div class="carte-corps">
+            <h2 style="font-size:16px">🔔 Notifications sur mon téléphone</h2>
+            <p class="petit muet" style="margin-top:6px">Recevez une alerte dès qu'un client réserve ou commande, même quand l'application est fermée.</p>
+            <div id="zonePush" class="mt"></div>
+          </div></div>
+
+          <div class="carte mt" id="carteSecurite"><div class="carte-corps">
             <h2 style="font-size:16px">🔐 Sécurité du compte</h2>
             <p class="petit muet" style="margin-top:6px">La vérification en deux étapes protège votre espace même si votre mot de passe est découvert : un code vous est envoyé par WhatsApp à chaque connexion.</p>
             <div id="zoneA2F" class="mt"></div>
@@ -820,9 +826,14 @@ body { background: var(--gris-clair); }
 <!-- Modale service -->
 <div class="voile" id="voileService"><div class="modale">
   <h3 id="titreModaleService">Ajouter un service</h3>
-  <label>Nom du service *</label><input id="sNom" placeholder="Ex : Consultation">
+  <label>Nom du service *</label><input id="sNom" placeholder="Ex : Pose américaine">
+  <label>Description — facultatif</label><input id="sDesc" maxlength="200" placeholder="Ex : Pose complète avec vernis semi-permanent">
   <label>Durée (minutes) *</label><input id="sDuree" type="number" min="10" step="5" value="30">
   <label>Prix (HTG)</label><input id="sPrix" type="number" min="0" value="0">
+  <label>Photos du service</label>
+  <input type="file" id="sPhoto" accept="image/*" multiple>
+  <p class="aide">Jusqu'à 4 photos de vos réalisations. La première sert de vignette — c'est ce que vos clients voient en premier.</p>
+  <div id="sApercu" class="mt"></div>
   <div class="flex mt" style="justify-content:flex-end">
     <button class="btn btn-fantome" onclick="fermer('voileService')">Annuler</button>
     <button class="btn btn-primaire" onclick="enregistrerService()">Enregistrer</button>
@@ -1275,15 +1286,54 @@ function ouvrirService(s){
   serviceEnCours = s || null;
   document.getElementById('titreModaleService').textContent = s ? 'Modifier le service' : 'Ajouter un service';
   sNom.value = s ? s.nom : ''; sDuree.value = s ? s.duree : 30; sPrix.value = s ? s.prix : 0;
+  sDesc.value = s ? (s.description || '') : '';
+  photosService = s ? ((s.photos && s.photos.length) ? s.photos.slice() : (s.photo ? [s.photo] : [])) : [];
+  dessinerPhotosService();
   document.getElementById('voileService').classList.add('ouvert');
 }
 async function enregistrerService(){
   if(!sNom.value.trim()) return toast('Indiquez le nom du service.');
-  const donnees = { nom:sNom.value.trim(), duree:sDuree.value, prix:sPrix.value };
+  const donnees = { nom:sNom.value.trim(), description:sDesc.value.trim(),
+    duree:sDuree.value, prix:sPrix.value, photos:photosService };
   if (serviceEnCours) await api('/api/mon-entreprise/services/'+serviceEnCours.id,'PUT',donnees);
   else await api('/api/mon-entreprise/services','POST',donnees);
   fermer('voileService'); toast('Service enregistré.'); chargerServices();
 }
+
+// ===== Photos des services =====
+let photosService = [];
+function dessinerPhotosService(){
+  const z = document.getElementById('sApercu');
+  if (!z) return;
+  z.innerHTML = photosService.length
+    ? `<div class="galerie-ch">${photosService.map((ph,i) => `
+        <div class="vignette-ch${i===0?' principale':''}">
+          <img src="${ph}" alt="">
+          ${i===0?'<span class="etiq-ch">Vignette</span>':''}
+          <div class="actions-ch">
+            ${i>0?`<button type="button" title="Mettre en vignette" onclick="promouvoirPhotoS(${i})">★</button>`:''}
+            <button type="button" title="Retirer" onclick="retirerPhotoS(${i})">✕</button>
+          </div>
+        </div>`).join('')}</div>`
+    : '<p class="petit muet">Aucune photo. Une image de vos réalisations attire nettement plus de clients.</p>';
+}
+function promouvoirPhotoS(i){ const [x] = photosService.splice(i,1); photosService.unshift(x); dessinerPhotosService(); }
+function retirerPhotoS(i){ photosService.splice(i,1); dessinerPhotosService(); }
+
+document.getElementById('sPhoto')?.addEventListener('change', async (ev) => {
+  const fichiers = [...ev.target.files];
+  if (!fichiers.length) return;
+  const place = 4 - photosService.length;
+  if (place <= 0) { toast('Maximum 4 photos par service.'); ev.target.value=''; return; }
+  if (fichiers.length > place) toast(`Seules les ${place} premières photos ont été ajoutées.`);
+  for (const f of fichiers.slice(0, place)) {
+    try { photosService.push(await compresserImage(f, 900, 0.78)); }
+    catch { toast('Une image n\'a pas pu être lue.'); }
+  }
+  ev.target.value = '';
+  dessinerPhotosService();
+});
+
 async function basculerService(id, actif){ await api('/api/mon-entreprise/services/'+id,'PUT',{actif}); chargerServices(); }
 
 
@@ -1700,32 +1750,167 @@ async function enregistrerReseaux(){
   } catch(e){ toast(e.message); }
 }
 
+
+/* Choix du canal : WhatsApp ou email.
+   L'email n'est proposé que si l'envoi est configuré côté serveur ;
+   sinon l'entreprise attendrait un message qui n'arriverait jamais. */
+function formulaireA2F(a){
+  return `
+    <label class="opt-formule" onclick="choisirCanalA2F('whatsapp')">
+      <input type="radio" name="canalA2F" value="whatsapp" checked>
+      <span><strong>💬 Par WhatsApp</strong>
+      <span class="petit">Le code arrive sur votre téléphone. Le plus rapide.</span></span>
+    </label>
+    <label class="opt-formule" onclick="choisirCanalA2F('courriel')" style="${a.courrielDispo ? '' : 'opacity:.55'}">
+      <input type="radio" name="canalA2F" value="courriel" ${a.courrielDispo ? '' : 'disabled'}>
+      <span><strong>✉️ Par email</strong>
+      <span class="petit">${a.courrielDispo
+        ? 'Utile si vous changez souvent de téléphone.'
+        : "Envoi de courriels non configuré sur la plateforme."}</span></span>
+    </label>
+    <div id="champA2F" class="mt"></div>
+    <button class="btn btn-primaire mt" onclick="demarrerA2F()">Activer la vérification</button>`;
+}
+function choisirCanalA2F(canal){
+  document.querySelectorAll('[name=canalA2F]').forEach(r => {
+    r.checked = r.value === canal;
+    r.closest('.opt-formule').classList.toggle('on', r.checked);
+  });
+  document.getElementById('champA2F').innerHTML = canal === 'courriel'
+    ? `<label>Adresse email pour recevoir les codes</label>
+       <input id="mailA2F" type="email" value="${ech(A2F_ETAT.emailCompte || '')}" placeholder="vous@entreprise.ht">`
+    : `<label>Numéro WhatsApp pour recevoir les codes</label>
+       <input id="telA2F" placeholder="Ex : 50937120000" value="${ech(ent.whatsapp || ent.telephone || '')}">`;
+}
+function canalA2FChoisi(){
+  const r = document.querySelector('[name=canalA2F]:checked');
+  return r ? r.value : 'whatsapp';
+}
+async function changerCanalA2F(){
+  const mdp = prompt('Saisissez votre mot de passe pour changer de moyen :');
+  if (!mdp) return;
+  try { await api('/api/moi/a2f/desactiver','POST',{ motdepasse: mdp }); chargerA2F(); }
+  catch(e){ toast(e.message); }
+}
+
+
+// ===== Notifications poussées =====
+function urlBase64ToUint8Array(base64){
+  const rembourrage = '='.repeat((4 - base64.length % 4) % 4);
+  const b64 = (base64 + rembourrage).replace(/-/g, '+').replace(/_/g, '/');
+  const brut = atob(b64);
+  return Uint8Array.from([...brut].map(c => c.charCodeAt(0)));
+}
+
+async function chargerPush(){
+  const z = document.getElementById('zonePush');
+  if (!z) return;
+
+  // Trois conditions doivent être réunies, on les distingue pour aider l'utilisateur
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    z.innerHTML = `<div class="panneau"><strong>Non disponible sur ce navigateur</strong>
+      <p class="petit muet" style="margin-top:4px">Sur iPhone, ouvrez d'abord le site puis « Sur l'écran d'accueil » : les notifications ne fonctionnent qu'une fois l'application installée.</p></div>`;
+    return;
+  }
+  let etat;
+  try { etat = await api('/api/push/etat'); } catch { return; }
+  if (!etat.actif) {
+    z.innerHTML = `<div class="panneau"><strong>Pas encore configuré</strong>
+      <p class="petit muet" style="margin-top:4px">Les notifications ne sont pas activées sur la plateforme. Contactez-nous.</p></div>`;
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.getRegistration();
+  const abo = reg && await reg.pushManager.getSubscription();
+  const permis = Notification.permission;
+
+  if (permis === 'denied') {
+    z.innerHTML = `<div class="panneau" style="border-color:var(--orange)">
+      <strong>Notifications bloquées</strong>
+      <p class="petit muet" style="margin-top:4px">Vous les avez refusées. Réautorisez-les dans les réglages de votre navigateur, à la ligne « Notifications » de ce site.</p></div>`;
+    return;
+  }
+
+  z.innerHTML = abo
+    ? `<div class="panneau" style="border-color:var(--vert)">
+        <strong>✅ Activées sur cet appareil</strong>
+        <p class="petit muet" style="margin-top:4px">${etat.appareils} appareil(s) enregistré(s).</p>
+        <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+          <button class="btn btn-contour btn-petit" onclick="essaiPush()">Envoyer un essai</button>
+          <button class="btn btn-fantome btn-petit" onclick="desactiverPush()">Désactiver</button>
+        </div>
+      </div>`
+    : `<button class="btn btn-primaire" onclick="activerPush()">Activer les notifications</button>
+       <p class="aide mt">Votre navigateur vous demandera l'autorisation. Vous pouvez la retirer à tout moment.</p>`;
+}
+
+async function activerPush(){
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { toast('Autorisation refusée.'); chargerPush(); return; }
+    const { cle } = await api('/api/push/cle');
+    if (!cle) { toast('Notifications non configurées sur la plateforme.'); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const abonnement = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(cle)
+    });
+    await api('/api/push/abonner','POST',{ abonnement: abonnement.toJSON() });
+    toast('Notifications activées.');
+    chargerPush();
+  } catch(e){ toast('Activation impossible : ' + e.message); }
+}
+
+async function desactiverPush(){
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const abo = reg && await reg.pushManager.getSubscription();
+    if (abo) { await api('/api/push/desabonner','POST',{ endpoint: abo.endpoint }); await abo.unsubscribe(); }
+    toast('Notifications désactivées.');
+    chargerPush();
+  } catch(e){ toast(e.message); }
+}
+
+async function essaiPush(){
+  try {
+    const r = await api('/api/push/essai','POST',{});
+    toast(r.envoyees ? 'Essai envoyé, regardez votre écran.' : "Aucun appareil n'a reçu l'essai.");
+  } catch(e){ toast(e.message); }
+}
+
 // ===== Vérification en deux étapes =====
-let defiA2F = null;
+let defiA2F = null, A2F_ETAT = {};
 async function chargerA2F(){
   const z = document.getElementById('zoneA2F');
   if (!z) return;
   try {
     const a = await api('/api/moi/a2f');
+    A2F_ETAT = a;
+    const nomCanal = a.canal === 'courriel' ? 'email' : 'WhatsApp';
     z.innerHTML = a.actif ? `
       <div class="panneau" style="border-color:var(--vert)">
         <strong>✅ Activée</strong>
-        <p class="petit muet" style="margin-top:4px">Codes envoyés au ${ech(a.telMasque)}</p>
-        <button class="btn btn-danger btn-petit mt" onclick="desactiverA2F()">Désactiver</button>
+        <p class="petit muet" style="margin-top:4px">Codes envoyés par ${nomCanal} à ${ech(a.destination)}</p>
+        <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+          <button class="btn btn-contour btn-petit" onclick="changerCanalA2F()">Changer de moyen</button>
+          <button class="btn btn-danger btn-petit" onclick="desactiverA2F()">Désactiver</button>
+        </div>
       </div>`
-      : `<label>Numéro WhatsApp pour recevoir les codes</label>
-         <input id="telA2F" placeholder="Ex : 50937120000" value="${ech(ent.whatsapp || ent.telephone || '')}">
-         <button class="btn btn-primaire mt" onclick="demarrerA2F()">Activer la vérification</button>`;
+      : formulaireA2F(a);
+    if (!a.actif) choisirCanalA2F('whatsapp');
   } catch(e){ z.innerHTML = `<p class="petit muet">${ech(e.message)}</p>`; }
 }
 async function demarrerA2F(){
-  const tel = document.getElementById('telA2F').value.trim();
+  const canal = canalA2FChoisi();
+  const charge = canal === 'courriel'
+    ? { canal, courriel: (document.getElementById('mailA2F') || {}).value }
+    : { canal, telephone: (document.getElementById('telA2F') || {}).value };
   try {
-    const r = await api('/api/moi/a2f/demarrer','POST',{ telephone: tel });
+    const r = await api('/api/moi/a2f/demarrer','POST', charge);
     defiA2F = r.defi;
     document.getElementById('zoneA2F').innerHTML = `
       <div class="panneau">
-        <p class="petit">Un code à 6 chiffres a été envoyé au ${ech(r.telMasque)}.</p>
+        <p class="petit">Un code à 6 chiffres a été envoyé ${r.canal === 'courriel' ? 'à' : 'au'} ${ech(r.destination)}.</p>
         <input id="codeA2F" inputmode="numeric" maxlength="6" placeholder="000000"
                style="text-align:center;font-size:22px;letter-spacing:.3em;font-weight:800">
         <div class="flex" style="gap:8px">
@@ -1742,6 +1927,7 @@ async function confirmerA2F(){
     await api('/api/moi/a2f/activer','POST',{ defi: defiA2F, code });
     toast('Vérification en deux étapes activée.');
     chargerA2F();
+  chargerPush();
   chargerQR();
   chargerVues();
   // Rythme et réseaux
@@ -1822,10 +2008,12 @@ const MODULE_SECTIONS = {
 function appliquerMetier(){
   const m = metierActuel();
   if (!m) return;
-  // En hôtellerie, les services sont gérés dans la section Chambres :
-  // on évite de proposer deux endroits pour la même chose.
+  /* La section Services ne concerne que les métiers qui vendent du temps :
+     un rendez-vous a une durée et un prix. Un commerce vend des produits,
+     gérés dans le Catalogue — lui proposer « Services » n'a pas de sens.
+     En hôtellerie, les prestations sont gérées avec les chambres. */
   const btnServices = document.querySelector('.lien-lat[data-sec="services"]');
-  if (btnServices) btnServices.style.display = aModule('hotellerie') ? 'none' : '';
+  if (btnServices) btnServices.style.display = (aModule('rdv') && !aModule('hotellerie')) ? '' : 'none';
   // 1) Masquer les entrées de menu des modules non déclarés
   Object.entries(MODULE_SECTIONS).forEach(([mod, secs]) => {
     const actif = aModule(mod);

@@ -175,6 +175,23 @@
 .lien-reseau.whatsapp:hover { background: var(--vert-fond); }
 .lien-reseau.youtube:hover, .lien-reseau.tiktok:hover { background: #FDEBEB; }
 .lien-reseau.site:hover, .lien-reseau.linkedin:hover { background: var(--bleu-clair); }
+/* Ligne de service avec photo : la vignette précède le texte,
+   sans allonger la ligne ni bousculer les services sans image. */
+.ligne-service.avec-photo { align-items: center; gap: 12px; }
+.photo-service { width: 64px; height: 64px; border-radius: 12px; border: 0; padding: 0;
+  background-size: cover; background-position: center; background-color: var(--gris-clair);
+  flex: none; cursor: pointer; position: relative; transition: transform .14s; }
+.photo-service:hover { transform: scale(1.04); }
+.compte-photos { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.65);
+  color: #fff; border-radius: 99px; padding: 1px 7px; font-size: 10.5px; font-weight: 700; }
+.info-service { flex: 1; min-width: 0; }
+.desc-service { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; margin: 2px 0; }
+.prix-service { display: flex; align-items: center; gap: 10px; flex: none; }
+@media (max-width: 420px) {
+  .photo-service { width: 54px; height: 54px; border-radius: 10px; }
+  .prix-service { flex-direction: column; align-items: flex-end; gap: 5px; }
+}
 </style>
 </head>
 <body>
@@ -672,6 +689,34 @@ function refEquip(cle){
   }
 
 
+
+  /* Photos d'un service : même visionneuse que pour les produits. */
+  window.voirService = (id) => {
+    const s = (ent.services || []).find(x => x.id === id);
+    if (!s) return;
+    const vues = (s.photos && s.photos.length) ? s.photos : (s.photo ? [s.photo] : []);
+    if (!vues.length) return;
+    const v = document.createElement('div');
+    v.className = 'visionneuse';
+    const dessiner = (i) => {
+      v.innerHTML = `
+        <button class="fermer" aria-label="Fermer">✕</button>
+        <div class="scene"><img src="${vues[i]}" alt="${ech(s.nom)}"></div>
+        <div class="vignettes">
+          ${vues.map((ph,k) => `<button class="${k===i?'on':''}" style="background-image:url('${ph}')" data-i="${k}"></button>`).join('')}
+        </div>
+        <p style="text-align:center;color:#fff;font-size:13.5px;padding-top:10px">
+          <strong>${ech(s.nom)}</strong> — ${htg(s.prix)}</p>`;
+      v.querySelector('.fermer').onclick = () => v.remove();
+      v.querySelectorAll('.vignettes button').forEach(b => {
+        b.onclick = (ev) => { ev.stopPropagation(); dessiner(+b.dataset.i); };
+      });
+    };
+    dessiner(0);
+    v.onclick = (ev) => { if (ev.target === v || ev.target.classList.contains('scene')) v.remove(); };
+    document.body.appendChild(v);
+  };
+
   // ---- Galerie produit ----
   window.changerVue = (id, i) => {
     const carte = document.querySelector(`[data-produit="${id}"]`);
@@ -766,7 +811,7 @@ function refEquip(cle){
             ${p.unite?`<span class="petit muet">/${ech(p.unite)}</span>`:''}
           </p>
           ${peutCommander()
-            ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="ajouterAuPanier('${p.id}')">${lg==='ht'?'Ajoute':'Ajouter'}</button>`
+            ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="ajouterAuPanier('${p.id}')">${lg==='ht'?'Achte':'Acheter'}</button>`
             : (ent.whatsapp ? `<a class="btn btn-succes btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
              href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Kòmande':'Commander'}</a>` : '')}
         </div>
@@ -1195,12 +1240,23 @@ function refEquip(cle){
       } else toast(result.erreur || 'Erreur paiement');
     } catch (err) { toast(err.message); }
   };
-  document.getElementById('listeServices').innerHTML += ent.services.map(s => `
-    <div class="ligne-service">
-      <div><strong>${ech(s.nom)}</strong><div class="petit muet">⏱ ${s.duree} min</div></div>
-      <div class="flex"><strong>${htg(s.prix)}</strong>
-      <button class="btn btn-contour btn-petit" onclick="choisirService('${s.id}')">Choisir</button></div>
-    </div>`).join('') || '<p class="muet">Aucun service publié pour le moment.</p>';
+  document.getElementById('listeServices').innerHTML += ent.services.map(s => {
+    const vues = (s.photos && s.photos.length) ? s.photos : (s.photo ? [s.photo] : []);
+    return `
+    <div class="ligne-service${vues.length ? ' avec-photo' : ''}">
+      ${vues.length ? `<button class="photo-service" onclick="voirService('${s.id}')"
+          style="background-image:url('${vues[0]}')" aria-label="Voir les photos">
+          ${vues.length > 1 ? `<span class="compte-photos">${vues.length}</span>` : ''}
+        </button>` : ''}
+      <div class="info-service">
+        <strong>${ech(s.nom)}</strong>
+        ${s.description ? `<div class="petit muet desc-service">${ech(s.description)}</div>` : ''}
+        <div class="petit muet">⏱ ${s.duree} min</div>
+      </div>
+      <div class="prix-service"><strong>${htg(s.prix)}</strong>
+        <button class="btn btn-contour btn-petit" onclick="choisirService('${s.id}')">Choisir</button></div>
+    </div>`;
+  }).join('') || '<p class="muet">Aucun service publié pour le moment.</p>';
 
   document.getElementById('listeAvis').innerHTML = ent.avis.length ? ent.avis.map(a => `
     <div style="padding:12px 0;border-bottom:1px solid var(--bordure)">

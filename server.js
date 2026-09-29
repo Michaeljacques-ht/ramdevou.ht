@@ -12,6 +12,8 @@ const metiers = require('./lib/metiers.js');
 const forfaits = require('./lib/forfaits.js');
 const qr = require('./lib/qr.js');
 const visites = require('./lib/visites.js');
+const courriel = require('./lib/courriel.js');
+const push = require('./lib/push.js');
 const taksi = require('./lib/taksi.js');
 
 // ---- Paramètres commerciaux ----
@@ -273,12 +275,32 @@ function codeA2F() {
   // 6 chiffres tirés au sort de façon cryptographique
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
-function creerDefi(userId, tel) {
+function creerDefi(userId, destination, canal) {
   nettoyerDefis();
   const id = crypto.randomBytes(18).toString('hex');
   const code = codeA2F();
-  DEFIS_A2F.set(id, { userId, code, tel, tentatives: 0, expireLe: Date.now() + A2F_VALIDITE_MS });
+  DEFIS_A2F.set(id, { userId, code, tel: destination, destination, canal: canal || 'whatsapp',
+                      tentatives: 0, expireLe: Date.now() + A2F_VALIDITE_MS });
   return { id, code };
+}
+
+/** Masque une adresse : ma***@exemple.ht */
+function courrielMasque(adresse) {
+  const s = String(adresse || '');
+  const i = s.indexOf('@');
+  if (i < 1) return '•••';
+  const debut = s.slice(0, Math.min(2, i));
+  return `${debut}${'•'.repeat(Math.max(2, i - 2))}${s.slice(i)}`;
+}
+
+/** Envoie le code par le canal choisi. */
+async function envoyerCodeA2F(canal, destination, nom, code) {
+  if (canal === 'courriel') {
+    await courriel.envoyer(destination, 'code_connexion', { nom, code });
+  } else {
+    envoyerWhatsApp(destination, 'code_connexion', [nom || '', code]);
+    if (!process.env.WHATSAPP_TOKEN) console.log(`[A2F simulation → ${destination}] code : ${code}`);
+  }
 }
 /** Masque un numéro pour l'afficher sans le divulguer : 509 •••• 45 67 */
 function telMasque(tel) {
@@ -328,9 +350,45 @@ function noteMoyenne(entrepriseId) {
   if (!a.length) return { note: 0, total: 0 };
   return { note: Math.round((a.reduce((s, x) => s + x.note, 0) / a.length) * 10) / 10, total: a.length };
 }
+/** Envoie une notification poussée à tous les appareils d'un utilisateur. */
+async function envoyerPush(userId, contenu) {
+  if (!push.configure()) return 0;
+  const abonnements = db.pushAbonnements.filter((x) => x.userId === userId);
+  let envoyees = 0, aRetirer = [];
+  for (const ab of abonnements) {
+    const r = await push.envoyer(ab, contenu);
+    if (r.ok) envoyees++;
+    // Un abonnement périmé est retiré : le navigateur l'a révoqué
+    else if (r.perime) aRetirer.push(ab.endpoint);
+  }
+  if (aRetirer.length) {
+    db.pushAbonnements = db.pushAbonnements.filter((x) => !aRetirer.includes(x.endpoint));
+    store.save();
+  }
+  return envoyees;
+}
+
+const TITRES_PUSH = {
+  rdv: 'Nouveau rendez-vous', rdv_paye: 'Rendez-vous payé',
+  sejour: 'Nouvelle réservation', sejour_paye: 'Séjour payé',
+  commande: 'Nouvelle commande', commande_payee: 'Commande payée',
+  inscription: 'Nouvelle inscription', dossier: 'Nouveau dossier',
+  avis: 'Nouvel avis client', abonnement: 'Abonnement'
+};
+
 function notifier(entrepriseId, type, message) {
   db.notifications.unshift({ id: store.uid(), entrepriseId, type, message, lu: false, creeLe: new Date().toISOString() });
   store.save();
+
+  /* La même notification part vers le téléphone du responsable.
+     L'envoi n'est pas attendu : une panne du service de notification
+     ne doit jamais retarder la réponse au client. */
+  // Le lien va de l'utilisateur vers l'entreprise : on cherche dans ce sens.
+  const titre = TITRES_PUSH[String(type).split('_')[0]] || TITRES_PUSH[type] || 'Biznis Konekte';
+  for (const u of db.users.filter((x) => x.entrepriseId === entrepriseId)) {
+    envoyerPush(u.id, { titre, corps: message, url: '/dashboard.html', tag: type })
+      .catch(() => { /* sans conséquence */ });
+  }
 }
 
 // ---------------- Envoi d'emails (API Brevo, gratuit 300/jour) ----------------
@@ -715,11 +773,14 @@ async function api(req, res, url) {
 
     // Deuxième facteur : le mot de passe seul ne suffit plus
     if (u.a2f && u.a2f.actif) {
-      const tel = u.a2f.telephone || '';
-      const { id, code } = creerDefi(u.id, tel);
-      envoyerWhatsApp(tel, 'code_connexion', [u.nom || '', code]);
-      if (!process.env.WHATSAPP_TOKEN) console.log(`[A2F simulation → ${tel}] code : ${code}`);
-      return json(res, 200, { a2f: true, defi: id, telMasque: telMasque(tel) });
+      const canal = u.a2f.canal || 'whatsapp';
+      const destination = canal === 'courriel' ? (u.a2f.courriel || u.email) : (u.a2f.telephone || '');
+      const { id, code } = creerDefi(u.id, destination, canal);
+      await envoyerCodeA2F(canal, destination, u.nom, code);
+      return json(res, 200, {
+        a2f: true, defi: id, canal,
+        destination: canal === 'courriel' ? courrielMasque(destination) : telMasque(destination)
+      });
     }
 
     const token = crypto.randomBytes(24).toString('hex');
@@ -757,19 +818,35 @@ async function api(req, res, url) {
   if (p === '/api/moi/a2f' && req.method === 'GET') {
     if (!user) return json(res, 401, { erreur: 'Non connecté' });
     const a = user.a2f || {};
-    return json(res, 200, { actif: !!a.actif, telMasque: a.telephone ? telMasque(a.telephone) : '' });
+    const canal = a.canal || 'whatsapp';
+    return json(res, 200, {
+      actif: !!a.actif, canal,
+      destination: !a.actif ? '' : (canal === 'courriel' ? courrielMasque(a.courriel) : telMasque(a.telephone)),
+      courrielDispo: courriel.configure(),
+      emailCompte: user.email || ''
+    });
   }
 
   // Demande d'activation : on envoie un code au numéro proposé
   if (p === '/api/moi/a2f/demarrer' && req.method === 'POST') {
     if (!user) return json(res, 401, { erreur: 'Non connecté' });
-    const tel = String(corps.telephone || '').replace(/[^\d+]/g, '');
-    if (tel.replace(/\D/g, '').length < 8)
-      return json(res, 400, { erreur: 'Numéro WhatsApp invalide.' });
-    const { id, code } = creerDefi(user.id, tel);
-    envoyerWhatsApp(tel, 'code_connexion', [user.nom || '', code]);
-    if (!process.env.WHATSAPP_TOKEN) console.log(`[A2F simulation → ${tel}] code : ${code}`);
-    return json(res, 200, { ok: true, defi: id, telMasque: telMasque(tel) });
+    const canal = corps.canal === 'courriel' ? 'courriel' : 'whatsapp';
+    let destination;
+    if (canal === 'courriel') {
+      destination = String(corps.courriel || user.email || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(destination))
+        return json(res, 400, { erreur: 'Adresse email invalide.' });
+    } else {
+      destination = String(corps.telephone || '').replace(/[^\d+]/g, '');
+      if (destination.replace(/\D/g, '').length < 8)
+        return json(res, 400, { erreur: 'Numéro WhatsApp invalide.' });
+    }
+    const { id, code } = creerDefi(user.id, destination, canal);
+    await envoyerCodeA2F(canal, destination, user.nom, code);
+    return json(res, 200, {
+      ok: true, defi: id, canal,
+      destination: canal === 'courriel' ? courrielMasque(destination) : telMasque(destination)
+    });
   }
 
   // Confirmation : l'option ne s'active que si le code arrive vraiment
@@ -783,9 +860,18 @@ async function api(req, res, url) {
     const saisi = String(corps.code || '').replace(/\D/g, '');
     const ok = saisi.length === 6 && crypto.timingSafeEqual(Buffer.from(saisi), Buffer.from(d.code));
     if (!ok) return json(res, 401, { erreur: `Code incorrect. ${A2F_TENTATIVES_MAX - d.tentatives} essai(s) restant(s).` });
-    user.a2f = { actif: true, telephone: d.tel, methode: 'whatsapp', activeLe: new Date().toISOString() };
+    const canal = d.canal || 'whatsapp';
+    user.a2f = {
+      actif: true, canal,
+      telephone: canal === 'whatsapp' ? d.destination : (user.a2f && user.a2f.telephone) || '',
+      courriel: canal === 'courriel' ? d.destination : (user.a2f && user.a2f.courriel) || '',
+      activeLe: new Date().toISOString()
+    };
     DEFIS_A2F.delete(corps.defi); store.save();
-    return json(res, 200, { ok: true, telMasque: telMasque(d.tel) });
+    // Avertir du changement : c'est ainsi qu'on repère une prise de contrôle
+    const masque = canal === 'courriel' ? courrielMasque(d.destination) : telMasque(d.destination);
+    if (user.email) courriel.envoyer(user.email, 'a2f_activee', { nom: user.nom, destination: masque });
+    return json(res, 200, { ok: true, canal, destination: masque });
   }
 
   // Désactivation : le mot de passe est redemandé
@@ -1504,6 +1590,57 @@ async function api(req, res, url) {
     return json(res, 200, { ...detailPaiement(pmt), lienVerification: lien, qr: image });
   }
 
+  // ---- Notifications poussées ----
+  if (p === '/api/push/cle' && req.method === 'GET') {
+    return json(res, 200, { cle: process.env.VAPID_PUBLIQUE || '', actif: push.configure() });
+  }
+
+  if (p === '/api/push/abonner' && req.method === 'POST') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    const ab = corps.abonnement;
+    if (!ab || !ab.endpoint || !ab.keys || !ab.keys.p256dh || !ab.keys.auth)
+      return json(res, 400, { erreur: 'Abonnement invalide.' });
+    // Un même appareil ne doit pas s'enregistrer deux fois
+    db.pushAbonnements = db.pushAbonnements.filter((x) => x.endpoint !== ab.endpoint);
+    db.pushAbonnements.push({
+      id: store.uid(), userId: user.id,
+      endpoint: String(ab.endpoint).slice(0, 500),
+      keys: { p256dh: String(ab.keys.p256dh).slice(0, 200), auth: String(ab.keys.auth).slice(0, 100) },
+      appareil: String(req.headers['user-agent'] || '').slice(0, 80),
+      creeLe: new Date().toISOString()
+    });
+    store.save();
+    return json(res, 200, { ok: true });
+  }
+
+  if (p === '/api/push/desabonner' && req.method === 'POST') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    const avant = db.pushAbonnements.length;
+    db.pushAbonnements = db.pushAbonnements.filter(
+      (x) => !(x.userId === user.id && (!corps.endpoint || x.endpoint === corps.endpoint)));
+    store.save();
+    return json(res, 200, { ok: true, retires: avant - db.pushAbonnements.length });
+  }
+
+  if (p === '/api/push/etat' && req.method === 'GET') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    return json(res, 200, {
+      actif: push.configure(),
+      appareils: db.pushAbonnements.filter((x) => x.userId === user.id).length
+    });
+  }
+
+  // Envoi d'essai, pour vérifier la chaîne depuis l'espace de l'entreprise
+  if (p === '/api/push/essai' && req.method === 'POST') {
+    if (!user) return json(res, 401, { erreur: 'Non connecté' });
+    const n = await envoyerPush(user.id, {
+      titre: 'Biznis Konekte',
+      corps: 'Les notifications fonctionnent. Vous serez prévenu à chaque nouvelle demande.',
+      url: '/dashboard.html'
+    });
+    return json(res, 200, { ok: true, envoyees: n });
+  }
+
   // ---- Avis client ----
   if (p === '/api/avis' && req.method === 'POST') {
     const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
@@ -1588,14 +1725,34 @@ async function api(req, res, url) {
       return json(res, 200, db.services.filter((s) => s.entrepriseId === e.id));
     if (p === '/api/mon-entreprise/services' && req.method === 'POST') {
       if (!corps.nom || !corps.duree) return json(res, 400, { erreur: 'Nom et durée obligatoires.' });
-      const s = { id: store.uid(), entrepriseId: e.id, nom: corps.nom, duree: +corps.duree, prix: +corps.prix || 0, actif: true };
+      const galerieS = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, []);
+      if (galerieS === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
+      const s = {
+        id: store.uid(), entrepriseId: e.id, nom: corps.nom,
+        description: String(corps.description || '').slice(0, 200),
+        duree: +corps.duree, prix: +corps.prix || 0,
+        photos: galerieS, photo: galerieS[0] || '',
+        actif: true
+      };
       db.services.push(s); store.save(); return json(res, 200, s);
     }
     const mSrv = p.match(/^\/api\/mon-entreprise\/services\/(\w+)$/);
     if (mSrv) {
       const s = db.services.find((x) => x.id === mSrv[1] && x.entrepriseId === e.id);
       if (!s) return json(res, 404, { erreur: 'Service introuvable' });
-      if (req.method === 'PUT') { ['nom'].forEach(k => corps[k] !== undefined && (s[k] = corps[k])); if (corps.duree) s.duree = +corps.duree; if (corps.prix !== undefined) s.prix = +corps.prix; if (corps.actif !== undefined) s.actif = !!corps.actif; store.save(); return json(res, 200, s); }
+      if (req.method === 'PUT') {
+        ['nom'].forEach(k => corps[k] !== undefined && (s[k] = corps[k]));
+        if (corps.description !== undefined) s.description = String(corps.description).slice(0, 200);
+        if (corps.duree) s.duree = +corps.duree;
+        if (corps.prix !== undefined) s.prix = +corps.prix;
+        if (corps.actif !== undefined) s.actif = !!corps.actif;
+        if (corps.photos !== undefined || corps.photo !== undefined) {
+          const g = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, s.photos);
+          if (g === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
+          s.photos = g; s.photo = g[0] || '';
+        }
+        store.save(); return json(res, 200, s);
+      }
       if (req.method === 'DELETE') { db.services = db.services.filter((x) => x !== s); store.save(); return json(res, 200, { ok: true }); }
     }
 

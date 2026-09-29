@@ -1,5 +1,5 @@
 // Biznis Konekte — Service Worker (requis pour PWA / Play Store)
-const CACHE = 'biznis-v30';
+const CACHE = 'biznis-v36';
 const STATIQUES = [
   '/style.css',
   '/app.js',
@@ -75,4 +75,31 @@ self.addEventListener('fetch', (e) => {
       })
       .catch(() => caches.match(e.request))
   );
+});
+
+/* ---- Notifications poussées ----
+   Le message arrive chiffré, déchiffré par le navigateur, puis remis ici. */
+self.addEventListener('push', (e) => {
+  let d = { titre: 'Biznis Konekte', corps: 'Vous avez du nouveau.' };
+  try { if (e.data) d = { ...d, ...e.data.json() }; } catch { /* charge illisible */ }
+  e.waitUntil(self.registration.showNotification(d.titre, {
+    body: d.corps,
+    icon: '/icone-192.png',
+    badge: '/icone-192.png',
+    tag: d.tag || 'biznis',
+    renotify: true,
+    data: { url: d.url || '/dashboard.html' }
+  }));
+});
+
+/* Au clic : on réutilise l'onglet déjà ouvert plutôt que d'en créer un. */
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const cible = (e.notification.data && e.notification.data.url) || '/dashboard.html';
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((liste) => {
+    for (const c of liste) {
+      if (c.url.includes(cible) && 'focus' in c) return c.focus();
+    }
+    return clients.openWindow(cible);
+  }));
 });

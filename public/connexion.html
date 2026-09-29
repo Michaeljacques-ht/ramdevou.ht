@@ -32,13 +32,15 @@ body { background: var(--gris-clair); min-height: 100vh; display: grid; place-it
   </div></div>
 </div>
 <script src="/app.js">
-function demanderCode(defi, masque){
+function demanderCode(defi, masque, canal){
   const c = document.querySelector('.carte-corps') || document.body;
   c.innerHTML = `
     <div class="centre" style="padding:6px 0 2px">
       <div style="font-size:36px">🔐</div>
       <h1 style="font-size:20px;margin-top:8px">Vérification en deux étapes</h1>
-      <p class="petit muet" style="margin-top:6px">Un code à 6 chiffres vient d'être envoyé sur votre WhatsApp ${masque ? '(' + masque + ')' : ''}.</p>
+      <p class="petit muet" style="margin-top:6px">Un code à 6 chiffres vient d'être envoyé
+        ${canal === 'courriel' ? 'à votre adresse email' : 'sur votre WhatsApp'}
+        ${masque ? '(' + masque + ')' : ''}.</p>
     </div>
     <label>Code reçu</label>
     <input id="codeA2F" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
@@ -71,7 +73,7 @@ document.getElementById('f').addEventListener('submit', async (ev) => {
   try {
     const r = await api('/api/connexion', 'POST', { email: email.value.trim(), motdepasse: mdp.value });
     // Compte protégé par un second facteur : un code arrive sur WhatsApp
-    if (r.a2f) { demanderCode(r.defi, r.telMasque); return; }
+    if (r.a2f) { demanderCode(r.defi, r.destination, r.canal); return; }
     location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
   } catch (e) { document.getElementById('err').textContent = e.message; }
 });
