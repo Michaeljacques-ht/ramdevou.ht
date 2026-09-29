@@ -355,6 +355,62 @@ function creerOuObtenirPortefeuille(entrepriseId) {
   }
   return p;
 }
+/* ============================================================
+   Reçus de paiement et vérification
+   ------------------------------------------------------------
+   Un reçu imprimé ou envoyé en image se falsifie facilement.
+   Le code QR ne contient donc AUCUN montant : il porte une
+   adresse de vérification signée. Le commerçant scanne, et
+   c'est le serveur qui répond « payé » ou « non payé ».
+
+   La signature empêche de fabriquer une adresse valable pour
+   une référence inventée.
+   ============================================================ */
+const SEL_RECUS = process.env.SEL_RECUS || crypto.randomBytes(24).toString('hex');
+
+function signatureRecu(reference) {
+  return crypto.createHmac('sha256', SEL_RECUS).update(String(reference)).digest('hex').slice(0, 16);
+}
+
+function recuValide(reference, signature) {
+  const attendue = signatureRecu(reference);
+  const fournie = String(signature || '');
+  if (fournie.length !== attendue.length) return false;
+  // Comparaison à durée constante
+  return crypto.timingSafeEqual(Buffer.from(fournie), Buffer.from(attendue));
+}
+
+/** Détail d'un paiement, tel qu'affiché sur le reçu et à la vérification. */
+function detailPaiement(pmt) {
+  const ent = db.entreprises.find((x) => x.id === pmt.entrepriseId);
+  let objet = '';
+  if (pmt.commandeType === 'rendezvous') {
+    const r = db.rendezvous.find((x) => x.id === pmt.commandeId);
+    const s = r && db.services.find((x) => x.id === r.serviceId);
+    objet = r ? `${s ? s.nom : 'Rendez-vous'} — ${r.date} à ${r.heure}` : 'Rendez-vous';
+  } else if (pmt.commandeType === 'sejour') {
+    const s = db.sejours.find((x) => x.id === pmt.commandeId);
+    objet = s ? `Séjour du ${s.arrivee} au ${s.depart}` : 'Séjour';
+  } else if (pmt.commandeType === 'commande') {
+    const c = db.commandes.find((x) => x.id === pmt.commandeId);
+    objet = c ? `Commande de ${(c.articles || []).length} article(s)` : 'Commande';
+  } else if (pmt.commandeType === 'abonnement') {
+    objet = 'Abonnement Biznis Konekte';
+  }
+  return {
+    reference: pmt.reference,
+    statut: pmt.statut,
+    montant: pmt.montantBrut,
+    methode: pmt.methode || pmt.methodePaiement || '',
+    client: pmt.clientNom || '',
+    objet,
+    entreprise: ent ? ent.nom : '',
+    entrepriseSlug: ent ? ent.slug : '',
+    le: pmt.dateConfirmation || pmt.creeLe,
+    transaction: pmt.idTransaction || ''
+  };
+}
+
 function creerPaiement(entrepriseId, commandeType, commandeId, montant, methodePaiement, clientEmail, clientNom) {
   const reference = `${commandeType[0].toUpperCase()}${commandeId.slice(0, 8)}${Date.now().toString(36).toUpperCase()}`;
   const paiement = {
@@ -1420,6 +1476,32 @@ async function api(req, res, url) {
     if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
     db.messages = db.messages.filter((x) => x.id !== mMsg[1]);
     store.save(); return json(res, 200, { ok: true });
+  }
+
+  /* ---- Vérification d'un reçu ----
+     Ouverte sans authentification : le commerçant scanne avec
+     l'appareil photo, sans avoir à se connecter. La signature
+     protège contre les références inventées. */
+  if (p === '/api/verifier-recu' && req.method === 'GET') {
+    const ref = q.get('ref') || '';
+    if (!recuValide(ref, q.get('c'))) return json(res, 403, { erreur: 'Lien de vérification invalide.' });
+    const pmt = db.paiements.find((x) => x.reference === ref);
+    if (!pmt) return json(res, 404, { erreur: 'Reçu introuvable.' });
+    return json(res, 200, detailPaiement(pmt));
+  }
+
+  /* ---- Reçu d'un paiement ----
+     Accessible avec la référence et le téléphone du client, comme
+     le suivi de commande : le client n'a pas de compte. */
+  if (p === '/api/recu' && req.method === 'GET') {
+    const pmt = db.paiements.find((x) => x.reference === q.get('ref'));
+    if (!pmt) return json(res, 404, { erreur: 'Reçu introuvable.' });
+    if (pmt.statut !== 'confirme') return json(res, 400, { erreur: "Ce paiement n'est pas confirmé." });
+    const base = (process.env.URL_PUBLIQUE || `https://${req.headers.host}`).replace(/\/$/, '');
+    const lien = `${base}/verifier.html?ref=${encodeURIComponent(pmt.reference)}&c=${signatureRecu(pmt.reference)}`;
+    let image = '';
+    try { image = qr.svg(lien, { taille: 420, couleur: '#0B2C6B' }); } catch { /* sans code QR */ }
+    return json(res, 200, { ...detailPaiement(pmt), lienVerification: lien, qr: image });
   }
 
   // ---- Avis client ----

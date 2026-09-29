@@ -616,6 +616,7 @@ function refEquip(cle){
             <div class="centre" style="padding:14px 0">
               <h3>${lg==='ht'?'Kòmand resevwa':'Commande reçue'}</h3>
               <p class="petit muet" style="margin-top:8px">${lg==='ht'?'Referans':'Référence'} <strong>${r.reference}</strong></p>
+              <a class="btn btn-contour btn-petit mt" href="/recu.html?ref=${encodeURIComponent(r.reference)}">${lg==='ht'?'Wè resi mwen':'Voir mon reçu'}</a>
               <p class="petit" style="color:var(--orange);margin-top:10px">${lg==='ht'?'Peyman an liy pa disponib kounye a. Boutik la ap kontakte w.':"Le paiement en ligne est momentanément indisponible. La boutique vous contactera."}</p>
               <button class="btn btn-primaire mt" style="width:100%" onclick="location.reload()">${lg==='ht'?'Fèmen':'Fermer'}</button>
             </div>`;
