@@ -1,7 +1,7 @@
 {
-  "name": "randevou-ht",
+  "name": "biznis-konekte",
   "version": "1.0.0",
-  "description": "Plateforme haïtienne de prise de rendez-vous en ligne",
+  "description": "Plateforme haïtienne de rendez-vous, réservation et vente en ligne",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

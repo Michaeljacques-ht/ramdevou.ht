@@ -13,7 +13,12 @@
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root { --marque: #2563EB; --marque2: #F59E0B; }
-.banniere-ent { height: 210px; background: linear-gradient(130deg, var(--marque), var(--marque2)); position: relative; }
+/* Bannière : hauteur proportionnelle à la largeur, bornée.
+   Une hauteur fixe rognait l'image sur grand écran et laissait
+   trop peu de place à la vitrine de l'entreprise. */
+.banniere-ent { height: clamp(260px, 32vw, 380px);
+  background: linear-gradient(130deg, var(--marque), var(--marque2)); position: relative; }
+@media (max-width: 560px) { .banniere-ent { height: clamp(200px, 46vw, 260px); } }
 .entete-ent { max-width: 980px; margin: -64px auto 0; padding: 0 20px; position: relative; }
 .carte-entete { background: #fff; border-radius: 18px; box-shadow: 0 10px 34px rgba(16,24,40,.12);
   padding: 22px; display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }

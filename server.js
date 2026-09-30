@@ -275,6 +275,46 @@ function codeA2F() {
   // 6 chiffres tirés au sort de façon cryptographique
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
+/* ============================================================
+   Mot de passe oublié
+   ------------------------------------------------------------
+   Le code est envoyé au canal déjà connu du compte : WhatsApp
+   du responsable, ou son adresse email. On ne demande jamais
+   au demandeur où l'envoyer — sinon n'importe qui pourrait
+   détourner un compte en indiquant son propre numéro.
+
+   La réponse est toujours la même, que le compte existe ou non :
+   cela empêche de découvrir quelles adresses sont inscrites.
+   ============================================================ */
+const DEMANDES_MDP = new Map();
+const MDP_VALIDITE_MS = 15 * 60 * 1000;
+const MDP_TENTATIVES_MAX = 5;
+const MDP_PAR_HEURE = 3;
+const HISTORIQUE_DEMANDES = [];
+
+function nettoyerDemandes() {
+  const t = Date.now();
+  for (const [id, d] of DEMANDES_MDP) if (d.expireLe < t) DEMANDES_MDP.delete(id);
+}
+
+/** Limite les demandes répétées pour un même compte. */
+function tropDeDemandes(email) {
+  const limite = Date.now() - 3600000;
+  while (HISTORIQUE_DEMANDES.length && HISTORIQUE_DEMANDES[0].le < limite) HISTORIQUE_DEMANDES.shift();
+  return HISTORIQUE_DEMANDES.filter((x) => x.email === email).length >= MDP_PAR_HEURE;
+}
+
+/** Canal de récupération d'un compte, et sa forme masquée. */
+function canalRecuperation(u) {
+  const ent = u.entrepriseId && db.entreprises.find((e) => e.id === u.entrepriseId);
+  const tel = (u.a2f && u.a2f.telephone) || (ent && (ent.whatsapp || ent.telephone)) || '';
+  if (tel && String(tel).replace(/\D/g, '').length >= 8) {
+    return { canal: 'whatsapp', destination: tel, masque: telMasque(tel) };
+  }
+  if (u.email) return { canal: 'courriel', destination: u.email, masque: courrielMasque(u.email) };
+  return null;
+}
+
 function creerDefi(userId, destination, canal) {
   nettoyerDefis();
   const id = crypto.randomBytes(18).toString('hex');
@@ -880,6 +920,67 @@ async function api(req, res, url) {
     if (String(corps.motdepasse || '') !== user.motdepasse)
       return json(res, 401, { erreur: 'Mot de passe incorrect.' });
     user.a2f = { actif: false }; store.save();
+    return json(res, 200, { ok: true });
+  }
+
+  // ---- Mot de passe oublié : demande d'un code ----
+  if (p === '/api/mdp/demander' && req.method === 'POST') {
+    nettoyerDemandes();
+    const email = String(corps.email || '').trim().toLowerCase();
+    // Réponse volontairement identique dans tous les cas
+    const reponseNeutre = { ok: true, message: "Si un compte existe, un code vient d'être envoyé." };
+    if (!email) return json(res, 200, reponseNeutre);
+    if (tropDeDemandes(email))
+      return json(res, 429, { erreur: 'Trop de demandes. Réessayez dans une heure.' });
+
+    const u = db.users.find((x) => x.email.toLowerCase() === email);
+    HISTORIQUE_DEMANDES.push({ email, le: Date.now() });
+    if (!u) return json(res, 200, reponseNeutre);
+
+    const c = canalRecuperation(u);
+    if (!c) return json(res, 200, reponseNeutre);
+
+    const id = crypto.randomBytes(18).toString('hex');
+    const code = codeA2F();
+    DEMANDES_MDP.set(id, { userId: u.id, code, tentatives: 0, expireLe: Date.now() + MDP_VALIDITE_MS });
+    await envoyerCodeA2F(c.canal, c.destination, u.nom, code);
+
+    return json(res, 200, { ...reponseNeutre, demande: id, canal: c.canal, destination: c.masque });
+  }
+
+  // ---- Vérification du code et nouveau mot de passe ----
+  if (p === '/api/mdp/reinitialiser' && req.method === 'POST') {
+    nettoyerDemandes();
+    const d = DEMANDES_MDP.get(String(corps.demande || ''));
+    if (!d) return json(res, 401, { erreur: 'Demande expirée. Recommencez.' });
+    d.tentatives++;
+    if (d.tentatives > MDP_TENTATIVES_MAX) {
+      DEMANDES_MDP.delete(corps.demande);
+      return json(res, 429, { erreur: 'Trop de tentatives. Recommencez.' });
+    }
+    const saisi = String(corps.code || '').replace(/\D/g, '');
+    const ok = saisi.length === 6 && crypto.timingSafeEqual(Buffer.from(saisi), Buffer.from(d.code));
+    if (!ok) return json(res, 401, { erreur: `Code incorrect. ${MDP_TENTATIVES_MAX - d.tentatives} essai(s) restant(s).` });
+
+    const mdp = String(corps.motdepasse || '');
+    if (mdp.length < 6) return json(res, 400, { erreur: 'Le mot de passe doit contenir au moins 6 caractères.' });
+    if (corps.motdepasse2 !== undefined && mdp !== corps.motdepasse2)
+      return json(res, 400, { erreur: 'Les deux mots de passe ne correspondent pas.' });
+
+    const u = db.users.find((x) => x.id === d.userId);
+    if (!u) return json(res, 404, { erreur: 'Compte introuvable.' });
+    u.motdepasse = mdp;
+
+    /* Toutes les sessions ouvertes sont fermées : si quelqu'un d'autre
+       était connecté avec l'ancien mot de passe, il perd l'accès. */
+    for (const [jeton, uid] of Object.entries(db.sessions)) {
+      if (uid === u.id) delete db.sessions[jeton];
+    }
+    DEMANDES_MDP.delete(corps.demande);
+    store.save();
+
+    // Avertir par email : c'est ainsi qu'on repère un changement non voulu
+    if (u.email) courriel.envoyer(u.email, 'mdp_change', { nom: u.nom });
     return json(res, 200, { ok: true });
   }
 
@@ -2714,7 +2815,7 @@ const server = http.createServer(async (req, res) => {
     }
 
 
-    // URL personnalisée : randevou.ht/salon-elegance
+    // URL personnalisée : bizniskonekte.tech/salon-elegance
     const m = url.pathname.match(/^\/([a-z0-9-]+)$/);
     if (m) {
       const ent = db.entreprises.find((e) => e.slug === m[1]);
@@ -2789,7 +2890,7 @@ server.listen(PORT, () => {
   console.log(`  Démo entreprise: http://localhost:${PORT}/salon-elegance`);
   console.log('  Connexions de démonstration :');
   console.log('   • Responsable : marie@salonelegance.ht / demo123');
-  console.log('   • Admin       : admin@randevou.ht / admin123');
+  console.log('   • Admin       : admin@bizniskonekte.tech / admin123');
   console.log('   • Données     : ' + store.DB_PATH +
     (process.env.DATA_DIR ? '  (disque persistant)' : '  ⚠ dossier temporaire — effacé à chaque déploiement'));
   console.log('==================================================');
