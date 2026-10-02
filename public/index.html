@@ -181,6 +181,11 @@
   padding: 4px; line-height: 1; flex: none; }
 .bi-fermer:hover { color: var(--marine); }
 @media (max-width: 480px) { .bi-txt span { display: none; } }
+/* Le chiffre « entreprise la plus visitée » est un lien */
+.chiffre a { text-decoration: none; display: block; }
+.chiffre a:hover strong { color: var(--orange); }
+.chiffre strong { display: block; }
+#cPopulaireNom { font-size: clamp(15px, 2.6vw, 21px); line-height: 1.2; }
 </style>
 </head>
 <body>
@@ -263,11 +268,11 @@
 </header>
 
 <main class="conteneur">
-  <div class="bande-chiffres" id="bandeChiffres">
+  <div class="bande-chiffres" id="bandeChiffres" style="display:none">
     <div class="chiffre"><strong data-cible="0" id="cEnt">0</strong><span data-i18n="acc.chiffre.entreprises">Entreprises inscrites</span></div>
-    <div class="chiffre"><strong data-cible="0" id="cAvis">0</strong><span data-i18n="acc.chiffre.avis">Avis clients</span></div>
-    <div class="chiffre"><strong id="cNote">—</strong><span data-i18n="acc.chiffre.note">Note moyenne</span></div>
-    <div class="chiffre"><strong>0 HTG</strong><span data-i18n="acc.chiffre.gratuit">Pour commencer</span></div>
+    <div class="chiffre"><strong data-cible="0" id="cVisiteurs">0</strong><span data-i18n="acc.chiffre.visiteurs">Utilisateurs</span></div>
+    <div class="chiffre"><strong data-cible="0" id="cVisites">0</strong><span data-i18n="acc.chiffre.visites">Visites</span></div>
+    <div class="chiffre"><a id="cPopulaire" href="#categories-resultats"><strong id="cPopulaireNom">—</strong><span data-i18n="acc.chiffre.populaire">Entreprise la plus visitée</span></a></div>
   </div>
 
 
@@ -485,12 +490,28 @@ let chiffresFaits = false;
 function majChiffres(liste){
   if (chiffresFaits || !liste.length) return;
   chiffresFaits = true;
-  const totalAvis = liste.reduce((s, e) => s + (e.totalAvis || 0), 0);
-  const notes = liste.filter(e => e.note);
-  const moyenne = notes.length ? (notes.reduce((s, e) => s + +e.note, 0) / notes.length).toFixed(1) : '—';
   animerCompteur(document.getElementById('cEnt'), liste.length);
-  animerCompteur(document.getElementById('cAvis'), totalAvis);
-  document.getElementById('cNote').textContent = moyenne === '—' ? '—' : moyenne + ' ★';
+  /* Fréquentation de la plateforme : chiffres agrégés. */
+  api('/api/statistiques').then((s) => {
+    const bande = document.getElementById('bandeChiffres');
+    if (!s.afficher) { if (bande) bande.remove(); return; }
+    if (bande) bande.style.display = '';
+    animerCompteur(document.getElementById('cEnt'), s.entreprises);
+    animerCompteur(document.getElementById('cVisiteurs'), s.visiteurs);
+    animerCompteur(document.getElementById('cVisites'), s.visites);
+    const nom = document.getElementById('cPopulaireNom');
+    const lien = document.getElementById('cPopulaire');
+    if (s.populaire) {
+      // Un nom long déborderait : on le raccourcit proprement
+      const court = s.populaire.nom.length > 22 ? s.populaire.nom.slice(0, 21) + '…' : s.populaire.nom;
+      nom.textContent = court;
+      nom.title = s.populaire.nom;
+      lien.href = '/' + s.populaire.slug;
+    } else {
+      nom.textContent = '—';
+      lien.removeAttribute('href');
+    }
+  }).catch(() => {});
 }
 function animerCompteur(el, cible){
   const duree = 1200, depart = performance.now();

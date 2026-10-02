@@ -332,6 +332,13 @@ const SESSIONS_CLIENT = new Map();          // jeton -> { tel, expireLe }
 const CLIENT_SESSION_MS = 30 * 86400000;    // 30 jours
 
 /** Ne garde que les chiffres : les numéros sont saisis de mille façons. */
+/* ---- Financement Micro Crédit Solidarité ----
+   L'adresse du formulaire est une variable d'environnement : elle
+   contient un jeton, et pourra changer sans toucher au code. */
+const FINANCEMENT_URL = process.env.FINANCEMENT_URL
+  || 'https://microcreditsolidarite.com/microcredit-php/formulaire_public.php?t=1.2dee49e44bd63865';
+const FINANCEMENT_SEUIL = Number(process.env.FINANCEMENT_SEUIL || 10000);
+
 function telNormalise(v) {
   const n = String(v || '').replace(/\D/g, '');
   // Un numéro haïtien saisi sans indicatif est complété
@@ -1124,6 +1131,7 @@ async function api(req, res, url) {
       carte: db.carte.filter((a) => a.entrepriseId === e.id && a.disponible).map((a) => ({ id: a.id, nom: a.nom, description: a.description, categorie: a.categorie, prix: a.prix, volume: a.volume || '', photo: a.photo || '' })),
       equipementsRef: EQUIPEMENTS,
       reseaux: e.reseaux || [],
+      financement: { url: FINANCEMENT_URL, seuil: FINANCEMENT_SEUIL },
       hotel: metiers.aModule(e, 'hotellerie') ? (e.hotel || {}) : null,
       tarifs: metiers.aModule(e, 'hotellerie')
         ? db.tarifs.filter((x) => x.entrepriseId === e.id && x.actif)
@@ -1891,6 +1899,43 @@ async function api(req, res, url) {
       total: liste.length,
       enCours: liste.filter((x) => !['livree', 'terminee', 'annulee', 'refuse', 'termine'].includes(x.statut)).length,
       achats: liste
+    });
+  }
+
+  // ---- Paramètres du financement, pour les pages publiques ----
+  if (p === '/api/financement' && req.method === 'GET') {
+    return json(res, 200, { url: FINANCEMENT_URL, seuil: FINANCEMENT_SEUIL });
+  }
+
+  /* ---- Chiffres publics de la plateforme ----
+     Agrégés : aucun visiteur n'est identifiable, et seule
+     l'entreprise la plus consultée est nommée — une mise en avant,
+     pas une divulgation de performance commerciale. */
+  if (p === '/api/statistiques' && req.method === 'GET') {
+    const approuvees = db.entreprises.filter((x) => x.statut === 'approuvee');
+    const consultations = (db.visites || []).filter((v) => (v.type || 'page') === 'page');
+
+    // Entreprise la plus consultée, sur les 90 derniers jours
+    const depuis = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+    const parEntreprise = {};
+    for (const v of consultations) {
+      if (!v.entreprise || v.jour < depuis) continue;
+      parEntreprise[v.entreprise] = (parEntreprise[v.entreprise] || 0) + 1;
+    }
+    const meilleur = Object.entries(parEntreprise).sort((a, b) => b[1] - a[1])[0];
+    const ent = meilleur && approuvees.find((x) => x.slug === meilleur[0]);
+
+    /* Seuil d'affichage : des chiffres trop modestes desservent la
+       plateforme. En deçà, la bande reste masquée et l'accueil met en
+       avant ce qu'il sait faire plutôt que sa taille. */
+    const SEUIL = Number(process.env.SEUIL_CHIFFRES || 20);
+    return json(res, 200, {
+      afficher: approuvees.length >= SEUIL,
+      seuil: SEUIL,
+      entreprises: approuvees.length,
+      visiteurs: new Set(consultations.map((v) => v.visiteur)).size,
+      visites: consultations.length,
+      populaire: ent ? { nom: ent.nom, slug: ent.slug, visites: meilleur[1] } : null
     });
   }
 

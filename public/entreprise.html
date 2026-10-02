@@ -208,6 +208,12 @@
 .carte-produit.epuise .media-produit::after { content: 'FINI'; position: absolute; inset: 0;
   display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #fff;
   background: rgba(16,24,40,.45); letter-spacing: .08em; }
+/* Paiement par versement : proposé en second, sous le bouton d'achat,
+   pour ne pas détourner de l'achat direct. */
+.btn-versement { display: block; width: 100%; margin-top: 7px; padding: 7px 10px;
+  text-align: center; font-size: 12px; font-weight: 700; border-radius: var(--r-pilule);
+  background: #FFF4EC; color: #C4520E; border: 1.5px dashed #F7C9A8; text-decoration: none; }
+.btn-versement:hover { background: #FFE9D8; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -230,8 +236,11 @@
   <div id="bandeauUrgence" style="display:none"></div>
   <div style="display:grid;gap:22px">
     <section class="carte" id="carteServices"><div class="carte-corps">
-      <h2 style="font-size:19px" data-i18n="ent.services">Services</h2>
+      <h2 style="font-size:19px" id="titreOffre" data-i18n="ent.services">Services</h2>
+      <p class="petit muet" id="introOffre" style="margin-top:4px;display:none"></p>
       <div id="listeServices" class="mt"></div>
+      <div id="rayonsBoutique" class="onglets-menu mt" style="display:none"></div>
+      <div id="grilleProduits" class="grille-produits mt"></div>
     </div></section>
 
     <section class="carte carte-signature" id="carteProgrammes" style="display:none"><div class="carte-corps">
@@ -272,13 +281,6 @@
       </div>
       <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="chercherDossier()" data-i18n="suivi.chercher">Consulter</button>
       <div id="resultatSuivi" class="mt"></div>
-    </div></section>
-
-    <section class="carte" id="carteBoutique" style="display:none"><div class="carte-corps">
-      <h2 style="font-size:19px">🛒 <span data-i18n="boutique.titre">Nos produits</span></h2>
-      <p class="petit muet" style="margin-top:4px" data-i18n="boutique.intro">Prix en gourdes. Contactez-nous pour commander ou vérifier la disponibilité.</p>
-      <div id="rayonsBoutique" class="onglets-menu mt"></div>
-      <div id="grilleProduits" class="grille-produits mt"></div>
     </div></section>
 
     <section class="carte" id="carteInfosMetier" style="display:none"><div class="carte-corps">
@@ -434,7 +436,7 @@ async function charger() {
         // et on renvoie vers la section qui existe réellement sur sa page.
         const lgn = (localStorage.getItem('langue') || 'fr');
         const verbe = (ent.action && ent.action[lgn === 'ht' ? 'ht' : 'fr']) || (lgn === 'ht' ? 'Rezève' : 'Réserver');
-        const cible = (ent.produits || []).length ? '#carteBoutique'
+        const cible = (ent.produits || []).length ? '#carteServices'
                     : ((ent.chambres || []).length ? '#carteChambres' : '#carteResa');
         return `<a class="btn btn-primaire" href="${cible}" style="background:var(--marque)">${ech(verbe)}</a>`;
       })()}
@@ -790,12 +792,37 @@ function refEquip(cle){
 
   // ---- Catalogue public ----
   let rayonActif = '';
+  /* Une entreprise de services dont le catalogue sert de vitrine n'a
+     pas de stock à gérer : afficher « Fini » n'aurait aucun sens. */
+  function vendGoods(){
+    /* Le serveur n'expose « vente » que si les commandes sont actives :
+       sa seule présence suffit donc à identifier un vrai commerce. */
+    return !!ent.vente;
+  }
+
   function dessinerBoutique(){
     const liste = ent.produits || [];
     if (!liste.length) return;
     const lg = (localStorage.getItem('langue') || 'fr');
-    document.getElementById('carteBoutique').style.display = '';
+    /* Services et produits vivent désormais dans la même carte.
+       Le titre s'adapte à ce que l'entreprise propose réellement. */
+    const cs = document.getElementById('carteServices');
+    if (cs) cs.style.display = '';
+    const aServices = (ent.services || []).length > 0;
+    const titre = document.getElementById('titreOffre');
+    if (titre) titre.textContent = aServices
+      ? (lg==='ht' ? 'Sèvis ak pwodwi nou yo' : 'Nos services et produits')
+      : (lg==='ht' ? 'Pwodwi nou yo' : 'Nos produits');
+    const intro = document.getElementById('introOffre');
+    if (intro && vendGoods()) {
+      intro.style.display = '';
+      intro.textContent = lg==='ht'
+        ? 'Pri an goud. Chwazi sa ou vle a.'
+        : 'Prix en gourdes. Choisissez ce qui vous convient.';
+    }
     const rayons = [...new Set(liste.map(p => p.rayon).filter(Boolean))];
+    const zr = document.getElementById('rayonsBoutique');
+    if (zr && rayons.length > 1) zr.style.display = '';
     document.getElementById('rayonsBoutique').innerHTML = rayons.length > 1
       ? `<button class="onglet-menu${rayonActif===''?' on':''}" onclick="filtrerRayon('')">${lg==='ht'?'Tout':'Tout'}</button>` +
         rayons.map(r => `<button class="onglet-menu${rayonActif===r?' on':''}" onclick="filtrerRayon('${r.replace(/'/g,"\\'")}')">${ech(r)}</button>`).join('')
@@ -806,7 +833,7 @@ function refEquip(cle){
         (lg==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ') + p.nom +
         ' (' + ((p.prixPromo || p.prix)).toLocaleString('fr-HT') + ' HTG)');
       const vues = (p.photos && p.photos.length) ? p.photos : (p.photo ? [p.photo] : []);
-      return `<div class="carte-produit${p.epuise ? ' epuise' : ''}" data-produit="${p.id}">
+      return `<div class="carte-produit${p.epuise && vendGoods() ? ' epuise' : ''}" data-produit="${p.id}">
         ${vues.length ? `<div class="media-produit" data-vues="${vues.length}" onclick="ouvrirVisionneuse('${p.id}')">
             ${vues.map((ph,i) => `<div class="vue${i===0?' on':''}" style="background-image:url('${ph}')"></div>`).join('')}
             ${p.video ? `<button class="badge-video" onclick="event.stopPropagation();ouvrirVisionneuse('${p.id}',true)">▶ ${lg==='ht'?'Videyo':'Vidéo'}</button>` : ''}
@@ -820,17 +847,21 @@ function refEquip(cle){
           <strong>${ech(p.nom)}</strong>
           ${p.marque?`<p class="desc-produit">${ech(p.marque)}</p>`:''}
           ${p.description?`<p class="desc-produit">${ech(p.description)}</p>`:''}
-            ${p.epuise
+            ${vendGoods() ? (p.epuise
             ? `<p class="etat-stock fini">${lg==='ht'?'Fini':'Fini'}</p>`
             : (p.stockFaible
               ? `<p class="etat-stock bientot">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`
-              : `<p class="etat-stock dispo">${lg==='ht'?'Disponib':'Disponible'}</p>`)}
+              : `<p class="etat-stock dispo">${lg==='ht'?'Disponib':'Disponible'}</p>`)) : ''}
           <p class="prix-produit">
             ${p.prixPromo ? `<s class="petit muet">${(+p.prix).toLocaleString('fr-HT')}</s> <strong>${(+p.prixPromo).toLocaleString('fr-HT')} HTG</strong>`
                           : `<strong>${(+p.prix).toLocaleString('fr-HT')} HTG</strong>`}
             ${p.unite?`<span class="petit muet">/${ech(p.unite)}</span>`:''}
           </p>
-          ${p.epuise
+          ${!p.epuise && ent.financement && (p.prixPromo || p.prix) >= ent.financement.seuil
+            ? `<a class="btn-versement" target="_blank" rel="noopener" href="${ech(ent.financement.url)}"
+                 title="${lg==='ht'?'Peye an plizyè fwa ak Micro Crédit Solidarité':'Payer en plusieurs fois avec Micro Crédit Solidarité'}">
+                 💳 ${lg==='ht'?'Peye an vèsman':'Payer par versement'}</a>` : ''}
+          ${p.epuise && vendGoods()
             ? `<button class="btn btn-petit" style="width:100%;margin-top:8px;background:var(--gris-clair);color:var(--gris);cursor:not-allowed" disabled>${lg==='ht'?'Fini':'Épuisé'}</button>`
             : (peutCommander()
             ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="ajouterAuPanier('${p.id}')">${lg==='ht'?'Achte':'Acheter'}</button>`
@@ -1303,8 +1334,18 @@ function refEquip(cle){
   // La carte Services disparaît si l'établissement n'en a aucun, ou s'il s'agit
   // d'un hôtel : ses prestations sont alors présentées avec les chambres.
   const estHotel = (ent.chambres || []).length > 0;
-  if (!(ent.services || []).length || estHotel) {
+  /* La carte réunit services et produits : elle ne disparaît que si
+     l'entreprise n'a ni l'un ni l'autre. Un hôtel présente ses
+     prestations avec ses chambres, sauf s'il vend aussi des produits. */
+  const aQuelqueChose = (ent.services || []).length || (ent.produits || []).length;
+  if (!aQuelqueChose || (estHotel && !(ent.produits || []).length)) {
     const cs = document.getElementById('carteServices'); if (cs) cs.style.display = 'none';
+  }
+  // Le titre reflète ce qui est présenté, même sans produits
+  if ((ent.services || []).length && !(ent.produits || []).length) {
+    const lgt = (localStorage.getItem('langue') || 'fr');
+    const titre = document.getElementById('titreOffre');
+    if (titre) titre.textContent = lgt === 'ht' ? 'Sèvis nou yo' : 'Nos services';
   }
   if (!(ent.services || []).length) {
     const cr = document.getElementById('carteResa'); if (cr) cr.style.display = 'none';

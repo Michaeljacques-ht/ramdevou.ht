@@ -1,5 +1,5 @@
 // Biznis Konekte — Service Worker (requis pour PWA / Play Store)
-const CACHE = 'biznis-v47';
+const CACHE = 'biznis-v52';
 const STATIQUES = [
   '/style.css',
   '/app.js',

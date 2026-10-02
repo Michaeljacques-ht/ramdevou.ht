@@ -20,18 +20,29 @@
 .pastille-r { border: 1.5px solid var(--bordure); background: #fff; border-radius: var(--r-pilule); padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); cursor: pointer; }
 .pastille-r:hover { border-color: var(--bleu); background: var(--bleu-clair); }
 .pastille-r.on { background: var(--degrade); border-color: transparent; color: #fff; }
-.grille-bq { display: grid; grid-template-columns: repeat(auto-fill, minmax(206px, 1fr)); gap: 16px; margin-top: 16px; }
+.grille-bq { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 13px; margin-top: 14px; }
 .art { border: 1px solid var(--bordure); border-radius: var(--r-carte); overflow: hidden; background: #fff; display: flex; flex-direction: column; transition: box-shadow .16s, transform .16s; }
 .art:hover { box-shadow: var(--ombre-f); transform: translateY(-3px); }
-.art-img { height: 140px; background-size: cover; background-position: center; background-color: var(--gris-clair); position: relative; }
-.art-img.sans { display: grid; place-items: center; font-size: 34px; opacity: .3; }
-.art-promo { position: absolute; top: 9px; left: 9px; background: var(--orange); color: #fff; border-radius: 99px; padding: 3px 10px; font-size: 11.5px; font-weight: 800; }
-.art-corps { padding: 12px 13px 14px; display: flex; flex-direction: column; flex: 1; }
-.art-prix { margin-top: auto; padding-top: 9px; font-size: 16px; color: var(--marine); font-weight: 800; }
-.art-vendeur { display: flex; align-items: center; gap: 7px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--bordure); }
-.pastille-v { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; flex: none; }
-.modes-v { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 7px; }
-.mode-v { background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 2px 9px; font-size: 11px; font-weight: 700; }
+.art-img { aspect-ratio: 16/10; background-size: cover; background-position: center; background-color: var(--gris-clair); position: relative; }
+.art-img.sans { display: grid; place-items: center; font-size: 30px; opacity: .3; }
+.art-promo { position: absolute; top: 7px; left: 7px; background: var(--orange); color: #fff; border-radius: 99px; padding: 2px 9px; font-size: 11px; font-weight: 800; }
+.art-corps { padding: 10px 11px 11px; display: flex; flex-direction: column; flex: 1; gap: 1px; }
+
+/* Les textes libres sont bornés : sans cela, une description longue
+   étire une carte et désaligne toute la rangée. */
+.art-corps > strong { font-size: 13.6px; line-height: 1.25; color: var(--marine);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.art-corps .petit.muet { font-size: 11.6px; line-height: 1.3; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.art-prix { margin-top: auto; padding-top: 6px; font-size: 15px; color: var(--marine); font-weight: 800; }
+.art-vendeur { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--bordure); }
+.art-vendeur a { font-size: 11.4px; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.pastille-v { width: 23px; height: 23px; border-radius: 7px; display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 800; flex: none; }
+.modes-v { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.mode-v { background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 2px 8px; font-size: 10.5px; font-weight: 700; }
+.art-actions .btn { padding: 6px 10px; font-size: 12px; }
 .vide-bq { text-align: center; padding: 50px 20px; color: var(--gris); }
 .barre-install { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 80;
   background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 12px 14px;
@@ -46,7 +57,7 @@
   padding: 4px; line-height: 1; flex: none; }
 .bi-fermer:hover { color: var(--marine); }
 @media (max-width: 480px) { .bi-txt span { display: none; } }
-.etat-stock { font-size: 11.5px; font-weight: 800; margin: 3px 0 0; }
+.etat-stock { font-size: 11px; font-weight: 800; margin: 2px 0 0; line-height: 1.2; }
 .etat-stock.dispo { color: var(--vert); }
 .etat-stock.bientot { color: var(--orange); }
 .etat-stock.fini { color: var(--gris); }
@@ -55,6 +66,10 @@
 .art.epuise .art-img::after { content: 'FINI'; position: absolute; inset: 0; display: grid;
   place-items: center; font-size: 15px; font-weight: 800; color: #fff;
   background: rgba(16,24,40,.45); letter-spacing: .08em; }
+.btn-versement { display: block; width: 100%; margin-top: 6px; padding: 5px 9px;
+  text-align: center; font-size: 11.4px; font-weight: 700; border-radius: var(--r-pilule);
+  background: #FFF4EC; color: #C4520E; border: 1.5px dashed #F7C9A8; text-decoration: none; }
+.btn-versement:hover { background: #FFE9D8; text-decoration: none; }
 </style>
 <script src="/app.js"></script>
 <script src="/translations.js"></script>
@@ -131,6 +146,8 @@
 <div id="toast"></div>
 
 <script>
+// Financement : adresse et seuil, chargés une fois
+let FIN = { url: '', seuil: 10000 };
 let rayonBq = '', maPosition = null;
 
 function lg(){ return localStorage.getItem('langue') || 'fr'; }
@@ -194,6 +211,9 @@ function carteArticle(a){
                       : `${(+a.prix).toLocaleString('fr-HT')} HTG`}
         ${a.unite?`<span class="petit muet" style="font-weight:400">/${ech(a.unite)}</span>`:''}
       </p>
+      ${!a.epuise && FIN.url && (a.prixPromo || a.prix) >= FIN.seuil
+        ? `<a class="btn-versement" target="_blank" rel="noopener" href="${ech(FIN.url)}">
+             💳 ${lg()==='ht'?'Peye an vèsman':'Payer par versement'}</a>` : ''}
       <div class="art-vendeur">
         <span class="pastille-v" style="background:${ech(v.couleur)}">${ech(v.logoTexte || v.nom.slice(0,2).toUpperCase())}</span>
         <div style="flex:1;min-width:0">
@@ -204,7 +224,7 @@ function carteArticle(a){
         </div>
       </div>
       ${modes.length?`<div class="modes-v">${modes.map(m=>`<span class="mode-v">${m}</span>`).join('')}</div>`:''}
-      <div class="flex" style="gap:6px;margin-top:10px">
+      <div class="flex art-actions" style="gap:5px;margin-top:8px">
         ${v.commande
           ? `<a class="btn btn-primaire btn-petit" style="flex:1" href="/${ech(v.slug)}">${lg()==='ht'?'Kòmande':'Commander'}</a>`
           : ''}
@@ -240,7 +260,8 @@ document.getElementById('triBq').addEventListener('change', () => {
   chargerBoutique();
 });
 
-chargerBoutique();
+// Paramètres du financement, puis la boutique
+api('/api/financement').then(f => { FIN = f; }).catch(() => {}).finally(chargerBoutique);
 </script>
 </body>
 </html>

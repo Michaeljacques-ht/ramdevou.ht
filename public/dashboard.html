@@ -717,6 +717,22 @@ body { background: var(--gris-clair); }
             <button class="btn btn-primaire mt" onclick="enregistrerInfos()">Enregistrer les informations</button>
           </div></div>
 
+          <div class="carte mt"><div class="carte-corps">
+            <h2 style="font-size:16px">💰 Financement de mon entreprise</h2>
+            <p class="petit muet" style="margin-top:6px">Besoin de stock, de matériel ou de trésorerie pour développer votre activité ? Micro Crédit Solidarité étudie votre demande.</p>
+            <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+              <div class="panneau"><strong class="petit">📦 Stock</strong>
+                <p class="petit muet" style="margin-top:3px">Acheter des marchandises</p></div>
+              <div class="panneau"><strong class="petit">🔧 Équipement</strong>
+                <p class="petit muet" style="margin-top:3px">Matériel professionnel</p></div>
+              <div class="panneau"><strong class="petit">💵 Trésorerie</strong>
+                <p class="petit muet" style="margin-top:3px">Besoin temporaire</p></div>
+            </div>
+            <a class="btn btn-primaire mt" id="btnFinancement" target="_blank" rel="noopener" style="width:100%">
+              Faire une demande de financement →</a>
+            <p class="aide mt">Micro Crédit Solidarité est une entité distincte de Biznis Konekte. Votre demande est étudiée par ses agents, selon ses propres conditions.</p>
+          </div></div>
+
           <div class="carte mt" id="carteCreneaux"><div class="carte-corps">
             <h2 style="font-size:16px">🕐 Rythme des rendez-vous</h2>
             <p class="petit muet" style="margin-top:6px">Réglez l'espacement entre deux créneaux proposés à vos clients, et les moments où vous ne recevez pas.</p>
@@ -1698,6 +1714,17 @@ async function chargerFonctions(){
     </div>` : ''}`;
 }
 
+
+// ===== Financement =====
+async function chargerFinancement(){
+  const b = document.getElementById('btnFinancement');
+  if (!b) return;
+  try {
+    const f = await api('/api/financement');
+    b.href = f.url;
+  } catch { b.style.display = 'none'; }
+}
+
 // ===== Rythme des rendez-vous =====
 let PAUSES = [];
 function dessinerPauses(){
@@ -2080,6 +2107,7 @@ function appliquerMetier(){
   dessinerModules();
   chargerAbonnement();
   chargerFonctions();
+  chargerFinancement();
   chargerA2F();
   const tr = document.getElementById('titreRecents');
   if (tr) tr.textContent = aModule('hotellerie') ? 'Réservations récentes' : 'Rendez-vous récents';
