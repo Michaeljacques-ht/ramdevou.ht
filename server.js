@@ -315,6 +315,89 @@ function canalRecuperation(u) {
   return null;
 }
 
+/* ============================================================
+   Espace client
+   ------------------------------------------------------------
+   Pas de compte à créer, pas de mot de passe : le client prouve
+   qu'il possède son numéro grâce à un code reçu par WhatsApp.
+
+   Conséquence heureuse : tout ce qu'il a déjà commandé ou réservé
+   avec ce numéro apparaît immédiatement, même avant l'existence
+   de cet espace. Aucune migration n'est nécessaire.
+   ============================================================ */
+const DEFIS_CLIENT = new Map();
+const CLIENT_VALIDITE_MS = 10 * 60 * 1000;
+const CLIENT_TENTATIVES_MAX = 5;
+const SESSIONS_CLIENT = new Map();          // jeton -> { tel, expireLe }
+const CLIENT_SESSION_MS = 30 * 86400000;    // 30 jours
+
+/** Ne garde que les chiffres : les numéros sont saisis de mille façons. */
+function telNormalise(v) {
+  const n = String(v || '').replace(/\D/g, '');
+  // Un numéro haïtien saisi sans indicatif est complété
+  return n.length === 8 ? '509' + n : n;
+}
+
+function nettoyerClient() {
+  const t = Date.now();
+  for (const [k, d] of DEFIS_CLIENT) if (d.expireLe < t) DEFIS_CLIENT.delete(k);
+  for (const [k, s] of SESSIONS_CLIENT) if (s.expireLe < t) SESSIONS_CLIENT.delete(k);
+}
+
+/** Client identifié par le cookie de session, ou null. */
+function clientConnecte(req) {
+  nettoyerClient();
+  const jeton = cookies(req).bk_client;
+  const s = jeton && SESSIONS_CLIENT.get(jeton);
+  return s ? s.tel : null;
+}
+
+/** Tout ce qu'un numéro a réservé, commandé ou déposé. */
+function achatsDe(tel) {
+  const n = telNormalise(tel);
+  const memeTel = (x) => telNormalise(x) === n;
+  const nomEnt = (id) => {
+    const e = db.entreprises.find((x) => x.id === id);
+    return e ? { nom: e.nom, slug: e.slug, telephone: e.whatsapp || e.telephone } : null;
+  };
+
+  const rdv = db.rendezvous.filter((x) => memeTel(x.clientTel)).map((x) => {
+    const s = db.services.find((y) => y.id === x.serviceId);
+    return { genre: 'rendezvous', id: x.id, reference: x.id.slice(-8).toUpperCase(),
+             titre: s ? s.nom : 'Rendez-vous', quand: `${x.date} à ${x.heure}`,
+             date: x.date, montant: x.prixTotal || 0, statut: x.statut,
+             paye: x.paiementStatut === 'paye' || x.statut === 'paye',
+             entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe };
+  });
+
+  const commandes = db.commandes.filter((x) => memeTel(x.clientTel)).map((x) => ({
+    genre: 'commande', id: x.id, reference: x.reference,
+    titre: `${(x.articles || []).length} article(s)`,
+    articles: (x.articles || []).map((a) => `${a.quantite || a.q || 1} × ${a.nom}`),
+    quand: x.modeRemise === 'livraison' ? 'Livraison' : 'Retrait sur place',
+    date: (x.creeLe || '').slice(0, 10), montant: x.total || 0, statut: x.statut,
+    paye: x.paiementStatut === 'paye', entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe
+  }));
+
+  const sejours = db.sejours.filter((x) => memeTel(x.clientTel)).map((x) => ({
+    genre: 'sejour', id: x.id, reference: x.reference || x.id.slice(-8).toUpperCase(),
+    titre: 'Séjour', quand: `du ${x.arrivee} au ${x.depart}`,
+    date: x.arrivee, montant: x.total || 0, statut: x.statut,
+    paye: x.paiementStatut === 'paye', entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe
+  }));
+
+  const dossiers = db.dossiers.filter((x) => memeTel(x.clientTel)).map((x) => ({
+    genre: 'dossier', id: x.id, reference: x.reference,
+    titre: x.type || 'Dossier', quand: x.etapeActuelle || '',
+    date: (x.creeLe || '').slice(0, 10), montant: x.honoraires || 0, statut: x.statut,
+    etapes: x.etapes || [], entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe
+  }));
+
+  // Les plus récents d'abord : c'est ce qu'on vient consulter
+  return [...rdv, ...commandes, ...sejours, ...dossiers]
+    .sort((a, b) => String(b.creeLe || '').localeCompare(String(a.creeLe || '')));
+}
+
 function creerDefi(userId, destination, canal) {
   nettoyerDefis();
   const id = crypto.randomBytes(18).toString('hex');
@@ -1049,11 +1132,15 @@ async function api(req, res, url) {
         : [],
       inclusRef: INCLUS,
       produits: metiers.aModule(e, 'catalogue')
-        ? db.produits.filter((x) => x.entrepriseId === e.id && x.disponible && (x.stock === null || x.stock > 0))
+        /* Un produit épuisé reste visible, signalé « Fini » : le client
+           voit que la boutique le vend, et reviendra. Il est seulement
+           impossible à commander, ce que la commande vérifie de son côté. */
+        ? db.produits.filter((x) => x.entrepriseId === e.id && x.disponible)
             .map((x) => ({ id: x.id, nom: x.nom, description: x.description, rayon: x.rayon, marque: x.marque,
                            prix: x.prix, prixPromo: x.prixPromo, unite: x.unite, photo: x.photo || '',
                            photos: x.photos || (x.photo ? [x.photo] : []), video: x.video || '',
-                           stockFaible: x.stock !== null && x.stock <= Math.max(x.seuilAlerte, 3) }))
+                           epuise: x.stock !== null && x.stock <= 0,
+                           stockFaible: x.stock !== null && x.stock > 0 && x.stock <= Math.max(x.seuilAlerte, 3) }))
         : [],
       vente: metiers.aModule(e, 'commandes') && e.vente && e.vente.commandesActives ? {
         cueillette: !!e.vente.cueillette, livraison: !!e.vente.livraison,
@@ -1332,13 +1419,14 @@ async function api(req, res, url) {
         ? Math.round(distanceKm(lat0, lng0, e.latitude, e.longitude) * 10) / 10 : null;
       for (const pr of db.produits) {
         if (pr.entrepriseId !== e.id || !pr.disponible) continue;
-        if (pr.stock !== null && pr.stock <= 0) continue;   // un produit épuisé n'est pas exposé
+        // Épuisé : visible mais signalé, et placé en fin de liste plus bas
         if (rayon && pr.rayon !== rayon) continue;
         if (recherche && !(`${pr.nom} ${pr.description} ${pr.marque} ${pr.rayon}`.toLowerCase().includes(recherche))) continue;
         articles.push({
           id: pr.id, nom: pr.nom, description: pr.description, rayon: pr.rayon, marque: pr.marque,
           prix: pr.prix, prixPromo: pr.prixPromo, unite: pr.unite, photo: pr.photo || '',
-          stockFaible: pr.stock !== null && pr.stock <= Math.max(pr.seuilAlerte, 3),
+          epuise: pr.stock !== null && pr.stock <= 0,
+          stockFaible: pr.stock !== null && pr.stock > 0 && pr.stock <= Math.max(pr.seuilAlerte, 3),
           vendeur: {
             slug: e.slug, nom: e.nom, adresse: e.adresse || '', whatsapp: e.whatsapp || '',
             telephone: e.telephone || '', logoTexte: e.logoTexte || '', couleur: e.couleur || '#2563EB',
@@ -1356,6 +1444,9 @@ async function api(req, res, url) {
     else if (tri === 'prix_desc') articles.sort((a, b) => prixDe(b) - prixDe(a));
     else if (tri === 'proche') articles.sort((a, b) => (a.vendeur.distanceKm ?? 1e9) - (b.vendeur.distanceKm ?? 1e9));
     else articles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+    /* Les produits épuisés passent après les autres, quel que soit le tri :
+       l'acheteur voit d'abord ce qu'il peut réellement acheter. */
+    articles.sort((a, b) => (a.epuise ? 1 : 0) - (b.epuise ? 1 : 0));
 
     const rayons = [...new Set(articles.map((a) => a.rayon).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
     return json(res, 200, {
@@ -1742,6 +1833,67 @@ async function api(req, res, url) {
     return json(res, 200, { ok: true, envoyees: n });
   }
 
+  // ---- Espace client : demande d'un code ----
+  if (p === '/api/client/code' && req.method === 'POST') {
+    nettoyerClient();
+    const tel = telNormalise(corps.telephone);
+    if (tel.length < 8) return json(res, 400, { erreur: 'Numéro invalide.' });
+
+    // Inutile d'envoyer un code à un numéro sans aucun historique
+    if (!achatsDe(tel).length)
+      return json(res, 404, { erreur: "Aucune commande ni rendez-vous trouvé avec ce numéro." });
+
+    const id = crypto.randomBytes(18).toString('hex');
+    const code = codeA2F();
+    DEFIS_CLIENT.set(id, { tel, code, tentatives: 0, expireLe: Date.now() + CLIENT_VALIDITE_MS });
+    envoyerWhatsApp(tel, 'code_connexion', ['', code]);
+    if (!process.env.WHATSAPP_TOKEN) console.log(`[CLIENT simulation → ${tel}] code : ${code}`);
+    return json(res, 200, { ok: true, defi: id, telMasque: telMasque(tel) });
+  }
+
+  // ---- Vérification du code ----
+  if (p === '/api/client/verifier' && req.method === 'POST') {
+    nettoyerClient();
+    const d = DEFIS_CLIENT.get(String(corps.defi || ''));
+    if (!d) return json(res, 401, { erreur: 'Code expiré. Recommencez.' });
+    d.tentatives++;
+    if (d.tentatives > CLIENT_TENTATIVES_MAX) {
+      DEFIS_CLIENT.delete(corps.defi);
+      return json(res, 429, { erreur: 'Trop de tentatives.' });
+    }
+    const saisi = String(corps.code || '').replace(/\D/g, '');
+    const ok = saisi.length === 6 && crypto.timingSafeEqual(Buffer.from(saisi), Buffer.from(d.code));
+    if (!ok) return json(res, 401, { erreur: `Code incorrect. ${CLIENT_TENTATIVES_MAX - d.tentatives} essai(s) restant(s).` });
+
+    const jeton = crypto.randomBytes(24).toString('hex');
+    SESSIONS_CLIENT.set(jeton, { tel: d.tel, expireLe: Date.now() + CLIENT_SESSION_MS });
+    DEFIS_CLIENT.delete(corps.defi);
+    res.setHeader('Set-Cookie',
+      `bk_client=${jeton}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${CLIENT_SESSION_MS / 1000}` +
+      (req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''));
+    return json(res, 200, { ok: true });
+  }
+
+  if (p === '/api/client/deconnexion' && req.method === 'POST') {
+    const jeton = cookies(req).bk_client;
+    if (jeton) SESSIONS_CLIENT.delete(jeton);
+    res.setHeader('Set-Cookie', 'bk_client=; Path=/; Max-Age=0');
+    return json(res, 200, { ok: true });
+  }
+
+  // ---- Mes achats et réservations ----
+  if (p === '/api/client/mes-achats' && req.method === 'GET') {
+    const tel = clientConnecte(req);
+    if (!tel) return json(res, 401, { erreur: 'Non connecté' });
+    const liste = achatsDe(tel);
+    return json(res, 200, {
+      telMasque: telMasque(tel),
+      total: liste.length,
+      enCours: liste.filter((x) => !['livree', 'terminee', 'annulee', 'refuse', 'termine'].includes(x.statut)).length,
+      achats: liste
+    });
+  }
+
   // ---- Avis client ----
   if (p === '/api/avis' && req.method === 'POST') {
     const e = db.entreprises.find((x) => x.slug === corps.slug && x.statut === 'approuvee');
@@ -1763,6 +1915,9 @@ async function api(req, res, url) {
         modulesDisponibles: metiers.MODULES,
         modulesMetier: metiers.metierDe(e).modules,
         modulesActifs: metiers.modulesActifs(e),
+        // Ce que le forfait ouvre, et ce qu'il verrouille
+        modulesForfait: metiers.modulesActifs(e).filter((m) => forfaits.forfaitAutorise(e, m)),
+        modulesVerrouilles: metiers.modulesActifs(e).filter((m) => !forfaits.forfaitAutorise(e, m)),
         abonnementEtat: forfaits.etatAbonnement(e)
       }));
     if (p === '/api/mon-entreprise' && req.method === 'PUT') {
@@ -1826,6 +1981,10 @@ async function api(req, res, url) {
       return json(res, 200, db.services.filter((s) => s.entrepriseId === e.id));
     if (p === '/api/mon-entreprise/services' && req.method === 'POST') {
       if (!corps.nom || !corps.duree) return json(res, 400, { erreur: 'Nom et durée obligatoires.' });
+      // Le forfait limite le nombre de services
+      const nbServices = db.services.filter((x) => x.entrepriseId === e.id).length;
+      const limiteS = forfaits.limiteAtteinte(e, 'services', nbServices);
+      if (limiteS) return json(res, 403, { erreur: limiteS, limite: true });
       const galerieS = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, []);
       if (galerieS === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
       const s = {
@@ -1863,6 +2022,15 @@ async function api(req, res, url) {
       return json(res, 403, { erreur: 'Le module Restaurant & Bar n\'est pas disponible pour votre type d\'activité.' });
     if (p.startsWith('/api/mon-entreprise/chambres') && !metiers.aModule(e, 'hotellerie'))
       return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
+
+    // ---- Ce que mon forfait ouvre ----
+    if (p === '/api/mon-entreprise/fonctions' && req.method === 'GET') {
+      return json(res, 200, forfaits.etatFonctions(e, {
+        services: db.services.filter((x) => x.entrepriseId === e.id).length,
+        employes: db.employes.filter((x) => x.entrepriseId === e.id).length,
+        produits: db.produits.filter((x) => x.entrepriseId === e.id).length
+      }));
+    }
 
     // ---- Fréquentation de ma page ----
     if (p === '/api/mon-entreprise/frequentation' && req.method === 'GET')
@@ -2200,6 +2368,9 @@ async function api(req, res, url) {
 
     if (p === '/api/mon-entreprise/produits' && req.method === 'POST') {
       if (!corps.nom || !(+corps.prix > 0)) return json(res, 400, { erreur: 'Nom et prix obligatoires.' });
+      const nbProduits = db.produits.filter((x) => x.entrepriseId === e.id).length;
+      const limiteP = forfaits.limiteAtteinte(e, 'produits', nbProduits);
+      if (limiteP) return json(res, 403, { erreur: limiteP, limite: true });
       const galeriePr = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, []);
       if (galeriePr === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
       const pr = {
@@ -2641,6 +2812,9 @@ async function api(req, res, url) {
       return json(res, 200, db.employes.filter((x) => x.entrepriseId === e.id));
     if (p === '/api/mon-entreprise/employes' && req.method === 'POST') {
       if (!corps.nom) return json(res, 400, { erreur: 'Nom obligatoire.' });
+      const nbEmployes = db.employes.filter((x) => x.entrepriseId === e.id).length;
+      const limiteE = forfaits.limiteAtteinte(e, 'employes', nbEmployes);
+      if (limiteE) return json(res, 403, { erreur: limiteE, limite: true });
       const emp = { id: store.uid(), entrepriseId: e.id, nom: corps.nom, poste: corps.poste || '', actif: true };
       db.employes.push(emp); store.save(); return json(res, 200, emp);
     }

@@ -197,6 +197,17 @@
   .photo-service { width: 54px; height: 54px; border-radius: 10px; }
   .prix-service { flex-direction: column; align-items: flex-end; gap: 5px; }
 }
+/* État du stock, lisible d'un coup d'œil */
+.etat-stock { font-size: 11.5px; font-weight: 800; margin: 3px 0 0; }
+.etat-stock.dispo { color: var(--vert); }
+.etat-stock.bientot { color: var(--orange); }
+.etat-stock.fini { color: var(--gris); }
+/* Un produit fini reste visible mais recule visuellement */
+.carte-produit.epuise .media-produit { filter: grayscale(.75); opacity: .62; }
+.carte-produit.epuise { border-style: dashed; }
+.carte-produit.epuise .media-produit::after { content: 'FINI'; position: absolute; inset: 0;
+  display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #fff;
+  background: rgba(16,24,40,.45); letter-spacing: .08em; }
 </style>
 </head>
 <body>
@@ -795,7 +806,7 @@ function refEquip(cle){
         (lg==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ') + p.nom +
         ' (' + ((p.prixPromo || p.prix)).toLocaleString('fr-HT') + ' HTG)');
       const vues = (p.photos && p.photos.length) ? p.photos : (p.photo ? [p.photo] : []);
-      return `<div class="carte-produit" data-produit="${p.id}">
+      return `<div class="carte-produit${p.epuise ? ' epuise' : ''}" data-produit="${p.id}">
         ${vues.length ? `<div class="media-produit" data-vues="${vues.length}" onclick="ouvrirVisionneuse('${p.id}')">
             ${vues.map((ph,i) => `<div class="vue${i===0?' on':''}" style="background-image:url('${ph}')"></div>`).join('')}
             ${p.video ? `<button class="badge-video" onclick="event.stopPropagation();ouvrirVisionneuse('${p.id}',true)">▶ ${lg==='ht'?'Videyo':'Vidéo'}</button>` : ''}
@@ -809,16 +820,22 @@ function refEquip(cle){
           <strong>${ech(p.nom)}</strong>
           ${p.marque?`<p class="desc-produit">${ech(p.marque)}</p>`:''}
           ${p.description?`<p class="desc-produit">${ech(p.description)}</p>`:''}
-          ${p.stockFaible?`<p class="petit" style="color:var(--orange);font-weight:700">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`:''}
+            ${p.epuise
+            ? `<p class="etat-stock fini">${lg==='ht'?'Fini':'Fini'}</p>`
+            : (p.stockFaible
+              ? `<p class="etat-stock bientot">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`
+              : `<p class="etat-stock dispo">${lg==='ht'?'Disponib':'Disponible'}</p>`)}
           <p class="prix-produit">
             ${p.prixPromo ? `<s class="petit muet">${(+p.prix).toLocaleString('fr-HT')}</s> <strong>${(+p.prixPromo).toLocaleString('fr-HT')} HTG</strong>`
                           : `<strong>${(+p.prix).toLocaleString('fr-HT')} HTG</strong>`}
             ${p.unite?`<span class="petit muet">/${ech(p.unite)}</span>`:''}
           </p>
-          ${peutCommander()
+          ${p.epuise
+            ? `<button class="btn btn-petit" style="width:100%;margin-top:8px;background:var(--gris-clair);color:var(--gris);cursor:not-allowed" disabled>${lg==='ht'?'Fini':'Épuisé'}</button>`
+            : (peutCommander()
             ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="ajouterAuPanier('${p.id}')">${lg==='ht'?'Achte':'Acheter'}</button>`
             : (ent.whatsapp ? `<a class="btn btn-succes btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
-             href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Kòmande':'Commander'}</a>` : '')}
+             href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Kòmande':'Commander'}</a>` : ''))}
         </div>
       </div>`;
     }).join('');

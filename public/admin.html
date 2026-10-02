@@ -94,7 +94,8 @@ body { background: var(--gris-clair); }
   </div></div>
 </main>
 
-<script src="/app.js">
+<script src="/app.js"></script>
+<script>
 // ===== Messages reçus =====
 const LIB_TYPE = { contact:'Contact', partenaire:'Partenariat', question:'Question' };
 async function chargerMessages(){
@@ -132,6 +133,7 @@ async function chargerMessages(){
 }
 async function statutMsg(id, statut){
   await api('/api/admin/messages/'+id,'PUT',{statut}); chargerMessages();
+}
 
 // ===== Fréquentation =====
 async function chargerFrequentation(){
@@ -184,10 +186,6 @@ async function chargerFrequentation(){
 }
 chargerFrequentation();
 
-}
-
-
-}
 async function supprimerMsg(id){
   if (!confirm('Supprimer ce message ?')) return;
   await api('/api/admin/messages/'+id,'DELETE'); chargerMessages();

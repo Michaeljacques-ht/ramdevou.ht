@@ -528,6 +528,7 @@ body { background: var(--gris-clair); }
         <div class="carte carte-signature"><div class="carte-corps">
           <h2 style="font-size:16px">💳 Votre abonnement</h2>
           <div id="etatAbonnement" class="mt"></div>
+          <div id="fonctionsForfait" class="mt"></div>
         </div></div>
         <div class="carte mt"><div class="carte-corps">
           <h2 style="font-size:16px">Changer de forfait</h2>
@@ -1652,6 +1653,51 @@ async function ouvrirFlyer(){
 }
 
 
+
+/* Ce que le forfait ouvre, et ce qui reste à débloquer.
+   Affiché sous l'abonnement : le commerçant voit sa consommation
+   avant de buter sur un refus. */
+async function chargerFonctions(){
+  const z = document.getElementById('fonctionsForfait');
+  if (!z) return;
+  let f;
+  try { f = await api('/api/mon-entreprise/fonctions'); } catch { return; }
+
+  const NOMS = { services:'Services', employes:"Membres d'équipe", produits:'Produits' };
+  const NOMS_MOD = { rdv:'Rendez-vous', equipe:'Équipe', hotellerie:'Chambres et séjours',
+    carte:'Restaurant et bar', catalogue:'Catalogue', commandes:'Commandes et livraison',
+    inscriptions:'Inscriptions', dossiers:'Suivi de dossiers', urgences:"Service d'urgence" };
+  const verrouilles = ent.modulesVerrouilles || [];
+
+  const jauges = f.limites.map(l => {
+    const part = Math.min(100, Math.round(l.utilise / l.max * 100));
+    const plein = l.utilise >= l.max;
+    return `<div style="margin-top:10px">
+      <div class="flex entre petit">
+        <span>${NOMS[l.quoi] || l.quoi}</span>
+        <strong style="${plein?'color:var(--orange)':''}">${l.utilise} / ${l.max}</strong>
+      </div>
+      <div style="height:6px;background:var(--gris-clair);border-radius:99px;margin-top:4px;overflow:hidden">
+        <div style="height:100%;width:${part}%;background:${plein?'var(--orange)':'var(--degrade)'}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  z.innerHTML = `
+    ${f.limites.length ? `<div class="panneau">
+      <strong class="petit">Ce que vous pouvez créer</strong>
+      ${jauges}
+      ${f.limites.some(l => l.utilise >= l.max)
+        ? '<p class="aide mt">Une limite est atteinte. Changez de forfait ci-dessous pour continuer.</p>' : ''}
+    </div>` : `<div class="panneau" style="border-color:var(--vert)">
+      <strong class="petit">✅ Services, équipe et produits illimités</strong></div>`}
+    ${verrouilles.length ? `<div class="panneau mt" style="border-color:var(--orange)">
+      <strong class="petit">🔒 Fonctions non comprises dans votre forfait</strong>
+      <p class="petit muet" style="margin-top:5px">${verrouilles.map(m => ech(NOMS_MOD[m] || m)).join(' · ')}</p>
+      <p class="aide">Votre métier les propose, mais votre forfait actuel ne les ouvre pas.</p>
+    </div>` : ''}`;
+}
+
 // ===== Rythme des rendez-vous =====
 let PAUSES = [];
 function dessinerPauses(){
@@ -2015,8 +2061,11 @@ function appliquerMetier(){
   const btnServices = document.querySelector('.lien-lat[data-sec="services"]');
   if (btnServices) btnServices.style.display = (aModule('rdv') && !aModule('hotellerie')) ? '' : 'none';
   // 1) Masquer les entrées de menu des modules non déclarés
+  const verrouilles = ent.modulesVerrouilles || [];
   Object.entries(MODULE_SECTIONS).forEach(([mod, secs]) => {
-    const actif = aModule(mod);
+    // Un module que le forfait n'ouvre pas reste masqué, comme s'il
+    // n'existait pas : mieux vaut une interface simple qu'un bouton mort.
+    const actif = aModule(mod) && !verrouilles.includes(mod);
     secs.forEach((s) => {
       const b = document.querySelector(`.lien-lat[data-sec="${s}"]`);
       if (b) b.style.display = actif ? '' : 'none';
@@ -2030,6 +2079,7 @@ function appliquerMetier(){
   dessinerChampsMetier();
   dessinerModules();
   chargerAbonnement();
+  chargerFonctions();
   chargerA2F();
   const tr = document.getElementById('titreRecents');
   if (tr) tr.textContent = aModule('hotellerie') ? 'Réservations récentes' : 'Rendez-vous récents';

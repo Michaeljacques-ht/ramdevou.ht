@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#0B2C6B">
-<meta name="description" content="Trois forfaits pour inscrire votre activité sur Biznis Konekte, tous avec six mois gratuits. Rendez-vous, vente en ligne, livraison et encaissement.">
+<meta name="description" content="Trois forfaits pour inscrire votre activité sur Biznis Konekte, tous avec 90 jours gratuits. Rendez-vous, vente en ligne, livraison et encaissement.">
 <link rel="stylesheet" href="/style.css">
 <style>
 .entete-p { background:#fff; border:1px solid var(--bordure); border-radius:22px; padding:32px 30px;
@@ -62,6 +62,7 @@
     <div class="nav-liens">
       <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
       <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
       <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
       <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
       <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
@@ -80,7 +81,7 @@
 <main class="conteneur">
   <section class="entete-p">
     <span class="eyebrow">Pour les entreprises</span>
-    <h1>Inscrivez votre activité, <span class="accent">six mois gratuits</span></h1>
+    <h1>Inscrivez votre activité, <span class="accent">90 jours gratuits</span></h1>
     <p class="muet" style="margin-top:9px;max-width:62ch">Choisissez la formule qui correspond à votre activité. Vous pourrez en changer à tout moment, sans perdre votre période d'essai.</p>
     <div class="encart-essai mt" id="essai"></div>
   </section>
@@ -105,7 +106,7 @@
 
   <h2 style="margin-top:38px">Questions fréquentes</h2>
   <div class="faq mt">
-    <details><summary>Que se passe-t-il après les six mois ?</summary>
+    <details><summary>Que se passe-t-il après les 90 jours ?</summary>
       <p>L'abonnement du forfait choisi devient exigible. Vous êtes prévenu à l'avance, et vous pouvez changer de forfait ou arrêter sans frais avant l'échéance.</p></details>
     <details><summary>Qu'est-ce que la commission ?</summary>
       <p>Un pourcentage prélevé sur les paiements encaissés en ligne par la plateforme. Rien n'est prélevé sur les paiements réglés en espèces à la livraison.</p></details>
@@ -128,7 +129,7 @@
   <div class="conteneur">
     <div class="pied-bas">
       <p class="petit">© 2026 <strong>BIZNIS KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
-      <p class="petit"><a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
       <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
     </div>
   </div>
@@ -142,7 +143,7 @@
   catch { document.getElementById('grille').innerHTML = '<p class="muet">Forfaits indisponibles pour le moment.</p>'; return; }
 
   document.getElementById('essai').innerHTML =
-    `🎁 <strong>${cat.moisEssai} mois gratuits</strong> sur tous les forfaits. Aucun prélèvement avant la fin de cette période, et vous changez d'avis quand vous voulez.`;
+    `🎁 <strong>${cat.joursEssai} jours gratuits</strong> sur tous les forfaits. Aucun prélèvement avant la fin de cette période, et vous changez d'avis quand vous voulez.`;
 
   document.getElementById('grille').innerHTML = cat.forfaits.map(f => `
     <article class="carte-f ${f.populaire ? 'vedette' : ''}">

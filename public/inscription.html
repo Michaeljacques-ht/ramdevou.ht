@@ -128,7 +128,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
         <h4>3. Commission et règlement</h4>
         <p>Une commission est prélevée sur chaque encaissement réalisé par la plateforme. Son taux dépend du forfait choisi. Les sommes encaissées, commission déduite, sont créditées au portefeuille de l'entreprise, qui peut en demander le retrait.</p>
         <h4>4. Période d'essai et abonnement</h4>
-        <p>Toute nouvelle entreprise bénéficie de six mois d'utilisation gratuite à compter de son inscription. À l'issue de cette période, l'abonnement correspondant au forfait choisi devient exigible. L'entreprise peut changer de forfait ou résilier à tout moment avant la première échéance, sans frais.</p>
+        <p>Toute nouvelle entreprise bénéficie de 90 jours d'utilisation gratuite à compter de son inscription. À l'issue de cette période, l'abonnement correspondant au forfait choisi devient exigible. L'entreprise peut changer de forfait ou résilier à tout moment avant la première échéance, sans frais.</p>
         <h4>5. Données</h4>
         <p>Les données des clients recueillies par l'entreprise via la plateforme ne peuvent être utilisées qu'aux fins de la prestation. Leur revente ou leur cession est interdite.</p>
         <h4>6. Suspension</h4>
@@ -188,7 +188,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
       <div class="lecture mt" style="max-height:170px">
         <h4>Contrat d'abonnement — version 1.0</h4>
         <p>Le présent contrat lie l'entreprise désignée ci-dessus à Biznis Konekte pour la fourniture des services de la plateforme, selon le forfait retenu.</p>
-        <p>L'entreprise bénéficie d'une période d'essai gratuite de six mois. À son terme, l'abonnement mensuel du forfait choisi devient exigible, par mois d'avance, jusqu'à résiliation.</p>
+        <p>L'entreprise bénéficie d'une période d'essai gratuite de 90 jours. À son terme, l'abonnement mensuel du forfait choisi devient exigible, par mois d'avance, jusqu'à résiliation.</p>
         <p>La résiliation est possible à tout moment depuis l'espace de l'entreprise. Aucun montant n'est dû si elle intervient avant la fin de la période d'essai.</p>
         <p>La signature électronique par saisie du nom vaut acceptation du présent contrat et du règlement accepté à l'étape précédente.</p>
       </div>
@@ -338,7 +338,7 @@ function dessinerForfaits(){
   }
   if (!CAT) { document.getElementById('listeForfaits').innerHTML = '<p class="muet petit">Forfaits indisponibles.</p>'; return; }
   document.getElementById('encartEssai').innerHTML =
-    `🎁 <strong>${CAT.moisEssai} mois gratuits</strong> — quel que soit le forfait choisi. Aucun prélèvement avant la fin de cette période, et vous pouvez changer d'avis à tout moment.`;
+    `🎁 <strong>${CAT.joursEssai} jours gratuits</strong> — quel que soit le forfait choisi. Aucun prélèvement avant la fin de cette période, et vous pouvez changer d'avis à tout moment.`;
   document.getElementById('listeForfaits').innerHTML = CAT.forfaits.map(f => `
     <label class="forfait ${forfaitChoisi===f.cle?'on':''}" onclick="choisirForfait('${f.cle}')">
       ${f.populaire ? '<span class="ruban">Le plus choisi</span>' : ''}
@@ -359,7 +359,7 @@ function choisirForfait(cle){
 
 function infosForfait(){ return (CAT ? CAT.forfaits.find(f => f.cle === forfaitChoisi) : null) || { nom:{fr:'—'}, prixMois:0 }; }
 function dateFin(){
-  const d = new Date(); d.setMonth(d.getMonth() + (CAT ? CAT.moisEssai : 6));
+  const d = new Date(); d.setDate(d.getDate() + (CAT ? CAT.joursEssai : 90));
   return d.toISOString().slice(0,10);
 }
 function dessinerContrat(){
@@ -368,7 +368,7 @@ function dessinerContrat(){
     <div><span>Entreprise</span><strong>${ech(document.getElementById('nomEnt').value || '—')}</strong></div>
     <div><span>Responsable</span><strong>${ech(document.getElementById('nomResp').value || '—')}</strong></div>
     <div><span>Forfait</span><strong>${ech(f.nom.fr)}</strong></div>
-    <div><span>Période gratuite</span><strong>${CAT ? CAT.moisEssai : 6} mois</strong></div>
+    <div><span>Période gratuite</span><strong>${CAT ? CAT.joursEssai : 90} jours</strong></div>
     <div><span>Premier prélèvement</span><strong>${dateFin()}</strong></div>
     <div class="fort"><span>À payer aujourd'hui</span><span>0 HTG</span></div>`;
 }
@@ -376,7 +376,7 @@ function dessinerContrat(){
 async function activer(){
   const f = infosForfait();
   document.getElementById('encartActivation').innerHTML = compteCree
-    ? `✅ <strong>Votre espace est créé.</strong> Votre essai gratuit de ${CAT ? CAT.moisEssai : 6} mois a commencé.`
+    ? `✅ <strong>Votre espace est créé.</strong> Votre essai gratuit de ${CAT ? CAT.joursEssai : 90} jours a commencé.`
     : 'Création de votre espace…';
   document.getElementById('recapFinal').innerHTML = `
     <div><span>Forfait</span><strong>${ech(f.nom.fr)}</strong></div>
