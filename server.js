@@ -336,7 +336,7 @@ const CLIENT_SESSION_MS = 30 * 86400000;    // 30 jours
    L'adresse du formulaire est une variable d'environnement : elle
    contient un jeton, et pourra changer sans toucher au code. */
 const FINANCEMENT_URL = process.env.FINANCEMENT_URL
-  || 'https://microcreditsolidarite.com/microcredit-php/formulaire_public.php?t=1.2dee49e44bd63865';
+  || 'https://microcreditsolidarite.com/microcredit-php/demande.php';
 const FINANCEMENT_SEUIL = Number(process.env.FINANCEMENT_SEUIL || 10000);
 
 function telNormalise(v) {
@@ -2067,6 +2067,25 @@ async function api(req, res, url) {
       return json(res, 403, { erreur: 'Le module Restaurant & Bar n\'est pas disponible pour votre type d\'activité.' });
     if (p.startsWith('/api/mon-entreprise/chambres') && !metiers.aModule(e, 'hotellerie'))
       return json(res, 403, { erreur: 'Le module Chambres & Séjours n\'est pas disponible pour votre type d\'activité.' });
+
+    /* ---- Lien de financement, pré-rempli ----
+       Le formulaire de Micro Crédit Solidarité accepte des paramètres :
+       on y porte les informations déjà connues, pour éviter au
+       commerçant de les ressaisir. */
+    if (p === '/api/mon-entreprise/financement' && req.method === 'GET') {
+      const champs = {
+        nom: e.nom || '',
+        telephone: (e.whatsapp || e.telephone || '').replace(/\D/g, ''),
+        email: user.email || '',
+        zone: e.adresse || '',
+        activite: metiers.metierDe(e).nom.fr || e.categorie || ''
+      };
+      const params = Object.entries(champs)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+        .join('&');
+      return json(res, 200, { url: FINANCEMENT_URL + (params ? '?' + params : '') });
+    }
 
     // ---- Ce que mon forfait ouvre ----
     if (p === '/api/mon-entreprise/fonctions' && req.method === 'GET') {

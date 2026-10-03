@@ -1720,7 +1720,8 @@ async function chargerFinancement(){
   const b = document.getElementById('btnFinancement');
   if (!b) return;
   try {
-    const f = await api('/api/financement');
+    // Lien pré-rempli avec les informations de l'entreprise
+    const f = await api('/api/mon-entreprise/financement');
     b.href = f.url;
   } catch { b.style.display = 'none'; }
 }
