@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Entreprise — Biznis Konekte</title>
+<title>Entreprise — Konekte</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -202,12 +202,23 @@
 .etat-stock.dispo { color: var(--vert); }
 .etat-stock.bientot { color: var(--orange); }
 .etat-stock.fini { color: var(--gris); }
+.etat-stock.avenir { color: #7C3AED; }
 /* Un produit fini reste visible mais recule visuellement */
 .carte-produit.epuise .media-produit { filter: grayscale(.75); opacity: .62; }
 .carte-produit.epuise { border-style: dashed; }
 .carte-produit.epuise .media-produit::after { content: 'FINI'; position: absolute; inset: 0;
   display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #fff;
   background: rgba(16,24,40,.45); letter-spacing: .08em; }
+/* Produit annoncé avant son arrivée : il attire l'œil au lieu de
+   l'éteindre — c'est une promesse, pas une déception. */
+.carte-produit.avenir { border-color: #DDD0FB; background: #FCFAFF; }
+.ruban-avenir { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 8px;
+  text-align: center; font-size: 11.5px; font-weight: 800; color: #fff;
+  background: rgba(109,40,217,.88); letter-spacing: .03em; z-index: 2; }
+.btn-precommande { width: 100%; margin-top: 8px; background: #6D28D9; color: #fff;
+  border: 0; border-radius: var(--r-pilule); padding: 9px 12px;
+  font-size: 13px; font-weight: 800; cursor: pointer; }
+.btn-precommande:hover { background: #5B21B6; }
 /* Paiement par versement : proposé en second, sous le bouton d'achat,
    pour ne pas détourner de l'achat direct. */
 .btn-versement { display: block; width: 100%; margin-top: 7px; padding: 7px 10px;
@@ -220,7 +231,7 @@
 
 <nav class="nav">
   <div class="conteneur nav-int">
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Biznis Konekte</a>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
     <div class="nav-droite">
       <a class="btn btn-fantome" href="/">← Retour à l'accueil</a>
     </div>
@@ -410,7 +421,7 @@ async function charger() {
   try { ent = await api('/api/entreprises/' + slug); }
   catch { document.body.innerHTML = '<div class="conteneur centre" style="padding:80px 20px"><h1>Entreprise introuvable</h1><p class="muet mt">Cette page n\'existe pas ou n\'est pas encore approuvée.</p><a class="btn btn-primaire mt" href="/" style="margin-top:20px">Retour à l\'accueil</a></div>'; return; }
 
-  document.title = ent.nom + ' — Biznis Konekte';
+  document.title = ent.nom + ' — Konekte';
   document.documentElement.style.setProperty('--marque', ent.couleur);
   document.documentElement.style.setProperty('--marque2', ent.couleur2);
 
@@ -456,12 +467,12 @@ async function charger() {
 
   window.partager = async (canal) => {
     const url = location.href;
-    const texte = `Prenez rendez-vous chez ${ent.nom} sur Biznis Konekte : `;
+    const texte = `Prenez rendez-vous chez ${ent.nom} sur Konekte : `;
     if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + url), '_blank');
     else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
     else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(url), '_blank');
     else if (canal === 'copier') {
-      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Biznis Konekte', text: texte, url }); return; } catch {} }
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Konekte', text: texte, url }); return; } catch {} }
       try { await navigator.clipboard.writeText(url); toast('Lien copié ! Collez-le où vous voulez.'); }
       catch { prompt('Copiez ce lien :', url); }
     }
@@ -498,9 +509,13 @@ function refEquip(cle){
     const p = (ent.produits || []).find(x => x.id === id);
     if (!p) return;
     const l = panier.find(x => x.id === id);
-    if (l) l.q++; else panier.push({ id, nom: p.nom, prix: prixDe(p), unite: p.unite || '', q: 1 });
+    if (l) l.q++; else panier.push({ id, nom: p.nom, prix: prixDe(p), unite: p.unite || '', q: 1,
+                                     precommande: p.etat !== 'disponible', dateDispo: p.dateDispo || '' });
     majBullePanier();
-    toast(L()==='ht' ? 'Ajoute nan panye a' : 'Ajouté au panier');
+    const pre = p.etat !== 'disponible';
+    toast(L()==='ht'
+      ? (pre ? 'Ajoute kòm prekòmand' : 'Ajoute nan panye a')
+      : (pre ? 'Ajouté en précommande' : 'Ajouté au panier'));
   };
   function majBullePanier(){
     const n = panier.reduce((s,l) => s + l.q, 0);
@@ -530,6 +545,8 @@ function refEquip(cle){
     }
     z.innerHTML = panier.map(l => `<div class="ligne-panier">
       <div style="flex:1"><strong class="petit">${ech(l.nom)}</strong>
+        ${l.precommande ? `<div class="petit" style="color:#6D28D9;font-weight:700">⏳ ${lg==='ht'?'Prekòmand':'Précommande'}${
+          l.dateDispo ? ' — ' + ech(dateCourte(l.dateDispo, lg)) : ''}</div>` : ''}
         <div class="petit muet">${(+l.prix).toLocaleString('fr-HT')} HTG${l.unite?` / ${ech(l.unite)}`:''}</div></div>
       <div class="qte-panier">
         <button onclick="changerQte('${l.id}',-1)">−</button>
@@ -661,8 +678,14 @@ function refEquip(cle){
       document.querySelector('#voilePanier .modale').innerHTML = `
         <div class="centre" style="padding:14px 0">
           <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
-          <h3>${lg==='ht'?'Kòmand resevwa !':'Commande reçue !'}</h3>
+          <h3>${r.precommande
+            ? (lg==='ht'?'Prekòmand resevwa !':'Précommande reçue !')
+            : (lg==='ht'?'Kòmand resevwa !':'Commande reçue !')}</h3>
           <p class="petit muet" style="margin-top:8px">${ech(r.boutique)} — ${lg==='ht'?'referans':'référence'} <strong>${r.reference}</strong></p>
+          ${r.precommande ? `<p class="petit" style="color:#6D28D9;font-weight:700;margin-top:8px">⏳ ${
+            r.dateDispo
+              ? (lg==='ht' ? 'Pwodwi a ap disponib vè ' + ech(dateCourte(r.dateDispo, lg)) : 'Disponible aux environs du ' + ech(dateCourte(r.dateDispo, lg)))
+              : (lg==='ht' ? 'Boutik la ap avize w lè pwodwi a rive.' : 'La boutique vous avertira dès réception.')}</p>` : ''}
           <div class="recap mt" style="text-align:left">
             <div><span>${lg==='ht'?'Sou-total':'Sous-total'}</span><span>${(+r.sousTotal).toLocaleString('fr-HT')} HTG</span></div>
             ${r.frais?`<div><span>${lg==='ht'?'Livrezon':'Livraison'}</span><span>${(+r.frais).toLocaleString('fr-HT')} HTG</span></div>`:''}
@@ -833,40 +856,63 @@ function refEquip(cle){
         (lg==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ') + p.nom +
         ' (' + ((p.prixPromo || p.prix)).toLocaleString('fr-HT') + ' HTG)');
       const vues = (p.photos && p.photos.length) ? p.photos : (p.photo ? [p.photo] : []);
-      return `<div class="carte-produit${p.epuise && vendGoods() ? ' epuise' : ''}" data-produit="${p.id}">
+      /* Trois états possibles, et un seul affiché : à venir, fini, en vente.
+         Les deux premiers ne concernent que les commerces — un salon de
+         coiffure n'a pas de stock à « finir ». */
+      const aVenir = p.etat === 'bientot';
+      const fini = p.etat === 'fini' && vendGoods();
+      const quand = p.dateDispo ? dateCourte(p.dateDispo, lg) : '';
+      const mention = aVenir
+        ? (lg==='ht' ? (quand ? 'BYENTO · ' + quand : 'BYENTO DISPONIB') : (quand ? 'BIENTÔT · ' + quand : 'BIENTÔT DISPONIBLE'))
+        : '';
+      return `<div class="carte-produit${fini ? ' epuise' : ''}${aVenir ? ' avenir' : ''}" data-produit="${p.id}">
         ${vues.length ? `<div class="media-produit" data-vues="${vues.length}" onclick="ouvrirVisionneuse('${p.id}')">
             ${vues.map((ph,i) => `<div class="vue${i===0?' on':''}" style="background-image:url('${ph}')"></div>`).join('')}
             ${p.video ? `<button class="badge-video" onclick="event.stopPropagation();ouvrirVisionneuse('${p.id}',true)">▶ ${lg==='ht'?'Videyo':'Vidéo'}</button>` : ''}
             ${vues.length > 1 ? `<div class="points-produit">${vues.map((_,i) =>
               `<button class="${i===0?'on':''}" onclick="event.stopPropagation();changerVue('${p.id}',${i})" aria-label="Photo ${i+1}"></button>`).join('')}</div>` : ''}
+            ${aVenir ? `<span class="ruban-avenir">${ech(mention)}</span>` : ''}
           </div>`
           : `<div class="media-produit sans"><span>🛍️</span>
-            ${p.video ? `<button class="badge-video" onclick="event.stopPropagation();ouvrirVisionneuse('${p.id}',true)">▶ ${lg==='ht'?'Videyo':'Vidéo'}</button>` : ''}</div>`}
+            ${p.video ? `<button class="badge-video" onclick="event.stopPropagation();ouvrirVisionneuse('${p.id}',true)">▶ ${lg==='ht'?'Videyo':'Vidéo'}</button>` : ''}
+            ${aVenir ? `<span class="ruban-avenir">${ech(mention)}</span>` : ''}</div>`}
         <button class="part-produit" title="${lg==='ht'?'Pataje':'Partager'}" onclick="partagerProduit(event,'${p.id}','${ech(p.nom).replace(/'/g,"&#39;")}')">🔗</button>
         <div class="corps-produit">
           <strong>${ech(p.nom)}</strong>
           ${p.marque?`<p class="desc-produit">${ech(p.marque)}</p>`:''}
           ${p.description?`<p class="desc-produit">${ech(p.description)}</p>`:''}
-            ${vendGoods() ? (p.epuise
-            ? `<p class="etat-stock fini">${lg==='ht'?'Fini':'Fini'}</p>`
-            : (p.stockFaible
-              ? `<p class="etat-stock bientot">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`
-              : `<p class="etat-stock dispo">${lg==='ht'?'Disponib':'Disponible'}</p>`)) : ''}
+            ${aVenir
+            ? `<p class="etat-stock avenir">⏳ ${lg==='ht'
+                 ? (quand ? 'Byento disponib — ' + quand : 'Byento disponib')
+                 : (quand ? 'Bientôt disponible — ' + quand : 'Bientôt disponible')}</p>`
+            : (vendGoods() ? (fini
+              ? `<p class="etat-stock fini">${lg==='ht'?'Fini':'Fini'}</p>`
+              : (p.stockFaible
+                ? `<p class="etat-stock bientot">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`
+                : `<p class="etat-stock dispo">${lg==='ht'?'Disponib':'Disponible'}</p>`)) : '')}
           <p class="prix-produit">
             ${p.prixPromo ? `<s class="petit muet">${(+p.prix).toLocaleString('fr-HT')}</s> <strong>${(+p.prixPromo).toLocaleString('fr-HT')} HTG</strong>`
                           : `<strong>${(+p.prix).toLocaleString('fr-HT')} HTG</strong>`}
             ${p.unite?`<span class="petit muet">/${ech(p.unite)}</span>`:''}
           </p>
-          ${!p.epuise && ent.financement && (p.prixPromo || p.prix) >= ent.financement.seuil
+          ${p.etat === 'disponible' && ent.financement && (p.prixPromo || p.prix) >= ent.financement.seuil
             ? `<a class="btn-versement" target="_blank" rel="noopener" href="${ech(ent.financement.url)}"
                  title="${lg==='ht'?'Peye an plizyè fwa ak Micro Crédit Solidarité':'Payer en plusieurs fois avec Micro Crédit Solidarité'}">
                  💳 ${lg==='ht'?'Peye an vèsman':'Payer par versement'}</a>` : ''}
-          ${p.epuise && vendGoods()
-            ? `<button class="btn btn-petit" style="width:100%;margin-top:8px;background:var(--gris-clair);color:var(--gris);cursor:not-allowed" disabled>${lg==='ht'?'Fini':'Épuisé'}</button>`
+          ${p.precommandable
+            /* Précommande ouverte : le client réserve son exemplaire
+               plutôt que de repartir les mains vides. */
+            ? `<button class="btn-precommande" onclick="ajouterAuPanier('${p.id}')">⏳ ${lg==='ht'?'Prekòmande':'Précommander'}</button>`
+            : (aVenir || fini
+            ? (ent.whatsapp
+              ? `<a class="btn btn-contour btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
+                   href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Mande enfòmasyon':'Me prévenir'}</a>`
+              : `<button class="btn btn-petit" style="width:100%;margin-top:8px;background:var(--gris-clair);color:var(--gris);cursor:not-allowed" disabled>${
+                   aVenir ? (lg==='ht'?'Byento':'Bientôt') : (lg==='ht'?'Fini':'Épuisé')}</button>`)
             : (peutCommander()
             ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="ajouterAuPanier('${p.id}')">${lg==='ht'?'Achte':'Acheter'}</button>`
             : (ent.whatsapp ? `<a class="btn btn-succes btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
-             href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Kòmande':'Commander'}</a>` : ''))}
+             href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Kòmande':'Commander'}</a>` : '')))}
         </div>
       </div>`;
     }).join('');
@@ -1609,7 +1655,7 @@ charger();
 <div id="barreInstall" class="barre-install" style="display:none">
   <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
   <div class="bi-txt">
-    <strong data-i18n="inst.titre">Installez Biznis Konekte</strong>
+    <strong data-i18n="inst.titre">Installez Konekte</strong>
     <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
   </div>
   <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>

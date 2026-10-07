@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Boutique en ligne — Biznis Konekte</title>
+<title>Boutique en ligne — Konekte</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -63,6 +63,11 @@
 .etat-stock.fini { color: var(--gris); }
 .art.epuise .art-img { filter: grayscale(.75); opacity: .62; position: relative; }
 .art.epuise { border-style: dashed; }
+.etat-stock.avenir { color: #7C3AED; }
+.art.avenir { border-color: #DDD0FB; background: #FCFAFF; }
+.ruban-avenir { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 8px;
+  text-align: center; font-size: 11px; font-weight: 800; color: #fff;
+  background: rgba(109,40,217,.88); letter-spacing: .03em; z-index: 2; }
 .art.epuise .art-img::after { content: 'FINI'; position: absolute; inset: 0; display: grid;
   place-items: center; font-size: 15px; font-weight: 800; color: #fff;
   background: rgba(16,24,40,.45); letter-spacing: .08em; }
@@ -79,7 +84,7 @@
 <nav class="nav">
   <div class="conteneur nav-int">
     <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Biznis Konekte</a>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
     <div class="nav-liens">
       <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
       <a href="/boutique.html" class="actif" data-i18n="bq.nav">Boutique</a>
@@ -126,7 +131,7 @@
 <footer class="pied-riche" style="margin-top:56px">
   <div class="conteneur">
     <div class="pied-bas">
-      <p class="petit">© 2026 <strong>BIZNIS KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
       <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
       <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
     </div>
@@ -136,7 +141,7 @@
 <div id="barreInstall" class="barre-install" style="display:none">
   <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
   <div class="bi-txt">
-    <strong data-i18n="inst.titre">Installez Biznis Konekte</strong>
+    <strong data-i18n="inst.titre">Installez Konekte</strong>
     <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
   </div>
   <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>
@@ -194,24 +199,34 @@ function carteArticle(a){
   const modes = [];
   if (v.livraison)  modes.push('🛵 ' + (lg()==='ht'?'Livrezon':'Livraison'));
   if (v.cueillette) modes.push('🏪 ' + (lg()==='ht'?'Vin chèche':'Retrait'));
-  return `<div class="art${a.epuise ? ' epuise' : ''}">
-    ${a.photo ? `<div class="art-img" style="background-image:url('${a.photo}')">${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}</div>`
-              : `<div class="art-img sans"><span>🛍️</span>${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}</div>`}
+  const aVenir = a.etat === 'bientot';
+  const quand = a.dateDispo ? dateCourte(a.dateDispo, lg()) : '';
+  const ruban = aVenir
+    ? `<span class="ruban-avenir">${lg()==='ht'
+        ? (quand ? 'BYENTO · ' + ech(quand) : 'BYENTO DISPONIB')
+        : (quand ? 'BIENTÔT · ' + ech(quand) : 'BIENTÔT DISPONIBLE')}</span>` : '';
+  return `<div class="art${a.etat === 'fini' ? ' epuise' : ''}${aVenir ? ' avenir' : ''}">
+    ${a.photo ? `<div class="art-img" style="background-image:url('${a.photo}')">${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}${ruban}</div>`
+              : `<div class="art-img sans"><span>🛍️</span>${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}${ruban}</div>`}
     <div class="art-corps">
       <strong>${ech(a.nom)}</strong>
       ${a.marque?`<p class="petit muet">${ech(a.marque)}</p>`:''}
       ${a.description?`<p class="petit muet">${ech(a.description)}</p>`:''}
-      ${a.epuise
+      ${aVenir
+        ? `<p class="etat-stock avenir">⏳ ${lg()==='ht'
+             ? (quand ? 'Byento disponib — ' + ech(quand) : 'Byento disponib')
+             : (quand ? 'Bientôt disponible — ' + ech(quand) : 'Bientôt disponible')}</p>`
+        : (a.etat === 'fini'
         ? `<p class="etat-stock fini">${lg()==='ht'?'Fini':'Fini'}</p>`
         : (a.stockFaible
           ? `<p class="etat-stock bientot">${lg()==='ht'?'Dènye inite yo':'Dernières unités'}</p>`
-          : `<p class="etat-stock dispo">${lg()==='ht'?'Disponib':'Disponible'}</p>`)}
+          : `<p class="etat-stock dispo">${lg()==='ht'?'Disponib':'Disponible'}</p>`))}
       <p class="art-prix">
         ${a.prixPromo ? `<s class="petit muet" style="font-weight:400">${(+a.prix).toLocaleString('fr-HT')}</s> ${(+a.prixPromo).toLocaleString('fr-HT')} HTG`
                       : `${(+a.prix).toLocaleString('fr-HT')} HTG`}
         ${a.unite?`<span class="petit muet" style="font-weight:400">/${ech(a.unite)}</span>`:''}
       </p>
-      ${!a.epuise && FIN.url && (a.prixPromo || a.prix) >= FIN.seuil
+      ${a.etat === 'disponible' && FIN.url && (a.prixPromo || a.prix) >= FIN.seuil
         ? `<a class="btn-versement" target="_blank" rel="noopener" href="${ech(FIN.url)}">
              💳 ${lg()==='ht'?'Peye an vèsman':'Payer par versement'}</a>` : ''}
       <div class="art-vendeur">
@@ -225,11 +240,13 @@ function carteArticle(a){
       </div>
       ${modes.length?`<div class="modes-v">${modes.map(m=>`<span class="mode-v">${m}</span>`).join('')}</div>`:''}
       <div class="flex art-actions" style="gap:5px;margin-top:8px">
-        ${v.commande
+        ${a.precommandable
+          ? `<a class="btn btn-petit" style="flex:1;background:#6D28D9;color:#fff" href="/${ech(v.slug)}">⏳ ${lg()==='ht'?'Prekòmande':'Précommander'}</a>`
+          : (v.commande && a.etat === 'disponible'
           ? `<a class="btn btn-primaire btn-petit" style="flex:1" href="/${ech(v.slug)}">${lg()==='ht'?'Kòmande':'Commander'}</a>`
-          : ''}
+          : '')}
         ${v.whatsapp
-          ? `<a class="btn btn-succes btn-petit" style="${v.commande?'':'flex:1'}" target="_blank" rel="noopener"
+          ? `<a class="btn btn-succes btn-petit" style="${(v.commande||a.precommandable)?'':'flex:1'}" target="_blank" rel="noopener"
                href="https://wa.me/${ech(v.whatsapp)}?text=${msg}">${lg()==='ht'?'Kontakte':'Contacter'}</a>`
           : `<a class="btn btn-contour btn-petit" style="flex:1" href="/${ech(v.slug)}">${lg()==='ht'?'Wè boutik la':'Voir la boutique'}</a>`}
       </div>

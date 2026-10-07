@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mes achats — Biznis Konekte</title>
+<title>Mes achats — Konekte</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#0B2C6B">
@@ -43,7 +43,7 @@ body { background: var(--fond); min-height: 100vh; padding: 20px 14px 40px; }
 </head>
 <body>
 <div class="boite">
-  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Biznis Konekte" style="height:64px;width:auto"></a></div>
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:64px;width:auto"></a></div>
   <div id="zone"><p class="centre muet">Chargement…</p></div>
   <p class="petit centre mt"><a href="/">← Retour à l'accueil</a></p>
 </div>
@@ -150,7 +150,9 @@ function dessiner(){
 
   document.getElementById('liste').innerHTML = liste.length ? liste.map(a => `
     <article class="achat">
-      <span class="genre">${GENRES[a.genre] || a.genre}</span>
+      <span class="genre">${GENRES[a.genre] || a.genre}</span>${a.precommande
+        ? `<span class="genre" style="background:#EFEAFB;color:#4B2E9E;margin-left:5px">⏳ Précommande${
+            a.dateDispo ? ' · ' + ech(dateCourte(a.dateDispo, 'fr')) : ''}</span>` : ''}
       <div class="achat-tete">
         <div style="flex:1;min-width:0">
           <strong>${ech(a.titre)}</strong>

@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Poser une question — Biznis Konekte</title>
+<title>Poser une question — Konekte</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#0B2C6B">
-<meta name="description" content="Questions fréquentes sur Biznis Konekte : inscription, forfaits, paiement, livraison, réservation. Posez votre question à notre équipe.">
+<meta name="description" content="Questions fréquentes sur Konekte : inscription, forfaits, paiement, livraison, réservation. Posez votre question à notre équipe.">
 <link rel="stylesheet" href="/style.css">
 <style>
 .entete-p { background:#fff; border:1px solid var(--bordure); border-radius:22px; padding:32px 30px;
@@ -44,7 +44,7 @@
 <nav class="nav">
   <div class="conteneur nav-int">
     <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Biznis Konekte</a>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
     <div class="nav-liens">
       <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
       <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
@@ -124,7 +124,7 @@
 <footer class="pied-riche" style="margin-top:56px">
   <div class="conteneur">
     <div class="pied-bas">
-      <p class="petit">© 2026 <strong>BIZNIS KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
       <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
       <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
     </div>
@@ -146,9 +146,15 @@ const QUESTIONS = [
   { t:'forfaits', q:{fr:"Que se passe-t-il après les 90 jours ?", ht:"Kisa k ap pase apre 90 jou yo ?"},
     r:{fr:"Votre abonnement devient exigible selon le forfait choisi. Vous pouvez changer de forfait ou arrêter à tout moment avant l'échéance, sans frais.",
        ht:"Abònman ou vin egzijib selon fòfè ou chwazi a. Ou ka chanje fòfè oswa kanpe nenpòt lè anvan dat la, san frè."} },
+  { t:'forfaits', q:{fr:"Le forfait limite-t-il les fonctions de mon métier ?", ht:"Èske fòfè a limite fonksyon metye m ?"},
+    r:{fr:"Non. Les fonctions de votre métier sont ouvertes dans tous les forfaits : un restaurant a sa carte, une école ses inscriptions, un notaire ses dossiers, un hôtel ses chambres, dès le forfait Découverte. Le forfait décide de deux choses seulement : le volume — en Découverte, 3 services, 20 produits, 1 membre d'équipe, 3 chambres — et les options de croissance : vente et livraison en ligne, précommandes, paiement en ligne, rappels WhatsApp automatiques.",
+       ht:"Non. Fonksyon metye ou louvri nan tout fòfè : yon restoran gen kat li, yon lekòl enskripsyon li, yon notè dosye li, yon otèl chanm li, depi fòfè Dekouvèt. Fòfè a deside de bagay sèlman : kantite a — nan Dekouvèt, 3 sèvis, 20 pwodwi, 1 moun nan ekip la, 3 chanm — epi opsyon pou grandi : vann ak livrezon an liy, prekòmand, peman an liy, ranpèl WhatsApp otomatik."} },
+  { t:'forfaits', q:{fr:"Puis-je vendre un produit avant de l'avoir reçu ?", ht:"Èske m ka vann yon pwodwi anvan m resevwa l ?"},
+    r:{fr:"Oui, avec le forfait Pro. Marquez le produit « Bientôt disponible », indiquez la date d'arrivée prévue si vous la connaissez, et autorisez les précommandes : le client réserve son exemplaire et vous recevez la commande marquée « Précommande ». Le stock n'est pas décompté puisque la marchandise n'est pas encore arrivée.",
+       ht:"Wi, ak fòfè Pro. Make pwodwi a « Byento disponib », mete dat li dwe rive si ou konnen l, epi otorize prekòmand : kliyan an rezève pa l epi ou resevwa kòmand lan make « Prekòmand ». Nou pa retire nan stòk la paske machandiz la poko rive."} },
   { t:'forfaits', q:{fr:"Qu'est-ce que la commission ?", ht:"Kisa komisyon an ye ?"},
-    r:{fr:"Un pourcentage prélevé sur les paiements encaissés par la plateforme : 8 % en Découverte, 5 % en Pro, 3 % en Hôtellerie & Commerce. Rien n'est prélevé sur les paiements réglés en espèces à la livraison.",
-       ht:"Yon pousantaj sou lajan platfòm nan ankese : 8 % nan Dekouvèt, 5 % nan Pro, 3 % nan Otèl & Komès. Nou pa pran anyen sou lajan kach yo peye lè livrezon."} },
+    r:{fr:"Un pourcentage prélevé sur les paiements encaissés par la plateforme : 7,5 % en Découverte, 5 % en Pro, 3 % en Hôtellerie & Commerce. Rien n'est prélevé sur les paiements réglés en espèces à la livraison.",
+       ht:"Yon pousantaj sou lajan platfòm nan ankese : 7,5 % nan Dekouvèt, 5 % nan Pro, 3 % nan Otèl & Komès. Nou pa pran anyen sou lajan kach yo peye lè livrezon."} },
   { t:'paiement', q:{fr:"Quels moyens de paiement sont acceptés ?", ht:"Ki mwayen peman nou aksepte ?"},
     r:{fr:"MonCash, NatCash et Kashpaw pour le paiement en ligne, ou en espèces à la livraison et au retrait. Chaque commerçant choisit ce qu'il accepte.",
        ht:"MonCash, NatCash ak Kashpaw pou peye an liy, oswa kach lè yo livre oswa lè w vin chèche. Chak komèsan chwazi sa li aksepte."} },

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inscrire mon entreprise — Biznis Konekte</title>
+<title>Inscrire mon entreprise — Konekte</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -82,7 +82,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
 </head>
 <body>
 <div class="boite">
-  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Biznis Konekte" style="height:92px;width:auto"></a></div>
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:92px;width:auto"></a></div>
 
   <div class="fil" id="fil"></div>
 
@@ -116,7 +116,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
       <p class="muet petit" style="margin-top:4px">Faites défiler jusqu'en bas pour pouvoir accepter.</p>
       <div class="lecture mt" id="texteLegal" onscroll="verifierLecture(this)">
         <h4>1. Objet</h4>
-        <p>Biznis Konekte met à disposition des entreprises haïtiennes une plateforme de prise de rendez-vous, de réservation et de vente en ligne. L'entreprise inscrite conserve la pleine responsabilité des services et produits qu'elle propose.</p>
+        <p>Konekte met à disposition des entreprises haïtiennes une plateforme de prise de rendez-vous, de réservation et de vente en ligne. L'entreprise inscrite conserve la pleine responsabilité des services et produits qu'elle propose.</p>
         <h4>2. Engagements de l'entreprise</h4>
         <ul>
           <li>Fournir des informations exactes sur son activité, ses prix et sa disponibilité.</li>
@@ -132,7 +132,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
         <h4>5. Données</h4>
         <p>Les données des clients recueillies par l'entreprise via la plateforme ne peuvent être utilisées qu'aux fins de la prestation. Leur revente ou leur cession est interdite.</p>
         <h4>6. Suspension</h4>
-        <p>Biznis Konekte peut suspendre un compte en cas de manquement grave, de réclamations répétées ou d'activité frauduleuse, après notification à l'entreprise.</p>
+        <p>Konekte peut suspendre un compte en cas de manquement grave, de réclamations répétées ou d'activité frauduleuse, après notification à l'entreprise.</p>
         <h4>7. Résiliation</h4>
         <p>L'entreprise peut résilier à tout moment depuis son espace. Les rendez-vous et commandes déjà acceptés restent dus.</p>
         <h4>8. Droit applicable</h4>
@@ -141,7 +141,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
       <p class="aide" id="avertLecture">Faites défiler le texte jusqu'à la fin pour activer l'acceptation.</p>
       <label class="case-legale" id="casePolitique">
         <input type="checkbox" id="accPolitique" disabled onchange="majCasesLegales()">
-        <span>J'ai lu et j'accepte la politique et le règlement de Biznis Konekte.</span>
+        <span>J'ai lu et j'accepte la politique et le règlement de Konekte.</span>
       </label>
       <label class="case-legale" id="caseVeracite">
         <input type="checkbox" id="accVeracite" onchange="majCasesLegales()">
@@ -187,7 +187,7 @@ body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
       <div class="recap-ab mt" id="recapContrat"></div>
       <div class="lecture mt" style="max-height:170px">
         <h4>Contrat d'abonnement — version 1.0</h4>
-        <p>Le présent contrat lie l'entreprise désignée ci-dessus à Biznis Konekte pour la fourniture des services de la plateforme, selon le forfait retenu.</p>
+        <p>Le présent contrat lie l'entreprise désignée ci-dessus à Konekte pour la fourniture des services de la plateforme, selon le forfait retenu.</p>
         <p>L'entreprise bénéficie d'une période d'essai gratuite de 90 jours. À son terme, l'abonnement mensuel du forfait choisi devient exigible, par mois d'avance, jusqu'à résiliation.</p>
         <p>La résiliation est possible à tout moment depuis l'espace de l'entreprise. Aucun montant n'est dû si elle intervient avant la fin de la période d'essai.</p>
         <p>La signature électronique par saisie du nom vaut acceptation du présent contrat et du règlement accepté à l'étape précédente.</p>
@@ -297,8 +297,13 @@ function majAideMetier(){
   const noms = { rdv:'prise de rendez-vous', equipe:'équipe', hotellerie:'chambres et séjours',
     carte:'restaurant et bar', catalogue:'catalogue', commandes:'commandes et livraison',
     inscriptions:'inscriptions', dossiers:'suivi de dossiers', urgences:'urgences' };
-  document.getElementById('aideMetier').textContent =
-    'Votre espace comprendra : ' + m.modules.map(x => noms[x] || x).join(', ') + '.';
+  /* Les commandes en ligne sont la seule fonction du métier qui dépende
+     aussi du forfait : autant le dire ici qu'après l'inscription. */
+  const base = m.modules.filter(x => x !== 'commandes');
+  document.getElementById('aideMetier').innerHTML =
+    'Votre espace comprendra : ' + ech(base.map(x => noms[x] || x).join(', ')) + '.'
+    + (m.modules.includes('commandes')
+       ? ' <span class="muet">La vente et la livraison en ligne s\'ajoutent avec le forfait Pro.</span>' : '');
 }
 document.getElementById('metier').addEventListener('change', majAideMetier);
 

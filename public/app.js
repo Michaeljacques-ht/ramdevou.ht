@@ -1,4 +1,4 @@
-// Biznis Konekte — utilitaires partagés
+// Konekte — utilitaires partagés
 async function api(url, methode = 'GET', corps) {
   const r = await fetch(url, {
     method: methode,
@@ -46,6 +46,19 @@ const BADGE_STATUT = {
 };
 
 const ICONES_CAT = { 'Santé': '🩺', 'Beauté': '💇', 'Formation': '🎓', 'Auto': '🚗', 'Maison': '🏠', 'Restaurant': '🍽️', 'Hôtels & Restaurants': '🏨', 'Juridique': '⚖️', 'Autre': '✨' };
+
+const MOIS_HT = ['janvye','fevriye','mas','avril','me','jen','jiyè','out','septanm','oktòb','novanm','desanm'];
+
+/* Date courte pour les étiquettes : « 12 mars ». L'année n'apparaît que
+   si ce n'est pas l'année en cours. */
+function dateCourte(iso, langue) {
+  if (!iso) return '';
+  const d = new Date(String(iso) + 'T12:00:00');
+  if (Number.isNaN(d.getTime())) return '';
+  const mois = (langue === 'ht' ? MOIS_HT : MOIS_FR)[d.getMonth()];
+  const annee = d.getFullYear() === new Date().getFullYear() ? '' : ' ' + d.getFullYear();
+  return `${d.getDate()} ${mois}${annee}`;
+}
 
 // ===== PWA (Play Store) : manifest + service worker =====
 (function () {

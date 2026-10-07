@@ -1,5 +1,5 @@
 // ============================================================
-// Biznis Konekte — Serveur (Node.js pur, zéro dépendance)
+// Konekte — Serveur (Node.js pur, zéro dépendance)
 // Lancer :  node server.js   →  http://localhost:3000
 // ============================================================
 const http = require('http');
@@ -15,9 +15,10 @@ const visites = require('./lib/visites.js');
 const courriel = require('./lib/courriel.js');
 const push = require('./lib/push.js');
 const taksi = require('./lib/taksi.js');
+const compta = require('./lib/compta.js');
 
 // ---- Paramètres commerciaux ----
-const COMMISSION_RANDEVOU = 0.15;   // part Biznis Konekte sur chaque encaissement
+const COMMISSION_RANDEVOU = 0.15;   // part Konekte sur chaque encaissement
 const MONTANT_MIN_RETRAIT = 1000;   // retrait minimum du portefeuille, en HTG
 
 const PORT = process.env.PORT || 3000;
@@ -59,7 +60,7 @@ function balisesPartage(req, e, produit) {
       .filter(Boolean).join(' · ').slice(0, 200);
     image = produit.photo ? `${base}/img/produit/${produit.id}` : '';
   } else {
-    titre = `${e.nom} — ${e.categorie || 'Biznis Konekte'}`;
+    titre = `${e.nom} — ${e.categorie || 'Konekte'}`;
     const verbe = metiers.aModule(e, 'commandes') ? 'Commandez en ligne'
       : (metiers.aModule(e, 'hotellerie') ? 'Réservez votre séjour' : 'Prenez rendez-vous en ligne');
     description = [verbe, e.adresse, e.description].filter(Boolean).join(' · ').slice(0, 200);
@@ -75,10 +76,10 @@ function balisesPartage(req, e, produit) {
   const T = echapperHtml(titre), D = echapperHtml(description);
   const I = echapperHtml(image), U = echapperHtml(url);
   return `
-<title>${T} · Biznis Konekte</title>
+<title>${T} · Konekte</title>
 <meta name="description" content="${D}">
 <meta property="og:type" content="${produit ? 'product' : 'business.business'}">
-<meta property="og:site_name" content="Biznis Konekte">
+<meta property="og:site_name" content="Konekte">
 <meta property="og:locale" content="fr_HT">
 <meta property="og:title" content="${T}">
 <meta property="og:description" content="${D}">
@@ -204,6 +205,170 @@ function nettoyerReseaux(v) {
     sortie.push({ cle, lien: u.href.slice(0, 300) });
   }
   return sortie;
+}
+
+/* Date au format AAAA-MM-JJ, ou chaîne vide. Une date passée est
+   refusée : annoncer « bientôt disponible le 12 mars » alors que mars
+   est écoulé fait plus de mal que pas de date du tout. */
+function dateSimple(v) {
+  const s = String(v || '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  const d = new Date(s + 'T00:00:00Z');
+  if (Number.isNaN(d.getTime())) return '';
+  if (s < new Date().toISOString().slice(0, 10)) return '';
+  return s;
+}
+
+/**
+ * État public d'un produit, calculé à un seul endroit pour que la
+ * vitrine, la place de marché et la prise de commande racontent
+ * toujours la même chose.
+ *
+ *   bientot    — annoncé, pas encore arrivé
+ *   fini       — stock épuisé
+ *   disponible — en vente
+ *
+ * « Précommandable » n'est vrai que si l'entreprise l'a autorisé pour
+ * ce produit, que son forfait ouvre les précommandes et que ses
+ * commandes en ligne sont actives : sans quoi on promettrait au
+ * client un bouton qui ne mène à rien.
+ */
+function etatProduit(e, pr) {
+  const epuise = pr.stock !== null && pr.stock <= 0;
+  const bientot = !!pr.bientot;
+  const etat = bientot ? 'bientot' : (epuise ? 'fini' : 'disponible');
+  const v = (e && e.vente) || {};
+  const commandesOuvertes = metiers.aModule(e, 'commandes') && !!v.commandesActives
+    && forfaits.forfaitAutorise(e, 'commandes');
+  const precommandable = etat !== 'disponible' && !!pr.precommande
+    && commandesOuvertes && forfaits.forfaitAutorise(e, 'precommandes');
+  return {
+    etat, epuise, bientot, precommandable,
+    dateDispo: pr.dateDispo || '',
+    stockFaible: pr.stock !== null && pr.stock > 0 && pr.stock <= Math.max(pr.seuilAlerte, 3)
+  };
+}
+
+/* ==========================================================
+   Comptabilité — reprise automatique des ventes de la plateforme
+   ----------------------------------------------------------
+   Tout ce qui a été encaissé par Konekte doit se
+   retrouver en comptabilité sans ressaisie : c'est la moitié
+   de l'intérêt du module. Chaque écriture produite porte sa
+   source (type + identifiant), ce qui garantit qu'une même
+   vente n'est jamais enregistrée deux fois, même si la
+   synchronisation est relancée dix fois.
+   ========================================================== */
+function synchroniserCompta(e) {
+  const r = compta.reglages(e);
+  const faites = new Set((db.ecritures || [])
+    .filter((x) => x.entrepriseId === e.id && x.source)
+    .map((x) => x.source.type + ':' + x.source.id + ':' + (x.source.volet || '')));
+
+  /* Une vente encaissée avant la date de clôture ne peut pas
+     s'inscrire dans une période fermée : on la date du lendemain
+     de la clôture, et la note dit pourquoi. */
+  const dateUtile = (d) => {
+    if (!r.clotureJusquau || d > r.clotureJusquau) return { date: d, reporte: false };
+    const suivant = new Date(new Date(r.clotureJusquau + 'T00:00:00Z').getTime() + 86400000)
+      .toISOString().slice(0, 10);
+    const jour = compta.aujourdhui();
+    return { date: suivant > jour ? jour : suivant, reporte: true };
+  };
+
+  let creees = 0;
+  const poser = (saisie) => {
+    const res = compta.construire(e, saisie, store.uid);
+    if (res.erreur) return;           // une reprise ne doit jamais bloquer une vente
+    db.ecritures.push(res.ecriture);
+    creees++;
+  };
+
+  const caisseDe = (enLigne) => (enLigne ? '5153' : r.caisseDefaut);
+
+  // ---- Commandes payées ----
+  for (const c of db.commandes.filter((x) => x.entrepriseId === e.id && x.paye)) {
+    const enLigne = c.paiement === 'enligne';
+    const d = dateUtile((c.majLe || c.creeLe || '').slice(0, 10));
+    const base = { tresorerie: caisseDe(enLigne), piece: c.reference, date: d.date,
+                   note: d.reporte ? 'Vente antérieure à la clôture, reportée.' : '' };
+    const marchandise = c.total - (c.frais || 0);
+    if (marchandise > 0 && !faites.has('commande:' + c.id + ':')) {
+      poser(Object.assign({}, base, { operation: 'vente_encaissee', categorie: 'marchandises',
+        montant: marchandise, libelle: `Commande ${c.reference} — ${c.clientNom}`,
+        source: { type: 'commande', id: c.id } }));
+    }
+    // Les frais de livraison encaissés sont une recette distincte
+    if (c.frais > 0 && !faites.has('commande:' + c.id + ':livraison')) {
+      poser(Object.assign({}, base, { operation: 'vente_encaissee', categorie: 'livraison',
+        montant: c.frais, libelle: `Livraison ${c.reference}`,
+        source: { type: 'commande', id: c.id, volet: 'livraison' } }));
+    }
+    /* La commission n'est prélevée que sur ce que la plateforme
+       encaisse : un paiement remis en espèces à la livraison ne
+       passe pas par nous, donc aucune commission. */
+    if (enLigne && !faites.has('commande:' + c.id + ':commission')) {
+      const com = forfaits.commissionPour(e, c.total);
+      if (com > 0) poser(Object.assign({}, base, { operation: 'achat_paye', categorie: 'commission',
+        montant: com, tca: false, libelle: `Commission Konekte — ${c.reference}`,
+        source: { type: 'commande', id: c.id, volet: 'commission' } }));
+    }
+  }
+
+  // ---- Rendez-vous payés ----
+  const catRdv = metiers.aModule(e, 'dossiers') ? 'honoraires' : 'services';
+  for (const rv of db.rendezvous.filter((x) => x.entrepriseId === e.id && x.paye && x.prixTotal > 0)) {
+    if (faites.has('rendezvous:' + rv.id + ':')) continue;
+    const d = dateUtile(rv.date || (rv.creeLe || '').slice(0, 10));
+    poser({ operation: 'vente_encaissee', categorie: catRdv, montant: rv.prixTotal,
+            date: d.date, tresorerie: '5153', piece: rv.id.slice(-8).toUpperCase(),
+            libelle: `Rendez-vous — ${rv.clientNom}`,
+            note: d.reporte ? 'Encaissement antérieur à la clôture, reporté.' : '',
+            source: { type: 'rendezvous', id: rv.id } });
+    const com = forfaits.commissionPour(e, rv.prixTotal);
+    if (com > 0) poser({ operation: 'achat_paye', categorie: 'commission', montant: com, tca: false,
+            date: d.date, tresorerie: '5153', piece: rv.id.slice(-8).toUpperCase(),
+            libelle: 'Commission Konekte', source: { type: 'rendezvous', id: rv.id, volet: 'commission' } });
+  }
+
+  // ---- Séjours payés ----
+  for (const sj of db.sejours.filter((x) => x.entrepriseId === e.id && x.paye && x.prixTotal > 0)) {
+    if (faites.has('sejour:' + sj.id + ':')) continue;
+    const d = dateUtile(sj.arrivee || (sj.creeLe || '').slice(0, 10));
+    poser({ operation: 'vente_encaissee', categorie: 'hebergement', montant: sj.prixTotal,
+            date: d.date, tresorerie: '5153', piece: sj.reference || sj.id.slice(-8).toUpperCase(),
+            libelle: `Séjour — ${sj.clientNom}`,
+            note: d.reporte ? 'Encaissement antérieur à la clôture, reporté.' : '',
+            source: { type: 'sejour', id: sj.id } });
+    const com = forfaits.commissionPour(e, sj.prixTotal);
+    if (com > 0) poser({ operation: 'achat_paye', categorie: 'commission', montant: com, tca: false,
+            date: d.date, tresorerie: '5153', piece: sj.reference || '',
+            libelle: 'Commission Konekte', source: { type: 'sejour', id: sj.id, volet: 'commission' } });
+  }
+
+  // ---- Retraits du portefeuille vers MonCash ou NatCash ----
+  for (const re of (db.retraits || []).filter((x) => x.entrepriseId === e.id && x.statut === 'paye')) {
+    if (faites.has('retrait:' + re.id + ':')) continue;
+    const d = dateUtile((re.traiteLe || re.creeLe || '').slice(0, 10));
+    poser({ operation: 'virement_interne', montant: re.montant, date: d.date,
+            tresorerie: '5153', tresorerieArrivee: re.methode === 'natcash' ? '5152' : '5151',
+            libelle: 'Retrait du portefeuille Konekte',
+            source: { type: 'retrait', id: re.id } });
+  }
+
+  if (creees) store.save();
+  return creees;
+}
+
+/** Écritures d'une entreprise. */
+function ecrituresDe(e) {
+  return (db.ecritures || []).filter((x) => x.entrepriseId === e.id);
+}
+
+/** +1 recette, −1 dépense, 0 pour un simple mouvement d'argent. */
+function signeOperation(ec) {
+  const op = compta.OPERATIONS[ec && ec.operation];
+  return op ? op.signe : 0;
 }
 
 function nettoyerVideo(v) {
@@ -373,24 +538,34 @@ function achatsDe(tel) {
     return { genre: 'rendezvous', id: x.id, reference: x.id.slice(-8).toUpperCase(),
              titre: s ? s.nom : 'Rendez-vous', quand: `${x.date} à ${x.heure}`,
              date: x.date, montant: x.prixTotal || 0, statut: x.statut,
-             paye: x.paiementStatut === 'paye' || x.statut === 'paye',
+             paye: !!x.paye || x.statut === 'paye',
              entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe };
   });
 
-  const commandes = db.commandes.filter((x) => memeTel(x.clientTel)).map((x) => ({
-    genre: 'commande', id: x.id, reference: x.reference,
-    titre: `${(x.articles || []).length} article(s)`,
-    articles: (x.articles || []).map((a) => `${a.quantite || a.q || 1} × ${a.nom}`),
-    quand: x.modeRemise === 'livraison' ? 'Livraison' : 'Retrait sur place',
-    date: (x.creeLe || '').slice(0, 10), montant: x.total || 0, statut: x.statut,
-    paye: x.paiementStatut === 'paye', entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe
-  }));
+  /* Les lignes d'une commande sont dans `lignes`, le mode de remise dans
+     `mode` et le règlement dans `paye` : ce bloc lisait `articles`,
+     `modeRemise` et `paiementStatut`, qui n'existent pas — l'espace
+     client annonçait « 0 article(s) » et jamais « payé ». */
+  const commandes = db.commandes.filter((x) => memeTel(x.clientTel)).map((x) => {
+    const lignes = x.lignes || [];
+    const n = lignes.reduce((s, l) => s + (+l.quantite || 1), 0);
+    return {
+      genre: 'commande', id: x.id, reference: x.reference,
+      titre: `${n} article${n > 1 ? 's' : ''}`,
+      articles: lignes.map((l) => `${l.quantite || 1} × ${l.nom}`),
+      quand: x.mode === 'livraison' ? 'Livraison' : 'Retrait sur place',
+      precommande: !!x.precommande, dateDispo: x.dateDispo || '',
+      date: (x.creeLe || '').slice(0, 10), montant: x.total || 0, statut: x.statut,
+      paye: !!x.paye, entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe
+    };
+  });
 
   const sejours = db.sejours.filter((x) => memeTel(x.clientTel)).map((x) => ({
     genre: 'sejour', id: x.id, reference: x.reference || x.id.slice(-8).toUpperCase(),
     titre: 'Séjour', quand: `du ${x.arrivee} au ${x.depart}`,
-    date: x.arrivee, montant: x.total || 0, statut: x.statut,
-    paye: x.paiementStatut === 'paye', entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe
+    // Le montant d'un séjour est `prixTotal`
+    date: x.arrivee, montant: x.prixTotal || x.total || 0, statut: x.statut,
+    paye: !!x.paye, entreprise: nomEnt(x.entrepriseId), creeLe: x.creeLe
   }));
 
   const dossiers = db.dossiers.filter((x) => memeTel(x.clientTel)).map((x) => ({
@@ -514,7 +689,7 @@ function notifier(entrepriseId, type, message) {
      L'envoi n'est pas attendu : une panne du service de notification
      ne doit jamais retarder la réponse au client. */
   // Le lien va de l'utilisateur vers l'entreprise : on cherche dans ce sens.
-  const titre = TITRES_PUSH[String(type).split('_')[0]] || TITRES_PUSH[type] || 'Biznis Konekte';
+  const titre = TITRES_PUSH[String(type).split('_')[0]] || TITRES_PUSH[type] || 'Konekte';
   for (const u of db.users.filter((x) => x.entrepriseId === entrepriseId)) {
     envoyerPush(u.id, { titre, corps: message, url: '/dashboard.html', tag: type })
       .catch(() => { /* sans conséquence */ });
@@ -583,7 +758,7 @@ function detailPaiement(pmt) {
     const c = db.commandes.find((x) => x.id === pmt.commandeId);
     objet = c ? `Commande de ${(c.articles || []).length} article(s)` : 'Commande';
   } else if (pmt.commandeType === 'abonnement') {
-    objet = 'Abonnement Biznis Konekte';
+    objet = 'Abonnement Konekte';
   }
   return {
     reference: pmt.reference,
@@ -658,7 +833,7 @@ function envoyerEmail(destinataire, sujet, html) {
     return;
   }
   const corps = JSON.stringify({
-    sender: { name: 'Biznis Konekte', email: exp },
+    sender: { name: 'Konekte', email: exp },
     to: [{ email: destinataire }],
     subject: sujet,
     htmlContent: html
@@ -677,11 +852,11 @@ function gabaritEmail(titre, couleur, lignes, pied) {
   return `<!DOCTYPE html><html lang="fr"><body style="margin:0;background:#F2F4F7;font-family:Arial,Helvetica,sans-serif">
   <div style="max-width:560px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #E4E7EC">
     <div style="background:${couleur};color:#fff;padding:22px 26px">
-      <div style="font-size:13px;opacity:.85;font-weight:bold">📅 Biznis Konekte</div>
+      <div style="font-size:13px;opacity:.85;font-weight:bold">📅 Konekte</div>
       <h1 style="margin:6px 0 0;font-size:21px">${titre}</h1>
     </div>
     <div style="padding:24px 26px;color:#101828;font-size:15px;line-height:1.65">${lignes}</div>
-    <div style="padding:16px 26px;border-top:1px solid #E4E7EC;color:#667085;font-size:12px">${pied || 'Biznis Konekte — La plateforme haïtienne de prise de rendez-vous en ligne.'}</div>
+    <div style="padding:16px 26px;border-top:1px solid #E4E7EC;color:#667085;font-size:12px">${pied || 'Konekte — La plateforme haïtienne de prise de rendez-vous en ligne.'}</div>
   </div></body></html>`;
 }
 // Vue publique du service d'urgence.
@@ -1144,13 +1319,14 @@ async function api(req, res, url) {
            voit que la boutique le vend, et reviendra. Il est seulement
            impossible à commander, ce que la commande vérifie de son côté. */
         ? db.produits.filter((x) => x.entrepriseId === e.id && x.disponible)
-            .map((x) => ({ id: x.id, nom: x.nom, description: x.description, rayon: x.rayon, marque: x.marque,
+            .map((x) => Object.assign({
+                           id: x.id, nom: x.nom, description: x.description, rayon: x.rayon, marque: x.marque,
                            prix: x.prix, prixPromo: x.prixPromo, unite: x.unite, photo: x.photo || '',
-                           photos: x.photos || (x.photo ? [x.photo] : []), video: x.video || '',
-                           epuise: x.stock !== null && x.stock <= 0,
-                           stockFaible: x.stock !== null && x.stock > 0 && x.stock <= Math.max(x.seuilAlerte, 3) }))
+                           photos: x.photos || (x.photo ? [x.photo] : []), video: x.video || '' },
+                           etatProduit(e, x)))
         : [],
-      vente: metiers.aModule(e, 'commandes') && e.vente && e.vente.commandesActives ? {
+      vente: metiers.aModule(e, 'commandes') && forfaits.forfaitAutorise(e, 'commandes')
+        && e.vente && e.vente.commandesActives ? {
         cueillette: !!e.vente.cueillette, livraison: !!e.vente.livraison,
         zones: e.vente.zones || [], fraisBase: e.vente.fraisBase || 0,
         seuilGratuite: e.vente.seuilGratuite || 0, minimumCommande: e.vente.minimumCommande || 0,
@@ -1312,7 +1488,10 @@ async function api(req, res, url) {
             if (!c.stockDecompte) {
               c.lignes.forEach((l) => {
                 const pr = db.produits.find((x) => x.id === l.produitId);
-                if (pr && pr.stock !== null) pr.stock = Math.max(0, pr.stock - l.quantite);
+                if (!pr || pr.stock === null) { l.decompte = 0; return; }
+                const pris = Math.min(pr.stock, l.quantite);
+                pr.stock -= pris;
+                l.decompte = pris;
               });
               c.stockDecompte = true;
             }
@@ -1422,7 +1601,8 @@ async function api(req, res, url) {
     for (const e of vendeurs) {
       if (ville && !String(e.adresse || '').toLowerCase().includes(ville)) continue;
       const v = e.vente || {};
-      const peutCommander = metiers.aModule(e, 'commandes') && !!v.commandesActives;
+      const peutCommander = metiers.aModule(e, 'commandes') && !!v.commandesActives
+        && forfaits.forfaitAutorise(e, 'commandes');
       const distance = (Number.isFinite(lat0) && Number.isFinite(lng0) && e.latitude != null && e.longitude != null)
         ? Math.round(distanceKm(lat0, lng0, e.latitude, e.longitude) * 10) / 10 : null;
       for (const pr of db.produits) {
@@ -1430,11 +1610,10 @@ async function api(req, res, url) {
         // Épuisé : visible mais signalé, et placé en fin de liste plus bas
         if (rayon && pr.rayon !== rayon) continue;
         if (recherche && !(`${pr.nom} ${pr.description} ${pr.marque} ${pr.rayon}`.toLowerCase().includes(recherche))) continue;
-        articles.push({
+        articles.push(Object.assign({
           id: pr.id, nom: pr.nom, description: pr.description, rayon: pr.rayon, marque: pr.marque,
-          prix: pr.prix, prixPromo: pr.prixPromo, unite: pr.unite, photo: pr.photo || '',
-          epuise: pr.stock !== null && pr.stock <= 0,
-          stockFaible: pr.stock !== null && pr.stock > 0 && pr.stock <= Math.max(pr.seuilAlerte, 3),
+          prix: pr.prix, prixPromo: pr.prixPromo, unite: pr.unite, photo: pr.photo || ''
+        }, etatProduit(e, pr), {
           vendeur: {
             slug: e.slug, nom: e.nom, adresse: e.adresse || '', whatsapp: e.whatsapp || '',
             telephone: e.telephone || '', logoTexte: e.logoTexte || '', couleur: e.couleur || '#2563EB',
@@ -1444,7 +1623,7 @@ async function api(req, res, url) {
             cueillette: peutCommander && !!v.cueillette,
             livraison: peutCommander && !!v.livraison
           }
-        });
+        }));
       }
     }
     const prixDe = (a) => (a.prixPromo > 0 ? a.prixPromo : a.prix);
@@ -1452,9 +1631,10 @@ async function api(req, res, url) {
     else if (tri === 'prix_desc') articles.sort((a, b) => prixDe(b) - prixDe(a));
     else if (tri === 'proche') articles.sort((a, b) => (a.vendeur.distanceKm ?? 1e9) - (b.vendeur.distanceKm ?? 1e9));
     else articles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-    /* Les produits épuisés passent après les autres, quel que soit le tri :
-       l'acheteur voit d'abord ce qu'il peut réellement acheter. */
-    articles.sort((a, b) => (a.epuise ? 1 : 0) - (b.epuise ? 1 : 0));
+    /* L'acheteur voit d'abord ce qu'il peut emporter aujourd'hui, puis
+       ce qui arrive, puis ce qui est fini — quel que soit le tri choisi. */
+    const rang = { disponible: 0, bientot: 1, fini: 2 };
+    articles.sort((a, b) => (rang[a.etat] ?? 0) - (rang[b.etat] ?? 0));
 
     const rayons = [...new Set(articles.map((a) => a.rayon).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
     return json(res, 200, {
@@ -1490,11 +1670,26 @@ async function api(req, res, url) {
       const pr = db.produits.find((x) => x.id === l.produitId && x.entrepriseId === e.id && x.disponible);
       if (!pr) return json(res, 409, { erreur: 'Un produit de votre panier n\'est plus disponible.' });
       const q = Math.max(1, Math.min(+l.quantite || 1, 999));
-      if (pr.stock !== null && pr.stock < q)
+      const et = etatProduit(e, pr);
+      /* Un produit à venir ou fini n'entre dans le panier que s'il est
+         ouvert à la précommande, et le stock n'est alors pas opposable :
+         c'est tout l'objet d'une précommande. */
+      if (et.etat !== 'disponible') {
+        if (!et.precommandable)
+          return json(res, 409, { erreur: `${pr.nom} n'est pas disponible actuellement.` });
+      } else if (pr.stock !== null && pr.stock < q) {
         return json(res, 409, { erreur: `Stock insuffisant pour ${pr.nom} (${pr.stock} restant${pr.stock > 1 ? 's' : ''}).` });
+      }
       const unitaire = pr.prixPromo > 0 ? pr.prixPromo : pr.prix;
-      lignes.push({ produitId: pr.id, nom: pr.nom, unite: pr.unite || '', quantite: q, prixUnitaire: unitaire, total: unitaire * q });
+      lignes.push({ produitId: pr.id, nom: pr.nom, unite: pr.unite || '', quantite: q,
+                    prixUnitaire: unitaire, total: unitaire * q,
+                    precommande: et.etat !== 'disponible',
+                    dateDispo: et.etat !== 'disponible' ? et.dateDispo : '' });
     }
+    /* Une commande qui contient au moins une précommande en est une :
+       le délai annoncé n'est pas celui d'une commande ordinaire. */
+    const estPrecommande = lignes.some((l) => l.precommande);
+    const dateDispoMax = lignes.map((l) => l.dateDispo).filter(Boolean).sort().pop() || '';
     const sousTotal = lignes.reduce((s, l) => s + l.total, 0);
     if (v.minimumCommande && sousTotal < v.minimumCommande)
       return json(res, 400, { erreur: `Commande minimum : ${v.minimumCommande.toLocaleString('fr-HT')} HTG.` });
@@ -1531,18 +1726,21 @@ async function api(req, res, url) {
       message: String(corps.message || '').slice(0, 300),
       paiement: corps.paiement === 'enligne' ? 'enligne' : 'remise',
       paye: false, transactionId: null,
+      precommande: estPrecommande, dateDispo: dateDispoMax,
       statut: 'nouvelle', stockDecompte: false, noteInterne: '',
-      journal: [{ le: maintenant, texte: 'Commande reçue' }],
+      journal: [{ le: maintenant, texte: estPrecommande ? 'Précommande reçue' : 'Commande reçue' }],
       creeLe: maintenant, majLe: maintenant
     };
     db.commandes.push(cmd); store.save();
-    notifier(e.id, 'nouvelle_commande', `Commande ${cmd.reference} — ${cmd.total.toLocaleString('fr-HT')} HTG (${mode})`);
+    notifier(e.id, 'nouvelle_commande',
+      `${estPrecommande ? 'Précommande' : 'Commande'} ${cmd.reference} — ${cmd.total.toLocaleString('fr-HT')} HTG (${mode})`);
     envoyerWhatsApp(cmd.clientTel, 'commande_recue',
       [cmd.clientNom, e.nom, cmd.reference, cmd.total.toLocaleString('fr-HT') + ' HTG',
        cmd.surPlace ? ('chambre ' + cmd.numeroChambre) : (mode === 'livraison' ? 'livraison' : 'retrait sur place')]);
     return json(res, 200, {
       ok: true, reference: cmd.reference, sousTotal, frais, total: cmd.total,
       mode, paiement: modePaie, commandeId: cmd.id, boutique: e.nom, whatsapp: e.whatsapp,
+      precommande: estPrecommande, dateDispo: dateDispoMax,
       delai: mode === 'livraison' ? (v.delaiPreparation || '') : (v.horairesCueillette || '')
     });
   }
@@ -1564,6 +1762,7 @@ async function api(req, res, url) {
       etapeIndex: etapes.indexOf(c.statut),
       mode: c.mode, lignes: c.lignes, sousTotal: c.sousTotal, frais: c.frais, total: c.total,
       adresse: c.adresse, surPlace: !!c.surPlace, numeroChambre: c.numeroChambre || '',
+      precommande: !!c.precommande, dateDispo: c.dateDispo || '',
       creneau: c.creneau, paye: !!c.paye, paiement: c.paiement || 'remise',
       passeeLe: c.creeLe.slice(0, 10), majLe: c.majLe.slice(0, 10)
     });
@@ -1630,7 +1829,7 @@ async function api(req, res, url) {
   // l'application est effacé à chaque déploiement.
   if (p === '/api/admin/sauvegarde' && req.method === 'GET') {
     if (!user || user.role !== 'admin') return json(res, 403, { erreur: 'Accès refusé' });
-    const nom = 'biznis-konekte-' + new Date().toISOString().slice(0, 10) + '.json';
+    const nom = 'konekte-' + new Date().toISOString().slice(0, 10) + '.json';
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
       'Content-Disposition': `attachment; filename="${nom}"`
@@ -1834,7 +2033,7 @@ async function api(req, res, url) {
   if (p === '/api/push/essai' && req.method === 'POST') {
     if (!user) return json(res, 401, { erreur: 'Non connecté' });
     const n = await envoyerPush(user.id, {
-      titre: 'Biznis Konekte',
+      titre: 'Konekte',
       corps: 'Les notifications fonctionnent. Vous serez prévenu à chaque nouvelle demande.',
       url: '/dashboard.html'
     });
@@ -1957,12 +2156,12 @@ async function api(req, res, url) {
 
     if (p === '/api/mon-entreprise' && req.method === 'GET')
       return json(res, 200, Object.assign({}, e, {
-        modulesDisponibles: metiers.MODULES,
+        /* Les fonctions du métier (le socle), toujours ouvertes, et les
+           options de croissance que le forfait ouvre ou retient. */
         modulesMetier: metiers.metierDe(e).modules,
         modulesActifs: metiers.modulesActifs(e),
-        // Ce que le forfait ouvre, et ce qu'il verrouille
-        modulesForfait: metiers.modulesActifs(e).filter((m) => forfaits.forfaitAutorise(e, m)),
         modulesVerrouilles: metiers.modulesActifs(e).filter((m) => !forfaits.forfaitAutorise(e, m)),
+        options: forfaits.optionsDe(e),
         abonnementEtat: forfaits.etatAbonnement(e)
       }));
     if (p === '/api/mon-entreprise' && req.method === 'PUT') {
@@ -1976,9 +2175,10 @@ async function api(req, res, url) {
         e.champs = metiers.nettoyerChamps(e.metier, e.champs);  // ne garder que ce qui reste pertinent
       }
       if (corps.champs !== undefined) e.champs = metiers.nettoyerChamps(e.metier || 'autre', corps.champs);
-      // Modules choisis par l'entreprise : elle affine ce que son métier propose
-      if (corps.modulesOff !== undefined) e.modulesOff = metiers.nettoyerModules(corps.modulesOff);
-      if (corps.modulesOn !== undefined) e.modulesOn = metiers.nettoyerModules(corps.modulesOn);
+      /* Les fonctions ne sont plus paramétrables une à une : le métier
+         les décide, le forfait décide les options de croissance.
+         Un ancien navigateur peut encore envoyer modulesOn/modulesOff —
+         on les ignore silencieusement. */
       // Formule d'hébergement : standard ou resort (tout inclus)
       if (corps.formule !== undefined) {
         if (!FORMULES.includes(corps.formule)) return json(res, 400, { erreur: 'Formule invalide.' });
@@ -2092,8 +2292,10 @@ async function api(req, res, url) {
       return json(res, 200, forfaits.etatFonctions(e, {
         services: db.services.filter((x) => x.entrepriseId === e.id).length,
         employes: db.employes.filter((x) => x.entrepriseId === e.id).length,
-        produits: db.produits.filter((x) => x.entrepriseId === e.id).length
-      }));
+        produits: db.produits.filter((x) => x.entrepriseId === e.id).length,
+        chambres: db.chambres.filter((x) => x.entrepriseId === e.id).length,
+        programmes: db.programmes.filter((x) => x.entrepriseId === e.id).length
+      }, metiers.modulesActifs(e)));
     }
 
     // ---- Fréquentation de ma page ----
@@ -2360,18 +2562,28 @@ async function api(req, res, url) {
       if (corps.statut !== undefined) {
         if (!STATUTS_COMMANDE.some((s) => s.cle === corps.statut)) return json(res, 400, { erreur: 'Statut invalide.' });
         const avant = c.statut;
-        // Le stock est décompté à la confirmation, et remis en cas d'annulation
+        /* Le stock est décompté à la confirmation et remis à l'annulation.
+           On mémorise la quantité réellement retirée (`decompte`) : sans
+           elle, annuler une précommande — ou une commande qui dépassait
+           le stock — rendait plus d'unités qu'il n'en avait été pris, et
+           créait du stock qui n'existe pas. */
         if (corps.statut === 'confirmee' && !c.stockDecompte) {
           c.lignes.forEach((l) => {
             const pr = db.produits.find((x) => x.id === l.produitId);
-            if (pr && pr.stock !== null) pr.stock = Math.max(0, pr.stock - l.quantite);
+            if (!pr || pr.stock === null) { l.decompte = 0; return; }
+            const pris = Math.min(pr.stock, l.quantite);
+            pr.stock -= pris;
+            l.decompte = pris;
           });
           c.stockDecompte = true;
         }
         if (corps.statut === 'annulee' && c.stockDecompte) {
           c.lignes.forEach((l) => {
             const pr = db.produits.find((x) => x.id === l.produitId);
-            if (pr && pr.stock !== null) pr.stock = pr.stock + l.quantite;
+            // Commandes d'avant cette version : `decompte` absent, on retombe sur la quantité
+            const rendu = l.decompte === undefined ? l.quantite : l.decompte;
+            if (pr && pr.stock !== null) pr.stock = pr.stock + rendu;
+            l.decompte = 0;
           });
           c.stockDecompte = false;
         }
@@ -2382,6 +2594,29 @@ async function api(req, res, url) {
           envoyerWhatsApp(c.clientTel, 'commande_statut',
             [c.clientNom, e.nom, c.reference, st ? st.fr : c.statut,
              c.mode === 'livraison' ? 'livraison' : 'retrait sur place']);
+        }
+        /* Paiement à la remise : l'argent change de main au moment de la
+           livraison ou du retrait. Sans ce constat, une commande réglée
+           en espèces restait « à encaisser » pour toujours et n'entrait
+           jamais en comptabilité — c'est pourtant le cas le plus
+           fréquent en Haïti. */
+        if (c.statut === 'livree' && c.paiement === 'remise' && !c.paye) {
+          c.paye = true;
+          c.payeLe = new Date().toISOString();
+          c.journal.push({ le: c.payeLe, texte: 'Encaissement en espèces à la remise' });
+        }
+      }
+      /* Le commerçant peut aussi constater le paiement à la main, par
+         exemple un client qui règle d'avance ou en plusieurs fois. */
+      if (corps.paye !== undefined) {
+        const paye = !!corps.paye;
+        if (paye !== !!c.paye) {
+          if (paye && c.paiement === 'enligne' && !c.transactionId)
+            return json(res, 400, { erreur: 'Cette commande attend un paiement en ligne. Elle sera marquée payée automatiquement à la confirmation du paiement.' });
+          c.paye = paye;
+          c.payeLe = paye ? new Date().toISOString() : null;
+          c.journal.push({ le: new Date().toISOString(),
+                           texte: paye ? 'Paiement constaté par le commerçant' : 'Paiement annulé par le commerçant' });
         }
       }
       if (corps.note !== undefined) c.noteInterne = String(corps.note).slice(0, 300);
@@ -2415,6 +2650,193 @@ async function api(req, res, url) {
 
     if (p === '/api/mon-entreprise/taksi/etat' && req.method === 'GET')
       return json(res, 200, { actif: taksi.actif() });
+
+    /* ================= Module comptabilité =================
+       Ouvert par le forfait, non par le métier : toute entreprise
+       tient une comptabilité, quelle que soit son activité. */
+    if (p.startsWith('/api/mon-entreprise/compta')) {
+      if (!forfaits.forfaitAutorise(e, 'comptabilite'))
+        return json(res, 403, { erreur: 'La comptabilité est comprise dans le forfait Pro.', option: 'comptabilite' });
+
+      const r = compta.reglages(e);
+      const periode = () => {
+        const du = /^\d{4}-\d{2}-\d{2}$/.test(q.get('du') || '') ? q.get('du') : compta.moisDe().debut;
+        const au = /^\d{4}-\d{2}-\d{2}$/.test(q.get('au') || '') ? q.get('au') : compta.moisDe().fin;
+        return { du, au };
+      };
+
+      // ---- Référentiel : comptes, catégories, opérations ----
+      if (p === '/api/mon-entreprise/compta/referentiel' && req.method === 'GET')
+        return json(res, 200, Object.assign(compta.referentiel(), { reglages: r }));
+
+      // ---- Tableau de bord comptable ----
+      if (p === '/api/mon-entreprise/compta/tableau' && req.method === 'GET') {
+        const reprises = synchroniserCompta(e);
+        const ecr = ecrituresDe(e);
+        return json(res, 200, Object.assign(compta.tableau(e, ecr), {
+          reprises,
+          evolution: compta.evolution(ecr, undefined, 6),
+          /* Une caisse négative est impossible dans la réalité : c'est le
+             signe d'une recette oubliée. Mieux vaut le dire que laisser
+             l'entreprise croire son résultat. */
+          alertes: compta.tresorerie(ecr, '', r.caissesActives).comptes
+            .filter((c) => c.solde < 0)
+            .map((c) => `La caisse « ${c.nom} » est négative (${c.solde.toLocaleString('fr-HT')} HTG) : une recette n'a probablement pas été saisie.`)
+        }));
+      }
+
+      // ---- Journal : la liste des écritures ----
+      if (p === '/api/mon-entreprise/compta/ecritures' && req.method === 'GET') {
+        const { du, au } = periode();
+        let liste = ecrituresDe(e).filter((x) => x.date >= du && x.date <= au);
+        const op = q.get('operation') || '';
+        const cat = q.get('categorie') || '';
+        const rech = (q.get('q') || '').toLowerCase().trim();
+        if (op) liste = liste.filter((x) => x.operation === op);
+        if (cat) liste = liste.filter((x) => x.categorie === cat);
+        if (rech) liste = liste.filter((x) =>
+          `${x.libelle} ${x.tiersNom} ${x.piece} ${x.note}`.toLowerCase().includes(rech));
+        liste.sort((a, b) => b.date.localeCompare(a.date) || b.creeLe.localeCompare(a.creeLe));
+        return json(res, 200, {
+          du, au, ecritures: liste.slice(0, 500), total: liste.length,
+          /* Les totaux ne comptent que ce qui touche le résultat : un
+             transfert entre caisses ou un règlement de dette n'est ni
+             une recette ni une dépense, seulement de l'argent qui bouge. */
+          totalRecettes: liste.reduce((s, x) => s + (signeOperation(x) > 0 ? x.montant : 0), 0),
+          totalDepenses: liste.reduce((s, x) => s + (signeOperation(x) < 0 ? x.montant : 0), 0),
+          clotureJusquau: r.clotureJusquau
+        });
+      }
+
+      // ---- Saisie d'une opération ----
+      if (p === '/api/mon-entreprise/compta/ecritures' && req.method === 'POST') {
+        const resu = compta.construire(e, corps, store.uid);
+        if (resu.erreur) return json(res, 400, { erreur: resu.erreur });
+        db.ecritures.push(resu.ecriture); store.save();
+        return json(res, 200, resu.ecriture);
+      }
+
+      const mEc = p.match(/^\/api\/mon-entreprise\/compta\/ecritures\/(\w+)$/);
+      if (mEc) {
+        const ec = db.ecritures.find((x) => x.id === mEc[1] && x.entrepriseId === e.id);
+        if (!ec) return json(res, 404, { erreur: 'Écriture introuvable.' });
+        if (r.clotureJusquau && ec.date <= r.clotureJusquau)
+          return json(res, 403, { erreur: `Cette écriture est dans une période clôturée (jusqu'au ${r.clotureJusquau}).` });
+        /* Une écriture issue d'une vente de la plateforme n'est pas
+           modifiable : la corriger ici la ferait mentir par rapport à
+           la commande. On peut en revanche l'annuler par une écriture
+           inverse, ce qui laisse une trace. */
+        if (ec.auto && req.method === 'PUT')
+          return json(res, 403, { erreur: 'Cette écriture provient d\'une vente enregistrée sur la plateforme. Elle ne se modifie pas à la main.' });
+
+        if (req.method === 'PUT') {
+          const resu = compta.construire(e, Object.assign({}, ec, corps), () => ec.id);
+          if (resu.erreur) return json(res, 400, { erreur: resu.erreur });
+          Object.assign(ec, resu.ecriture, { creeLe: ec.creeLe, modifieLe: new Date().toISOString() });
+          store.save(); return json(res, 200, ec);
+        }
+        if (req.method === 'DELETE') {
+          db.ecritures = db.ecritures.filter((x) => x !== ec);
+          store.save(); return json(res, 200, { ok: true });
+        }
+      }
+
+      // ---- États ----
+      if (p === '/api/mon-entreprise/compta/resultat' && req.method === 'GET') {
+        const { du, au } = periode();
+        return json(res, 200, compta.resultat(ecrituresDe(e), du, au));
+      }
+      if (p === '/api/mon-entreprise/compta/tresorerie' && req.method === 'GET') {
+        const ecr = ecrituresDe(e);
+        const { au } = periode();
+        return json(res, 200, Object.assign(compta.tresorerie(ecr, au, r.caissesActives),
+          { evolution: compta.evolution(ecr, undefined, 6) }));
+      }
+      if (p === '/api/mon-entreprise/compta/balance' && req.method === 'GET') {
+        const { du, au } = periode();
+        return json(res, 200, compta.balance(ecrituresDe(e), du, au));
+      }
+      if (p === '/api/mon-entreprise/compta/grand-livre' && req.method === 'GET') {
+        const { du, au } = periode();
+        const c = q.get('compte') || '';
+        if (!compta.COMPTES[c]) return json(res, 400, { erreur: 'Compte inconnu.' });
+        return json(res, 200, compta.grandLivre(ecrituresDe(e), c, du, au));
+      }
+      if (p === '/api/mon-entreprise/compta/tiers' && req.method === 'GET') {
+        const ecr = ecrituresDe(e);
+        return json(res, 200, { clients: compta.tiers(ecr, 'client'), fournisseurs: compta.tiers(ecr, 'fournisseur') });
+      }
+      if (p === '/api/mon-entreprise/compta/tca' && req.method === 'GET') {
+        if (!r.tcaAssujetti) return json(res, 200, { assujetti: false });
+        const { du, au } = periode();
+        return json(res, 200, Object.assign({ assujetti: true }, compta.tca(ecrituresDe(e), du, au, r.tcaTaux)));
+      }
+
+      // ---- Réglages comptables ----
+      if (p === '/api/mon-entreprise/compta/reglages' && req.method === 'GET')
+        return json(res, 200, r);
+      if (p === '/api/mon-entreprise/compta/reglages' && req.method === 'PUT') {
+        e.compta = e.compta || {};
+        if (corps.tcaAssujetti !== undefined) e.compta.tcaAssujetti = !!corps.tcaAssujetti;
+        if (corps.tcaTaux !== undefined) {
+          const t = +corps.tcaTaux;
+          if (!(t >= 0 && t <= 0.5)) return json(res, 400, { erreur: 'Taux de TCA invalide.' });
+          e.compta.tcaTaux = t;
+        }
+        if (corps.debutExercice !== undefined) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(corps.debutExercice)) return json(res, 400, { erreur: 'Date de début d\'exercice invalide.' });
+          e.compta.debutExercice = corps.debutExercice;
+        }
+        if (corps.caisseDefaut !== undefined) {
+          if (!compta.COMPTES[corps.caisseDefaut] || !compta.COMPTES[corps.caisseDefaut].tresorerie)
+            return json(res, 400, { erreur: 'Caisse par défaut invalide.' });
+          e.compta.caisseDefaut = corps.caisseDefaut;
+        }
+        if (corps.caissesActives !== undefined) {
+          const liste = (Array.isArray(corps.caissesActives) ? corps.caissesActives : [])
+            .filter((x) => compta.COMPTES[x] && compta.COMPTES[x].tresorerie);
+          if (!liste.length) return json(res, 400, { erreur: 'Gardez au moins une caisse.' });
+          e.compta.caissesActives = [...new Set(liste)];
+        }
+        store.save();
+        return json(res, 200, compta.reglages(e));
+      }
+
+      /* ---- Clôture d'une période ----
+         Verrouille les écritures jusqu'à une date, pour qu'un mois
+         déjà déclaré ne change plus dans le dos de l'entreprise.
+         Réversible : c'est une protection, pas une sanction. */
+      if (p === '/api/mon-entreprise/compta/cloture' && req.method === 'POST') {
+        const jusqua = String(corps.jusquau || '').slice(0, 10);
+        if (corps.rouvrir) {
+          e.compta = e.compta || {}; e.compta.clotureJusquau = '';
+          store.save();
+          return json(res, 200, { ok: true, clotureJusquau: '' });
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(jusqua)) return json(res, 400, { erreur: 'Date de clôture invalide.' });
+        if (jusqua > compta.aujourdhui()) return json(res, 400, { erreur: 'On ne clôture pas une période à venir.' });
+        const b = compta.balance(ecrituresDe(e), '', jusqua);
+        if (b.totalDebit !== b.totalCredit)
+          return json(res, 409, { erreur: 'La balance de la période n\'est pas équilibrée. Clôture refusée.' });
+        e.compta = e.compta || {}; e.compta.clotureJusquau = jusqua;
+        store.save();
+        return json(res, 200, { ok: true, clotureJusquau: jusqua, resultat: compta.resultat(ecrituresDe(e), r.debutExercice, jusqua) });
+      }
+
+      // ---- Export pour le comptable ----
+      if (p === '/api/mon-entreprise/compta/export.csv' && req.method === 'GET') {
+        const { du, au } = periode();
+        const csv = compta.exportCSV(ecrituresDe(e), du, au);
+        res.writeHead(200, {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="comptabilite-${e.slug}-${du}_${au}.csv"`,
+          'Cache-Control': 'no-store'
+        });
+        return res.end(csv);
+      }
+
+      return json(res, 404, { erreur: 'Route comptable inconnue.' });
+    }
 
     // ================= Module catalogue =================
     if (p.startsWith('/api/mon-entreprise/produits') && !metiers.aModule(e, 'catalogue'))
@@ -2453,6 +2875,12 @@ async function api(req, res, url) {
         photos: galeriePr, photo: galeriePr[0] || '',
         video: nettoyerVideo(corps.video),
         disponible: corps.disponible === undefined ? true : !!corps.disponible,
+        /* Produit annoncé avant son arrivée : visible, signalé
+           « Bientôt disponible », jamais vendu comme s'il était en stock. */
+        bientot: !!corps.bientot,
+        dateDispo: dateSimple(corps.dateDispo),
+        // L'entreprise accepte-t-elle d'encaisser avant d'avoir la marchandise ?
+        precommande: !!corps.precommande,
         creeLe: new Date().toISOString()
       };
       db.produits.push(pr); store.save(); return json(res, 200, pr);
@@ -2482,6 +2910,9 @@ async function api(req, res, url) {
         }
         if (corps.video !== undefined) pr.video = nettoyerVideo(corps.video);
         if (corps.disponible !== undefined) pr.disponible = !!corps.disponible;
+        if (corps.bientot !== undefined) pr.bientot = !!corps.bientot;
+        if (corps.dateDispo !== undefined) pr.dateDispo = dateSimple(corps.dateDispo);
+        if (corps.precommande !== undefined) pr.precommande = !!corps.precommande;
         // Mouvement de stock rapide : +N ou -N
         if (corps.mouvement !== undefined && pr.stock !== null)
           pr.stock = Math.max(0, Math.min(pr.stock + (+corps.mouvement || 0), 1000000));
@@ -2634,6 +3065,9 @@ async function api(req, res, url) {
 
     if (p === '/api/mon-entreprise/programmes' && req.method === 'POST') {
       if (!corps.nom) return json(res, 400, { erreur: 'Le nom du programme est obligatoire.' });
+      const limiteProg = forfaits.limiteAtteinte(e, 'programmes',
+        db.programmes.filter((x) => x.entrepriseId === e.id).length);
+      if (limiteProg) return json(res, 403, { erreur: limiteProg, limite: true });
       const pr = {
         id: store.uid(), entrepriseId: e.id,
         nom: String(corps.nom).slice(0, 90),
@@ -2762,6 +3196,9 @@ async function api(req, res, url) {
       return json(res, 200, db.chambres.filter((c) => c.entrepriseId === e.id));
     if (p === '/api/mon-entreprise/chambres' && req.method === 'POST') {
       if (!corps.nom || !(+corps.prixNuit > 0)) return json(res, 400, { erreur: 'Nom et prix par nuit obligatoires.' });
+      const limiteCh = forfaits.limiteAtteinte(e, 'chambres',
+        db.chambres.filter((x) => x.entrepriseId === e.id).length);
+      if (limiteCh) return json(res, 403, { erreur: limiteCh, limite: true });
       const galerie = nettoyerPhotos(corps.photos !== undefined ? corps.photos : corps.photo, []);
       if (galerie === null) return json(res, 400, { erreur: 'Une photo est invalide ou trop lourde (900 Ko maximum).' });
       const c = {
@@ -2821,7 +3258,7 @@ async function api(req, res, url) {
             conf ? 'Séjour confirmé 🎉' : 'Séjour annulé', conf ? (e.couleur || '#2563EB') : '#B42318',
             `<p>Bonjour <strong>${s.clientNom}</strong>,</p>
              <p>Votre séjour chez <strong>${e.nom}</strong>${c ? ' (' + c.nom + ')' : ''} du <strong>${s.arrivee}</strong> au <strong>${s.depart}</strong> (${s.nuits} nuit${s.nuits > 1 ? 's' : ''}, ${s.prixTotal.toLocaleString('fr-HT')} HTG) a été <strong>${libelle}</strong>.</p>
-             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Nous vous attendons le ${s.arrivee}${e.adresse ? ' à : ' + e.adresse : ''}. Le paiement se fait sur place.</p>` : `<p>Vous pouvez réserver d'autres dates à tout moment sur Biznis Konekte.</p>`}`,
+             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Nous vous attendons le ${s.arrivee}${e.adresse ? ' à : ' + e.adresse : ''}. Le paiement se fait sur place.</p>` : `<p>Vous pouvez réserver d'autres dates à tout moment sur Konekte.</p>`}`,
             `Référence : ${s.id}`
           ));
         }
@@ -2913,7 +3350,7 @@ async function api(req, res, url) {
             conf ? 'Rendez-vous confirmé 🎉' : 'Rendez-vous annulé', conf ? (e.couleur || '#2563EB') : '#B42318',
             `<p>Bonjour <strong>${r.clientNom}</strong>,</p>
              <p>Votre rendez-vous chez <strong>${e.nom}</strong>${srv ? ' (' + srv.nom + ')' : ''} du <strong>${r.date}</strong> à <strong>${r.heure}</strong> a été <strong>${libelle}</strong>.</p>
-             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Présentez-vous quelques minutes en avance${e.adresse ? ' à : ' + e.adresse : ''}.</p>` : `<p>Vous pouvez réserver un autre créneau à tout moment sur Biznis Konekte.</p>`}`,
+             ${conf ? `<p style="background:#D1FADF;border-radius:10px;padding:12px 14px;font-size:14px">✅ Présentez-vous quelques minutes en avance${e.adresse ? ' à : ' + e.adresse : ''}.</p>` : `<p>Vous pouvez réserver un autre créneau à tout moment sur Konekte.</p>`}`,
             `Référence : ${r.id}`
           ));
         }
@@ -3122,7 +3559,7 @@ setTimeout(envoyerRappels, 20 * 1000); // première vérification 20 s après le
 
 server.listen(PORT, () => {
   console.log('==================================================');
-  console.log('  BIZNIS KONEKTE — Plateforme de rendez-vous en ligne');
+  console.log('  KONEKTE — Plateforme de rendez-vous en ligne');
   console.log('==================================================');
   console.log(`  Site           : http://localhost:${PORT}`);
   console.log(`  Démo entreprise: http://localhost:${PORT}/salon-elegance`);

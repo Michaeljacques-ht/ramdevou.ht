@@ -1,8 +1,9 @@
-// Biznis Konekte — Service Worker (requis pour PWA / Play Store)
-const CACHE = 'biznis-v55';
+// Konekte — Service Worker (requis pour PWA / Play Store)
+const CACHE = 'konekte-v59';
 const STATIQUES = [
   '/style.css',
   '/app.js',
+  '/compta.js',
   '/manifest.json',
   '/icone-192.png',
   '/icone-512.png',
@@ -54,7 +55,7 @@ self.addEventListener('fetch', (e) => {
             (r) =>
               r ||
               new Response(
-                '<!DOCTYPE html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors ligne — Biznis Konekte</title><body style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#0B1424"><h1 style="color:#2563EB">📶 Pas de connexion</h1><p>Biznis Konekte a besoin d\'Internet pour afficher les rendez-vous.<br>Vérifiez votre connexion puis réessayez.</p><button onclick="location.reload()" style="background:#2563EB;color:#fff;border:0;padding:12px 28px;border-radius:8px;font-size:16px">Réessayer</button></body></html>',
+                '<!DOCTYPE html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors ligne — Konekte</title><body style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#0B1424"><h1 style="color:#2563EB">📶 Pas de connexion</h1><p>Konekte a besoin d\'Internet pour afficher les rendez-vous.<br>Vérifiez votre connexion puis réessayez.</p><button onclick="location.reload()" style="background:#2563EB;color:#fff;border:0;padding:12px 28px;border-radius:8px;font-size:16px">Réessayer</button></body></html>',
                 { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
               )
           )
@@ -80,7 +81,7 @@ self.addEventListener('fetch', (e) => {
 /* ---- Notifications poussées ----
    Le message arrive chiffré, déchiffré par le navigateur, puis remis ici. */
 self.addEventListener('push', (e) => {
-  let d = { titre: 'Biznis Konekte', corps: 'Vous avez du nouveau.' };
+  let d = { titre: 'Konekte', corps: 'Vous avez du nouveau.' };
   try { if (e.data) d = { ...d, ...e.data.json() }; } catch { /* charge illisible */ }
   e.waitUntil(self.registration.showNotification(d.titre, {
     body: d.corps,

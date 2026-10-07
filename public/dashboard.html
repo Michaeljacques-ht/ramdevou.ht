@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tableau de bord — Biznis Konekte</title>
+<title>Tableau de bord — Konekte</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -65,6 +65,55 @@ body { background: var(--gris-clair); }
   display: grid; place-items: center; color: #fff; font-size: 11.5px; font-weight: 800; }
 .equip-case input:focus-visible { outline: 2px solid var(--bleu); outline-offset: 2px; }
 .equip-case.on { border-color: var(--bleu); background: var(--bleu-clair); color: var(--marine); }
+/* ---- Comptabilité ---- */
+.barre-compta { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none; -ms-overflow-style: none; }
+.barre-compta::-webkit-scrollbar { display: none; }
+.onglet-compta { flex: none; border: 1.5px solid var(--bordure); background: #fff; color: var(--gris);
+  border-radius: var(--r-pilule); padding: 7px 14px; font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s; }
+.onglet-compta:hover { border-color: var(--bleu); color: var(--marine); }
+.onglet-compta.on { background: var(--marine); border-color: var(--marine); color: #fff; }
+/* Les quatre chiffres du haut : recettes, dépenses, résultat, trésorerie */
+.cp-cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 11px; }
+.cp-carte { border: 1.5px solid var(--bordure); border-radius: 13px; padding: 13px 14px; background: #fff; }
+.cp-carte .etq { font-size: 12px; font-weight: 700; color: var(--gris); }
+.cp-carte .val { font-size: 21px; font-weight: 800; margin-top: 3px; letter-spacing: -.02em; }
+.cp-carte .cmp { font-size: 11.5px; font-weight: 700; margin-top: 2px; }
+.cp-carte.recette { border-color: #BBE5C8; background: #F4FCF6; }
+.cp-carte.recette .val { color: #15803D; }
+.cp-carte.depense { border-color: #F6D5C4; background: #FFF8F4; }
+.cp-carte.depense .val { color: #C2410C; }
+.cp-carte.resultat .val { color: var(--marine); }
+.cp-carte.negatif .val { color: var(--rouge); }
+.hausse { color: #15803D; } .baisse { color: var(--rouge); }
+/* Barres d'évolution : six mois, lisibles sans légende */
+.cp-barres { display: flex; align-items: flex-end; gap: 10px; height: 128px; margin-top: 14px; }
+.cp-mois { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+.cp-paire { display: flex; align-items: flex-end; gap: 3px; height: 100px; width: 100%; justify-content: center; }
+.cp-bar { width: 42%; max-width: 20px; border-radius: 4px 4px 0 0; min-height: 2px; }
+.cp-bar.r { background: linear-gradient(180deg, #34A853, #1E7E34); }
+.cp-bar.d { background: linear-gradient(180deg, #FB923C, #C2410C); }
+.cp-etiq { font-size: 10.5px; color: var(--gris); font-weight: 700; white-space: nowrap; }
+.cp-legende { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--gris); font-weight: 600; }
+.cp-pastille { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+/* Répartition : une ligne par poste, avec sa part en largeur */
+.cp-poste { margin-top: 9px; }
+.cp-poste .tete { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; }
+.cp-jauge { height: 7px; background: var(--gris-clair); border-radius: 99px; margin-top: 4px; overflow: hidden; }
+.cp-jauge > div { height: 100%; border-radius: 99px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cp-auto { font-size: 10.5px; font-weight: 800; color: #4B2E9E; background: #EFEAFB;
+  border-radius: 99px; padding: 1px 7px; margin-left: 5px; }
+
+/* Fonctions du métier : informatif, pas un réglage */
+.liste-fonctions { display: grid; gap: 6px; }
+.ligne-fonction { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border: 1.5px solid var(--bordure); border-radius: 11px; background: #fff;
+  font-size: 13.5px; font-weight: 600; color: var(--texte); }
+.ligne-fonction strong { color: var(--vert); white-space: nowrap; }
+.ligne-fonction.bloquee { border-color: #F3D9A8; background: #FFFBF2; }
+.ligne-fonction.bloquee strong { color: var(--orange); }
 .puces-equip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .puce-equip { display: inline-flex; align-items: center; gap: 5px; background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
 /* Options à cocher — même traitement que sur les pages publiques */
@@ -124,7 +173,7 @@ body { background: var(--gris-clair); }
 <body>
 <div class="app">
   <aside class="lateral" id="lateral">
-    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Biznis Konekte</a>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Konekte</a>
     <button class="lien-lat actif" data-sec="bord">▦ Tableau de bord</button>
     <button class="lien-lat" data-sec="rdv">🗓 Rendez-vous</button>
     <button class="lien-lat" data-sec="calendrier">📅 Calendrier</button>
@@ -142,6 +191,7 @@ body { background: var(--gris-clair); }
     <button class="lien-lat" data-sec="commandes">📦 Commandes</button>
     <button class="lien-lat" data-sec="vente">🛵 Livraison &amp; retrait</button>
     <button class="lien-lat" data-sec="portefeuille">💰 Portefeuille &amp; Paiements</button>
+    <button class="lien-lat" data-sec="compta">📒 Comptabilité</button>
     <button class="lien-lat" data-sec="employes">👥 Employés</button>
     <button class="lien-lat" data-sec="avis">⭐ Avis &amp; Notes</button>
     <button class="lien-lat" data-sec="qr">📱 Code QR &amp; flyer</button>
@@ -642,6 +692,36 @@ body { background: var(--gris-clair); }
         </div></div>
       </section>
 
+      <!-- ===== Comptabilité ===== -->
+      <section id="sec-compta" class="section-cache">
+        <div class="barre-compta">
+          <button class="onglet-compta on" data-vue="tableau">📊 Vue d'ensemble</button>
+          <button class="onglet-compta" data-vue="journal">📖 Journal</button>
+          <button class="onglet-compta" data-vue="resultat">📈 Résultat</button>
+          <button class="onglet-compta" data-vue="tresorerie">💵 Mes caisses</button>
+          <button class="onglet-compta" data-vue="tiers">🤝 Clients &amp; fournisseurs</button>
+          <button class="onglet-compta" data-vue="tca">🏛️ TCA</button>
+          <button class="onglet-compta" data-vue="balance">⚖️ Balance</button>
+          <button class="onglet-compta" data-vue="reglages">⚙️ Réglages</button>
+        </div>
+
+        <div class="flex entre mt" style="gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="flex" style="gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <div><label class="petit muet">Du</label><input type="date" id="cpDu" style="width:auto" onchange="chargerVueCompta()"></div>
+            <div><label class="petit muet">Au</label><input type="date" id="cpAu" style="width:auto" onchange="chargerVueCompta()"></div>
+            <button class="btn btn-fantome btn-petit" onclick="periodeCompta('mois')">Ce mois</button>
+            <button class="btn btn-fantome btn-petit" onclick="periodeCompta('precedent')">Mois dernier</button>
+            <button class="btn btn-fantome btn-petit" onclick="periodeCompta('exercice')">Depuis le 1ᵉʳ janvier</button>
+          </div>
+          <div class="flex" style="gap:8px;flex-wrap:wrap">
+            <a class="btn btn-contour btn-petit" id="cpExport" href="#">⬇️ Export comptable</a>
+            <button class="btn btn-primaire btn-petit" onclick="ouvrirEcriture()">+ Saisir une opération</button>
+          </div>
+        </div>
+
+        <div id="cpVue" class="mt"></div>
+      </section>
+
       <!-- ===== Employés ===== -->
       <section id="sec-employes" class="section-cache">
         <div class="carte"><div class="carte-corps">
@@ -730,7 +810,7 @@ body { background: var(--gris-clair); }
             </div>
             <a class="btn btn-primaire mt" id="btnFinancement" target="_blank" rel="noopener" style="width:100%">
               Faire une demande de financement →</a>
-            <p class="aide mt">Micro Crédit Solidarité est une entité distincte de Biznis Konekte. Votre demande est étudiée par ses agents, selon ses propres conditions.</p>
+            <p class="aide mt">Micro Crédit Solidarité est une entité distincte de Konekte. Votre demande est étudiée par ses agents, selon ses propres conditions.</p>
           </div></div>
 
           <div class="carte mt" id="carteCreneaux"><div class="carte-corps">
@@ -782,9 +862,8 @@ body { background: var(--gris-clair); }
           </div></div>
           <div class="carte" id="carteModules"><div class="carte-corps">
             <h2 style="font-size:16px">🧩 Fonctionnalités de votre espace</h2>
-            <p class="petit muet" style="margin-top:6px">Décochez ce dont vous n'avez pas besoin : les sections correspondantes disparaissent de votre menu. Vous pouvez les réactiver à tout moment.</p>
-            <div id="listeModules" class="grille-equip mt"></div>
-            <button class="btn btn-primaire mt" onclick="enregistrerModules()">Enregistrer</button>
+            <p class="petit muet" style="margin-top:6px">Votre menu s'adapte tout seul à votre type d'activité : vous n'avez rien à cocher. Pour le modifier, changez votre type d'activité ci-dessus — vos services, produits et rendez-vous sont conservés.</p>
+            <div id="listeModules" class="liste-fonctions mt"></div>
           </div></div>
           <div class="carte" id="carteChampsMetier" style="display:none"><div class="carte-corps">
             <h2 style="font-size:16px" id="titreChampsMetier">Informations complémentaires</h2>
@@ -871,6 +950,61 @@ body { background: var(--gris-clair); }
   </div>
 </div></div>
 
+<div class="voile" id="voileEcriture"><div class="modale" style="max-width:560px">
+  <h3 id="titreEcriture">Saisir une opération</h3>
+  <p class="petit muet" style="margin-top:4px">Choisissez ce qui s'est passé. Les comptes se remplissent tout seuls.</p>
+
+  <label>Que s'est-il passé ? *</label>
+  <select id="ecOperation" onchange="majFormulaireEcriture()"></select>
+  <p class="aide" id="ecAide"></p>
+
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>Date *</label><input id="ecDate" type="date"></div>
+    <div><label>Montant encaissé ou payé (HTG) *</label><input id="ecMontant" type="number" min="1" placeholder="0"></div>
+  </div>
+
+  <div id="ecZoneCategorie">
+    <label id="ecLabelCategorie">Catégorie *</label>
+    <select id="ecCategorie"></select>
+  </div>
+
+  <div id="ecZoneTresorerie">
+    <label id="ecLabelTresorerie">D'où sort / où entre l'argent *</label>
+    <select id="ecTresorerie"></select>
+  </div>
+
+  <div id="ecZoneArrivee" style="display:none">
+    <label>Caisse de destination *</label>
+    <select id="ecArrivee"></select>
+  </div>
+
+  <div id="ecZoneTiers" style="display:none">
+    <label id="ecLabelTiers">Nom du client *</label>
+    <input id="ecTiers" list="listeTiersCompta" placeholder="Nom de la personne ou de l'entreprise">
+    <datalist id="listeTiersCompta"></datalist>
+    <label>Échéance — facultatif</label><input id="ecEcheance" type="date">
+    <p class="aide">La date à laquelle le règlement est attendu. Les retards apparaissent en rouge.</p>
+  </div>
+
+  <div id="ecZoneTca" style="display:none">
+    <label class="equip-case" style="margin:12px 0 0"><input type="checkbox" id="ecTca" checked onchange="this.closest('.equip-case').classList.toggle('on', this.checked); apercuEcriture()"><span>Montant TCA comprise</span></label>
+    <p class="aide" id="ecAideTca"></p>
+  </div>
+
+  <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+    <div><label>N° de pièce ou reçu</label><input id="ecPiece" placeholder="Facture, reçu — facultatif"></div>
+    <div><label>Libellé</label><input id="ecLibelle" placeholder="Précision — facultatif"></div>
+  </div>
+  <label>Note</label><input id="ecNote" placeholder="Facultatif">
+
+  <div class="panneau mt" id="ecApercu"></div>
+
+  <div class="flex mt" style="justify-content:flex-end">
+    <button class="btn btn-fantome" onclick="fermer('voileEcriture')">Annuler</button>
+    <button class="btn btn-primaire" onclick="enregistrerEcriture()">Enregistrer</button>
+  </div>
+</div></div>
+
 <div class="voile" id="voileProduit"><div class="modale" style="max-width:540px">
   <h3 id="titreModaleProduit">Ajouter un produit</h3>
   <label>Nom du produit *</label><input id="prNom" placeholder="Ex : Riz Tchako 5 lb">
@@ -889,6 +1023,14 @@ body { background: var(--gris-clair); }
     <div><label>Quantité en stock</label><input id="prStock" type="number" min="0" value="0"></div>
     <div><label>Seuil d'alerte</label><input id="prSeuil" type="number" min="0" value="5"></div>
   </div>
+  <label class="equip-case mt" style="margin:14px 0 0"><input type="checkbox" id="prBientot" onchange="this.closest('.equip-case').classList.toggle('on', this.checked); majZoneAvenir()"><span>⏳ Bientôt disponible</span></label>
+  <p class="aide">Le produit apparaît sur votre page avec la mention « Bientôt disponible », sans être vendu comme s'il était en stock.</p>
+  <div id="zoneAvenir" style="display:none">
+    <label>Date d'arrivée prévue — facultatif</label><input id="prDateDispo" type="date">
+    <p class="aide">Affichée au client : « Bientôt disponible — 12 mars ». Laissez vide si vous n'êtes pas sûr.</p>
+  </div>
+  <label class="equip-case" style="margin:10px 0 0"><input type="checkbox" id="prPrecommande" onchange="this.closest('.equip-case').classList.toggle('on', this.checked)"><span>📝 Accepter les précommandes</span></label>
+  <p class="aide" id="aidePrecommande">Le client peut réserver ce produit quand il est à venir ou momentanément fini. Vous recevez la commande marquée « Précommande ».</p>
   <label>Référence interne</label><input id="prRef" placeholder="Code produit — facultatif">
   <label>Photos du produit</label>
   <input type="file" id="prPhoto" accept="image/*" multiple>
@@ -1047,7 +1189,7 @@ body { background: var(--gris-clair); }
 let moi = null, ent = null, tousRdv = [], tousSejours = [], semaineOffset = 0, serviceEnCours = null;
 const COULEURS = ['#5A3FFF','#2563EB','#0E9F6E','#F04438','#F79009','#8B5CF6','#0EA5E9','var(--encre)'];
 const NOMS_JOURS = { lun:'Lundi', mar:'Mardi', mer:'Mercredi', jeu:'Jeudi', ven:'Vendredi', sam:'Samedi', dim:'Dimanche' };
-const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres, séjours & services', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', employes:'Employés', avis:'Avis & Notes', qr:'Code QR & flyer', perso:'Personnalisation', abonnement:'Mon abonnement', param:'Paramètres & horaires' };
+const TITRES = { bord:'Tableau de bord', rdv:'Rendez-vous', calendrier:'Calendrier', services:'Services', chambres:'Chambres, séjours & services', tarifs:'Plans tarifaires & saisons', planning:'Planning d\'occupation', hotel:'Politiques de l\'établissement', carte:'Restaurant & Bar', programmes:'Programmes & niveaux', inscriptions:'Demandes d\'inscription', dossiers:'Dossiers clients', urgence:'Service d\'urgence', catalogue:'Catalogue produits', commandes:'Commandes', vente:'Livraison & retrait', portefeuille:'Portefeuille & Paiements', compta:'Comptabilité', employes:'Employés', avis:'Avis & Notes', qr:'Code QR & flyer', perso:'Personnalisation', abonnement:'Mon abonnement', param:'Paramètres & horaires' };
 
 function fermer(id){ document.getElementById(id).classList.remove('ouvert'); }
 async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
@@ -1058,6 +1200,8 @@ function allerSection(sec){
   document.getElementById('titreSection').textContent = TITRES[sec];
   document.getElementById('lateral').classList.remove('ouvert');
   if(sec==='calendrier') dessinerCalendrier();
+  // La comptabilité se calcule à l'ouverture : les chiffres doivent être frais
+  if(sec==='compta') chargerVueCompta();
 }
 document.querySelectorAll('.lien-lat').forEach(b=>b.addEventListener('click',()=>allerSection(b.dataset.sec)));
 
@@ -1071,12 +1215,12 @@ async function demarrer(){
   const lienPub = location.origin + '/' + ent.slug;
   document.getElementById('lienPublic').textContent = lienPub;
   window.partagerPage = async (canal) => {
-    const texte = `Prenez rendez-vous chez ${ent.nom} en ligne sur Biznis Konekte : `;
+    const texte = `Prenez rendez-vous chez ${ent.nom} en ligne sur Konekte : `;
     if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + lienPub), '_blank');
     else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lienPub), '_blank');
     else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(lienPub), '_blank');
     else {
-      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Biznis Konekte', text: texte, url: lienPub }); return; } catch {} }
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Konekte', text: texte, url: lienPub }); return; } catch {} }
       try { await navigator.clipboard.writeText(lienPub); toast('Lien copié ! Partagez-le avec vos clients.'); }
       catch { prompt('Copiez ce lien :', lienPub); }
     }
@@ -1085,7 +1229,7 @@ async function demarrer(){
   document.getElementById('lienPublic').href = '/' + ent.slug;
   if (ent.statut !== 'approuvee') {
     document.getElementById('alerteStatut').innerHTML = `<div class="carte mb" style="border-color:var(--orange)"><div class="carte-corps" style="padding:14px 18px;background:var(--orange-fond);border-radius:14px">
-      <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Biznis Konekte examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
+      <strong>⏳ En attente de validation.</strong> <span class="petit">Votre entreprise n'est pas encore visible dans l'annuaire public. L'équipe Konekte examinera votre inscription rapidement. Vous pouvez déjà configurer vos services, horaires et personnalisation.</span></div></div>`;
   }
   // Le module Chambres & Séjours ne concerne que l'hôtellerie
   appliquerModuleHotellerie();
@@ -1659,7 +1803,7 @@ async function ouvrirFlyer(){
     ${montrerTel && (ent.telephone || ent.whatsapp) ? `<p>📞 <strong>${ech(ent.telephone || ent.whatsapp)}</strong></p>` : ''}
     <p>🔗 ${ech(urlPublique())}</p>
   </div>
-  <p class="marque">Propulsé par Biznis Konekte</p>
+  <p class="marque">Propulsé par Konekte</p>
 </div></body></html>`;
 
   const w = window.open('', '_blank');
@@ -1679,11 +1823,8 @@ async function chargerFonctions(){
   let f;
   try { f = await api('/api/mon-entreprise/fonctions'); } catch { return; }
 
-  const NOMS = { services:'Services', employes:"Membres d'équipe", produits:'Produits' };
-  const NOMS_MOD = { rdv:'Rendez-vous', equipe:'Équipe', hotellerie:'Chambres et séjours',
-    carte:'Restaurant et bar', catalogue:'Catalogue', commandes:'Commandes et livraison',
-    inscriptions:'Inscriptions', dossiers:'Suivi de dossiers', urgences:"Service d'urgence" };
-  const verrouilles = ent.modulesVerrouilles || [];
+  const NOMS = { services:'Services', employes:"Membres d'équipe", produits:'Produits',
+    chambres:'Chambres', programmes:'Programmes' };
 
   const jauges = f.limites.map(l => {
     const part = Math.min(100, Math.round(l.utilise / l.max * 100));
@@ -1706,11 +1847,18 @@ async function chargerFonctions(){
       ${f.limites.some(l => l.utilise >= l.max)
         ? '<p class="aide mt">Une limite est atteinte. Changez de forfait ci-dessous pour continuer.</p>' : ''}
     </div>` : `<div class="panneau" style="border-color:var(--vert)">
-      <strong class="petit">✅ Services, équipe et produits illimités</strong></div>`}
-    ${verrouilles.length ? `<div class="panneau mt" style="border-color:var(--orange)">
-      <strong class="petit">🔒 Fonctions non comprises dans votre forfait</strong>
-      <p class="petit muet" style="margin-top:5px">${verrouilles.map(m => ech(NOMS_MOD[m] || m)).join(' · ')}</p>
-      <p class="aide">Votre métier les propose, mais votre forfait actuel ne les ouvre pas.</p>
+      <strong class="petit">✅ Services, équipe, produits et chambres illimités</strong></div>`}
+    <div class="panneau mt">
+      <strong class="petit">Toutes les fonctions de votre métier sont ouvertes</strong>
+      <p class="aide">Rendez-vous, catalogue, dossiers, inscriptions, chambres : ce que votre activité demande est compris dans tous les forfaits. Le forfait décide du volume et des options ci-dessous.</p>
+    </div>
+    ${(f.options || []).length ? `<div class="panneau mt">
+      <strong class="petit">Options de croissance</strong>
+      ${f.options.map(o => `<div class="ligne-fonction${o.ouverte?'':' bloquee'}" style="margin-top:7px">
+        <span>${ech(o.nom.fr)}<br><span class="petit muet" style="font-weight:500">${ech(o.aide.fr)}</span></span>
+        <strong class="petit">${o.ouverte ? '✅ Incluse' : '🔒 Pro'}</strong></div>`).join('')}
+      ${f.options.some(o => !o.ouverte)
+        ? '<p class="aide mt">Ces options s\'ouvrent avec le forfait Pro, ci-dessous.</p>' : ''}
     </div>` : ''}`;
 }
 
@@ -2001,10 +2149,19 @@ async function confirmerA2F(){
     await api('/api/moi/a2f/activer','POST',{ defi: defiA2F, code });
     toast('Vérification en deux étapes activée.');
     chargerA2F();
+  } catch(e){ toast(e.message); }
+}
+
+/* Initialisation des encarts des Paramètres. Ce bloc s'était retrouvé
+   à l'intérieur de confirmerA2F() : le code QR, la fréquentation, les
+   notifications, le rythme des créneaux et les réseaux sociaux ne se
+   chargeaient donc jamais à l'ouverture de la page — seulement après
+   l'activation de la double authentification. */
+function initParametres(){
   chargerPush();
   chargerQR();
   chargerVues();
-  // Rythme et réseaux
+  // Rythme des rendez-vous et réseaux sociaux
   const selPas = document.getElementById('iPas');
   if (selPas) {
     selPas.value = String(ent.pasCreneaux || 0);
@@ -2014,7 +2171,6 @@ async function confirmerA2F(){
   }
   RESEAUX = (ent.reseaux || []).map(x => ({...x}));
   dessinerReseaux(); majChoixReseau();
-  } catch(e){ toast(e.message); }
 }
 async function desactiverA2F(){
   const mdp = prompt('Saisissez votre mot de passe pour désactiver la vérification :');
@@ -2024,38 +2180,28 @@ async function desactiverA2F(){
   } catch(e){ toast(e.message); }
 }
 
-// ===== Modules choisis par l'entreprise =====
+// ===== Fonctions ouvertes par le métier (lecture seule) =====
 const LIB_MODULES = {
   rdv:{lib:'Rendez-vous et calendrier',ico:'🗓'}, equipe:{lib:'Équipe',ico:'👥'},
   hotellerie:{lib:'Chambres et séjours',ico:'🛏️'}, carte:{lib:'Restaurant et bar',ico:'🍽️'},
   catalogue:{lib:'Catalogue produits',ico:'🛒'}, commandes:{lib:'Commandes et livraison',ico:'📦'}, inscriptions:{lib:'Programmes et inscriptions',ico:'🎓'},
   dossiers:{lib:'Suivi de dossiers',ico:'📁'}, urgences:{lib:'Service d\'urgence',ico:'🚨'}
 };
+/* Liste informative : ce que votre métier ouvre. Rien à cocher —
+   les cases d'avant laissaient une entreprise se couper elle-même
+   de sa fonction principale. */
 function dessinerModules(){
-  const dispo = ent.modulesDisponibles || Object.keys(LIB_MODULES);
-  const actifs = new Set(ent.modulesActifs || []);
-  const duMetier = new Set(ent.modulesMetier || []);
-  document.getElementById('listeModules').innerHTML = dispo.map(m => {
+  const z = document.getElementById('listeModules');
+  if (!z) return;
+  const actifs = ent.modulesActifs || [];
+  const verrouilles = new Set(ent.modulesVerrouilles || []);
+  z.innerHTML = actifs.map(m => {
     const l = LIB_MODULES[m] || { lib: m, ico: '•' };
-    return `<label class="equip-case${actifs.has(m)?' on':''}">
-      <input type="checkbox" data-module="${m}"${actifs.has(m)?' checked':''}
-             onchange="this.closest('.equip-case').classList.toggle('on', this.checked)">
-      <span>${l.ico} ${l.lib}${duMetier.has(m)?'':' <span class="petit muet">(hors métier)</span>'}</span></label>`;
+    const bloque = verrouilles.has(m);
+    return `<div class="ligne-fonction${bloque?' bloquee':''}">
+      <span>${l.ico} ${l.lib}</span>
+      <strong class="petit">${bloque ? '🔒 Forfait supérieur' : '✅ Ouvert'}</strong></div>`;
   }).join('');
-}
-async function enregistrerModules(){
-  const dispo = ent.modulesDisponibles || [];
-  const duMetier = new Set(ent.modulesMetier || []);
-  const coches = new Set([...document.querySelectorAll('#listeModules input:checked')].map(i => i.dataset.module));
-  // On enregistre les écarts par rapport au métier, pas la liste brute
-  const modulesOff = dispo.filter(m => duMetier.has(m) && !coches.has(m));
-  const modulesOn  = dispo.filter(m => !duMetier.has(m) && coches.has(m));
-  try {
-    await api('/api/mon-entreprise','PUT',{ modulesOff, modulesOn });
-    ent = await api('/api/mon-entreprise');
-    appliquerMetier(); dessinerModules();
-    toast('Fonctionnalités mises à jour.');
-  } catch(e){ toast(e.message); }
 }
 
 // ===== Métier : vocabulaire, modules et champs =====
@@ -2106,6 +2252,8 @@ function appliquerMetier(){
   // 3) Champs propres au métier
   dessinerChampsMetier();
   dessinerModules();
+  initParametres();
+  if (typeof initCompta === 'function') initCompta();
   chargerAbonnement();
   chargerFonctions();
   chargerFinancement();
@@ -2365,6 +2513,7 @@ async function chargerCommandes(){
           <span class="badge ${STATUTS_CMD[c.statut].badge}" style="margin-left:6px">${STATUTS_CMD[c.statut].lib}</span>
           <span class="badge badge-gris" style="margin-left:4px">${c.mode==='livraison'?'🛵 Livraison':'🏪 Retrait'}</span>
           <span class="badge ${c.paye?'badge-vert':'badge-orange'}" style="margin-left:4px">${c.paye?'💳 Payée':'À encaisser'}</span>
+          ${c.precommande?`<span class="badge badge-violet" style="margin-left:4px">⏳ Précommande${c.dateDispo?` · ${ech(dateCourte(c.dateDispo,'fr'))}`:''}</span>`:''}
           ${c.taksi?`<span class="badge badge-violet" style="margin-left:4px">🚕 Taksi ${c.taksi.mode==='api'?'envoyée':'à transmettre'}</span>`:''}
           <p class="petit muet" style="margin-top:5px">
             👤 ${ech(c.clientNom)} · <a href="https://wa.me/${String(c.clientTel).replace(/\D/g,'')}" target="_blank" rel="noopener">${ech(c.clientTel)}</a>
@@ -2376,7 +2525,8 @@ async function chargerCommandes(){
             ${c.message?`<br>💬 ${ech(c.message)}`:''}
           </p>
           <table style="margin-top:8px">
-            ${c.lignes.map(l => `<tr><td class="petit">${ech(l.nom)} ${l.unite?`<span class="muet">(${ech(l.unite)})</span>`:''}</td>
+            ${c.lignes.map(l => `<tr><td class="petit">${ech(l.nom)} ${l.unite?`<span class="muet">(${ech(l.unite)})</span>`:''}${
+              l.precommande?` <span class="badge badge-violet" style="font-size:11px">⏳ précommande</span>`:''}</td>
               <td class="petit num">×${l.quantite}</td>
               <td class="petit num">${(+l.total).toLocaleString('fr-HT')} HTG</td></tr>`).join('')}
             ${c.frais?`<tr><td class="petit muet">Livraison${c.zone?` — ${ech(c.zone)}`:''}</td><td></td><td class="petit num">${(+c.frais).toLocaleString('fr-HT')} HTG</td></tr>`:''}
@@ -2390,10 +2540,20 @@ async function chargerCommandes(){
       <div class="flex mt" style="gap:6px;flex-wrap:wrap">
         ${suivant?`<button class="btn btn-primaire btn-petit" onclick="statutCommande('${c.id}','${suivant}')">→ ${STATUTS_CMD[suivant].lib}</button>`:''}
         ${c.mode==='livraison'&&c.statut!=='annulee'&&c.statut!=='livree'?`<button class="btn btn-contour btn-petit" onclick="envoyerTaksi('${c.id}')">🚕 Livrer avec Taksi Konekte</button>`:''}
+        ${!c.paye&&c.statut!=='annulee'&&c.paiement!=='enligne'?`<button class="btn btn-succes btn-petit" onclick="encaisserCommande('${c.id}')">💵 J'ai reçu l'argent</button>`:''}
         ${c.statut!=='annulee'&&c.statut!=='livree'?`<button class="btn btn-danger btn-petit" onclick="statutCommande('${c.id}','annulee')">Annuler</button>`:''}
       </div>
     </div>`;
   }).join('');
+}
+/* Constat d'un encaissement en espèces. C'est ce geste qui fait
+   entrer la vente en comptabilité : sans lui, la commande reste
+   « à encaisser » et le résultat du mois est faux. */
+async function encaisserCommande(id){
+  try { await api('/api/mon-entreprise/commandes/'+id,'PUT',{paye:true});
+    toast('Encaissement enregistré. La vente entre en comptabilité.');
+    chargerCommandes();
+  } catch(e){ toast(e.message); }
 }
 async function statutCommande(id, statut){
   if (statut === 'annulee' && !confirm('Annuler cette commande ? Le stock sera restitué.')) return;
@@ -2521,9 +2681,12 @@ async function chargerCatalogue(){
             <strong style="min-width:28px;text-align:center;${rupture?'color:var(--rouge)':(bas2?'color:var(--orange)':'')}">${p.stock}</strong>
             <button class="btn btn-fantome btn-petit" onclick="mouvementStock('${p.id}',1)">+</button>
           </div>`}</td>
-        <td>${rupture ? '<span class="badge badge-rouge">Épuisé</span>'
+        <td>${!p.disponible ? '<span class="badge badge-gris">Retiré</span>'
+              : p.bientot ? `<span class="badge badge-violet">Bientôt${p.dateDispo?` · ${ech(dateCourte(p.dateDispo,'fr'))}`:''}</span>`
+              : rupture ? '<span class="badge badge-rouge">Fini</span>'
               : bas2 ? '<span class="badge badge-orange">Stock bas</span>'
-              : p.disponible ? '<span class="badge badge-vert">En vente</span>' : '<span class="badge badge-gris">Retiré</span>'}</td>
+              : '<span class="badge badge-vert">En vente</span>'}
+          ${p.precommande ? '<br><span class="petit muet">précommande ouverte</span>' : ''}</td>
         <td class="flex" style="gap:6px">
           <button class="btn btn-fantome btn-petit" onclick='ouvrirProduit(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
           <button class="btn btn-fantome btn-petit" onclick="basculerProduit('${p.id}',${!p.disponible})" title="${p.disponible?'Retirer de la vente':'Remettre en vente'}">${p.disponible?'🚫':'✅'}</button>
@@ -2546,10 +2709,31 @@ function ouvrirProduit(p){
   document.getElementById('zoneStock').style.display = suivi ? '' : 'none';
   prStock.value = p && p.stock !== null ? p.stock : 0;
   prSeuil.value = p?p.seuilAlerte:5;
+  const bientot = !!(p && p.bientot);
+  prBientot.checked = bientot;
+  prBientot.closest('.equip-case').classList.toggle('on', bientot);
+  prDateDispo.value = p ? (p.dateDispo || '') : '';
+  const pre = !!(p && p.precommande);
+  prPrecommande.checked = pre;
+  prPrecommande.closest('.equip-case').classList.toggle('on', pre);
+  majZoneAvenir();
   document.getElementById('prPhoto').value = '';
   prVideo.value = p ? (p.video || '') : '';
   dessinerPhotosProduit();
   document.getElementById('voileProduit').classList.add('ouvert');
+}
+/* La date d'arrivée n'a de sens que pour un produit annoncé ; et la
+   précommande n'est réellement proposée au client que si le forfait
+   l'ouvre — autant le dire ici plutôt que de le découvrir après coup. */
+function majZoneAvenir(){
+  const z = document.getElementById('zoneAvenir');
+  if (z) z.style.display = prBientot.checked ? '' : 'none';
+  const aide = document.getElementById('aidePrecommande');
+  const ouverte = (ent.options || []).some(o => o.cle === 'precommandes' && o.ouverte);
+  if (aide && !ouverte) {
+    aide.innerHTML = '🔒 Les précommandes sont comprises dans le forfait Pro. Vous pouvez cocher dès maintenant : la fonction s\'activera au changement de forfait.';
+    aide.style.color = 'var(--orange)';
+  }
 }
 function dessinerPhotosProduit(){
   const z = document.getElementById('prApercu');
@@ -2589,7 +2773,10 @@ async function enregistrerProduit(){
     unite:prUnite.value.trim(), reference:prRef.value.trim(),
     photos:photosProduit, video:prVideo.value.trim(),
     stock: prSuiviStock.checked ? (+prStock.value||0) : null,
-    seuilAlerte: +prSeuil.value||0 };
+    seuilAlerte: +prSeuil.value||0,
+    bientot: prBientot.checked,
+    dateDispo: prBientot.checked ? prDateDispo.value : '',
+    precommande: prPrecommande.checked };
   if (!corps.nom || !(corps.prix > 0)) { toast('Nom et prix obligatoires.'); return; }
   if (corps.prixPromo && corps.prixPromo >= corps.prix) { toast('Le prix promotionnel doit être inférieur au prix normal.'); return; }
   try {
@@ -3165,5 +3352,8 @@ async function basculerNotifs(){
 demarrer();
 setInterval(()=>{ chargerNotifs(); chargerRdv(); }, 20000); // actualisation automatique
 </script>
+<!-- La comptabilité vit dans son propre fichier : le tableau de bord
+     est déjà long, et ce module a sa logique à lui. -->
+<script src="/compta.js"></script>
 </body>
 </html>

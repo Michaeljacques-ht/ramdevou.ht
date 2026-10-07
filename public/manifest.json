@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Biznis Konekte — Rendez-vous et vente en ligne",
-  "short_name": "Biznis Konekte",
+  "name": "Konekte — Rendez-vous et vente en ligne",
+  "short_name": "Konekte",
   "description": "Konekte kliyan ak biznis yo. Prenez rendez-vous, réservez une chambre et achetez auprès des commerçants haïtiens.",
   "lang": "fr",
   "dir": "ltr",
@@ -29,7 +29,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icone-192.png",
+      "src": "/icone-192-maskable.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"

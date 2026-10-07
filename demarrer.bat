@@ -1,7 +1,7 @@
 @echo off
-title Randevou.ht - Serveur
+title Konekte - Serveur
 echo ==================================================
-echo   RANDEVOU.HT - Demarrage du serveur...
+echo   KONEKTE - Demarrage du serveur...
 echo ==================================================
 node server.js
 pause

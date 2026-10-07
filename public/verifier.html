@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vérification d'un paiement — Biznis Konekte</title>
+<title>Vérification d'un paiement — Konekte</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -32,7 +32,7 @@ body { background: var(--fond); min-height: 100vh; display: grid; place-items: c
 </head>
 <body>
 <div class="boite">
-  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Biznis Konekte" style="height:70px;width:auto"></a></div>
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:70px;width:auto"></a></div>
   <div id="resultat"><p class="centre muet">Vérification en cours…</p></div>
   <p class="petit centre mt"><a href="/">← Retour à l'accueil</a></p>
 </div>
@@ -85,7 +85,7 @@ function bloc(classe, icone, titre, montant, sous){
         <div class="ligne"><span>Date</span><span>${new Date(d.le).toLocaleString('fr-HT')}</span></div>
         ${d.transaction ? `<div class="ligne"><span>Transaction</span><span class="petit">${ech(d.transaction)}</span></div>` : ''}
       </div>
-      <p class="aide centre mt">Ces informations proviennent du serveur Biznis Konekte, pas du reçu lui-même.</p>`;
+      <p class="aide centre mt">Ces informations proviennent du serveur Konekte, pas du reçu lui-même.</p>`;
 })();
 </script>
 </body>
